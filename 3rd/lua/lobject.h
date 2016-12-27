@@ -94,7 +94,7 @@ struct GCObject {
 ** an actual value plus a tag with its type.
 */
 
-/*
+/* 定义了以下类型，其中需要动态分配、自动释放的统为GCObject
 ** Union of all Lua values
 */
 typedef union Value {

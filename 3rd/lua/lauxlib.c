@@ -1015,9 +1015,11 @@ static int panic (lua_State *L) {
 }
 
 
+/* 用于初始化Lua状态机，创建主lua_State以及全局global_State */
 LUALIB_API lua_State *luaL_newstate (void) {
-  lua_State *L = lua_newstate(l_alloc, NULL);
-  if (L) lua_atpanic(L, &panic);
+  lua_State *L = lua_newstate(l_alloc, NULL);/*  */
+  if (L)
+	  lua_atpanic(L, &panic);
   return L;
 }
 

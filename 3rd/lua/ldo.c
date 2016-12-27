@@ -132,10 +132,10 @@ l_noret luaD_throw (lua_State *L, int errcode) {
   }
 }
 
-
+/* 受保护函数运行 */
 int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
   unsigned short oldnCcalls = L->nCcalls;
-  struct lua_longjmp lj;
+  struct lua_longjmp lj;/* 函数跳转点信息 */
   lj.status = LUA_OK;
   lj.previous = L->errorJmp;  /* chain new error handler */
   L->errorJmp = &lj;

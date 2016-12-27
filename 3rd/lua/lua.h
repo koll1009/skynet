@@ -56,7 +56,7 @@
 typedef struct lua_State lua_State;
 
 
-/*
+/* 基本数据类型
 ** basic types
 */
 #define LUA_TNONE		(-1)
@@ -238,6 +238,8 @@ LUA_API int   (lua_pushthread) (lua_State *L);
 /*
 ** get functions (Lua -> stack)
 */
+
+/*  */
 LUA_API int (lua_getglobal) (lua_State *L, const char *name);
 LUA_API int (lua_gettable) (lua_State *L, int idx);
 LUA_API int (lua_getfield) (lua_State *L, int idx, const char *k);

@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <assert.h>
 
+/*  */
 static int
 optint(const char *key, int opt) {
 	const char * str = skynet_getenv(key);

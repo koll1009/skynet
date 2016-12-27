@@ -78,15 +78,18 @@ typedef struct LG {
   { size_t t = cast(size_t, e); \
     memcpy(b + p, &t, sizeof(t)); p += sizeof(t); }
 
+/* make随机数种子数 */
 static unsigned int makeseed (lua_State *L) {
   char buff[4 * sizeof(size_t)];
-  unsigned int h = luai_makeseed();
+  unsigned int h = luai_makeseed();/* 时间值 */
   int p = 0;
   addbuff(buff, p, L);  /* heap variable */
   addbuff(buff, p, &h);  /* local variable */
   addbuff(buff, p, luaO_nilobject);  /* global variable */
   addbuff(buff, p, &lua_newstate);  /* public function */
   lua_assert(p == sizeof(buff));
+
+  /* 使用主线程地址值、时间值、nil地址值、状态机初始化函数地址值哈希变换做为随机种子数 */
   return luaS_hash(buff, p, h);
 }
 
@@ -292,12 +295,14 @@ void luaE_freethread (lua_State *L, lua_State *L1) {
 }
 
 
+/* 状态机初始化函数，创建global_state以及主线程 */
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   int i;
   lua_State *L;
   global_State *g;
-  LG *l = cast(LG *, (*f)(ud, NULL, LUA_TTHREAD, sizeof(LG)));
-  if (l == NULL) return NULL;
+  LG *l = cast(LG *, (*f)(ud, NULL, LUA_TTHREAD, sizeof(LG)));/* 分配内存 */
+  if (l == NULL) 
+	  return NULL;
   L = &l->l.l;
   g = &l->g;
   L->next = NULL;
@@ -305,10 +310,10 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->currentwhite = bitmask(WHITE0BIT);
   L->marked = luaC_white(g);
   preinit_thread(L, g);
-  g->frealloc = f;
+  g->frealloc = f;/* 内存分配函数 */
   g->ud = ud;
   g->mainthread = L;
-  g->seed = makeseed(L);
+  g->seed = makeseed(L);/* 设置随机数种子 */
   g->gcrunning = 0;  /* no GC while building state */
   g->GCestimate = 0;
   g->strt.size = g->strt.nuse = 0;
@@ -328,7 +333,8 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->gcfinnum = 0;
   g->gcpause = LUAI_GCPAUSE;
   g->gcstepmul = LUAI_GCMUL;
-  for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
+  for (i=0; i < LUA_NUMTAGS; i++)
+	  g->mt[i] = NULL;
   if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {
     /* memory allocation error: free partial state */
     close_state(L);
