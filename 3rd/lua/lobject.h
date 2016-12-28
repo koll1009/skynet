@@ -62,7 +62,7 @@
 /* Bit mark for collectable types */
 #define BIT_ISCOLLECTABLE	(1 << 6)
 
-/* mark a tag as collectable */
+/* mark a tag as collectable 动态回收标记 */
 #define ctb(t)			((t) | BIT_ISCOLLECTABLE)
 
 

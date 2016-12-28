@@ -151,16 +151,17 @@ void luaE_shrinkCI (lua_State *L) {
 }
 
 
+/* 初始化栈 */
 static void stack_init (lua_State *L1, lua_State *L) {
   int i; CallInfo *ci;
   /* initialize stack array */
-  L1->stack = luaM_newvector(L, BASIC_STACK_SIZE, TValue);
+  L1->stack = luaM_newvector(L, BASIC_STACK_SIZE, TValue);/* 为栈分配空间，栈的基本类型为TValue，默认大小为40 */
   L1->stacksize = BASIC_STACK_SIZE;
   for (i = 0; i < BASIC_STACK_SIZE; i++)
     setnilvalue(L1->stack + i);  /* erase new stack */
   L1->top = L1->stack;
   L1->stack_last = L1->stack + L1->stacksize - EXTRA_STACK;
-  /* initialize first ci */
+  /* initialize first ci，栈的第一个元素用于初始化1个空的ci */
   ci = &L1->base_ci;
   ci->next = ci->previous = NULL;
   ci->callstatus = 0;
@@ -181,7 +182,8 @@ static void freestack (lua_State *L) {
 }
 
 
-/*
+/* 初始化注册表，array部分有俩个元素，index 0处为主线程的地址，
+** index 1处为全局向量表
 ** Create registry table and its predefined values
 */
 static void init_registry (lua_State *L, global_State *g) {
@@ -199,7 +201,7 @@ static void init_registry (lua_State *L, global_State *g) {
 }
 
 
-/*
+/* 状态机初始化中涉及内存分配部分
 ** open parts of the state that may cause memory-allocation errors.
 ** ('g->version' != NULL flags that the state was completely build)
 */
@@ -207,9 +209,9 @@ static void f_luaopen (lua_State *L, void *ud) {
   global_State *g = G(L);
   UNUSED(ud);
   stack_init(L, L);  /* init stack */
-  init_registry(L, g);
-  luaS_init(L);
-  luaT_init(L);
+  init_registry(L, g);/* 注册表 */
+  luaS_init(L);/* 字符串表 */
+  luaT_init(L);/*  */
   luaX_init(L);
   g->gcrunning = 1;  /* allow gc */
   g->version = lua_version(NULL);

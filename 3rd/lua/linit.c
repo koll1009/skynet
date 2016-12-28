@@ -35,11 +35,11 @@
 #include "lauxlib.h"
 
 
-/*
+/* 预加载的库
 ** these libs are loaded by lua.c and are readily available to any Lua
 ** program
 */
-static const luaL_Reg loadedlibs[] = {
+static const luaL_Reg loadedlibs[] = {/* 库名，库加载函数 */
   {"_G", luaopen_base},
   {LUA_LOADLIBNAME, luaopen_package},
   {LUA_COLIBNAME, luaopen_coroutine},
@@ -57,6 +57,7 @@ static const luaL_Reg loadedlibs[] = {
 };
 
 
+/* 加载基础库 */
 LUALIB_API void luaL_openlibs (lua_State *L) {
   const luaL_Reg *lib;
   /* "require" functions from 'loadedlibs' and set results to global table */

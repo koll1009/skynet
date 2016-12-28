@@ -66,7 +66,7 @@ static void save (LexState *ls, int c) {
   b->buffer[luaZ_bufflen(b)++] = cast(char, c);
 }
 
-
+/* 词法分析关键字初始化 */
 void luaX_init (lua_State *L) {
   int i;
   TString *e = luaS_newliteral(L, LUA_ENV);  /* create env name */

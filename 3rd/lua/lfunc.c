@@ -21,9 +21,9 @@
 #include "lstate.h"
 
 
-
+/* 创建C Closure */
 CClosure *luaF_newCclosure (lua_State *L, int n) {
-  GCObject *o = luaC_newobj(L, LUA_TCCL, sizeCclosure(n));
+  GCObject *o = luaC_newobj(L, LUA_TCCL, sizeCclosure(n));/* 在CClosure末端添加n-1个TValue，实现UpValue数量的动态化 */
   CClosure *c = gco2ccl(o);
   c->nupvalues = cast_byte(n);
   return c;

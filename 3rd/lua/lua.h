@@ -79,7 +79,7 @@ typedef struct lua_State lua_State;
 #define LUA_MINSTACK	20
 
 
-/* predefined values in the registry */
+/* predefined values in the registry×¢²á±íÓÐ */
 #define LUA_RIDX_MAINTHREAD	1
 #define LUA_RIDX_GLOBALS	2
 #define LUA_RIDX_LAST		LUA_RIDX_GLOBALS

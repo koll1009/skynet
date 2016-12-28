@@ -491,14 +491,14 @@ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
 }
 
 
-/*
+/* 检索，key为integer类型
 ** search function for integers
 */
 const TValue *luaH_getint (Table *t, lua_Integer key) {
   /* (1 <= key && key <= t->sizearray) */
-  if (l_castS2U(key) - 1 < t->sizearray)
+  if (l_castS2U(key) - 1 < t->sizearray)/* key小于array的size，则从array部分取值 */
     return &t->array[key - 1];
-  else {
+  else {/* 从哈希中检索 */
     Node *n = hashint(t, key);
     for (;;) {  /* check whether 'key' is somewhere in the chain */
       if (ttisinteger(gkey(n)) && ivalue(gkey(n)) == key)

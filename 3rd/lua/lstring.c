@@ -46,9 +46,10 @@ int luaS_eqlngstr (TString *a, TString *b) {
 }
 
 
+/* 哈希值算法 */
 unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
   unsigned int h = seed ^ cast(unsigned int, l);
-  size_t step = (l >> LUAI_HASHLIMIT) + 1;
+  size_t step = (l >> LUAI_HASHLIMIT) + 1;/* 确保循环计算次数不超过2^LUAI_HASHLIMIT */
   for (; l >= step; l -= step)
     h ^= ((h<<5) + (h>>2) + cast_byte(str[l - 1]));
   return h;
@@ -65,7 +66,7 @@ unsigned int luaS_hashlongstr (TString *ts) {
 }
 
 
-/*
+/* 
 ** resizes the string table
 */
 void luaS_resize (lua_State *L, int newsize) {
@@ -82,7 +83,7 @@ void luaS_resize (lua_State *L, int newsize) {
     while (p) {  /* for each node in the list */
       TString *hnext = p->u.hnext;  /* save next */
       unsigned int h = lmod(p->hash, newsize);  /* new position */
-      p->u.hnext = tb->hash[h];  /* chain it */
+      p->u.hnext = tb->hash[h];  /* chain it，前端插入 */
       tb->hash[h] = p;
       p = hnext;
     }
@@ -117,6 +118,7 @@ void luaS_init (lua_State *L) {
   global_State *g = G(L);
   int i, j;
   luaS_resize(L, MINSTRTABSIZE);  /* initial size of string table */
+
   /* pre-create memory-error message */
   g->memerrmsg = luaS_newliteral(L, MEMERRMSG);
   luaC_fix(L, obj2gco(g->memerrmsg));  /* it should never be collected */
@@ -127,7 +129,7 @@ void luaS_init (lua_State *L) {
 
 
 
-/*
+/* 
 ** creates a new string object
 */
 static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {
@@ -161,7 +163,7 @@ void luaS_remove (lua_State *L, TString *ts) {
 }
 
 
-/*
+/* 搜索字符串表，返回NULL表示未创建
 ** checks whether short string exists and reuses it or creates a new one
 */
 static TString *queryshrstr (lua_State *L, const char *str, size_t l, unsigned int h) {
@@ -173,6 +175,7 @@ static TString *queryshrstr (lua_State *L, const char *str, size_t l, unsigned i
     if (l == ts->shrlen &&
         (memcmp(str, getstr(ts), l * sizeof(char)) == 0)) {
       /* found! */
+
       if (isdead(g, ts))  /* dead (but not collected yet)? */
         changewhite(ts);  /* resurrect it */
       return ts;
@@ -181,17 +184,18 @@ static TString *queryshrstr (lua_State *L, const char *str, size_t l, unsigned i
   return NULL;
 }
 
+/* add short TString */
 static TString *addshrstr (lua_State *L, const char *str, size_t l, unsigned int h) {
   TString *ts;
   global_State *g = G(L);
   TString **list = &g->strt.hash[lmod(h, g->strt.size)];
-  if (g->strt.nuse >= g->strt.size && g->strt.size <= MAX_INT/2) {
+  if (g->strt.nuse >= g->strt.size && g->strt.size <= MAX_INT/2) {/* 字符串表已满，扩充 */
     luaS_resize(L, g->strt.size * 2);
     list = &g->strt.hash[lmod(h, g->strt.size)];  /* recompute with new size */
   }
   ts = createstrobj(L, l, LUA_TSHRSTR, h);
-  memcpy(getstr(ts), str, l * sizeof(char));
-  ts->shrlen = cast_byte(l);
+  memcpy(getstr(ts), str, l * sizeof(char));/* copy串 */
+  ts->shrlen = cast_byte(l);/* 前端插入 */
   ts->u.hnext = *list;
   *list = ts;
   g->strt.nuse++;
@@ -200,7 +204,7 @@ static TString *addshrstr (lua_State *L, const char *str, size_t l, unsigned int
 
 static TString *internshrstr (lua_State *L, const char *str, size_t l);
 
-/*
+/* @l:字符串的长度
 ** new string (with explicit length)
 */
 TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
@@ -277,6 +281,7 @@ struct shrmap {
 
 static struct shrmap SSM;
 
+
 LUA_API void
 luaS_initshr() {
 	struct shrmap * s = &SSM;
@@ -299,6 +304,7 @@ luaS_exitshr() {
 	}
 }
 
+/* 在SSM中搜索TString */
 static TString *
 query_string(unsigned int h, const char *str, lu_byte l) {
 	struct shrmap_slot *s = &SSM.h[HASH_NODE(h)];
@@ -371,14 +377,16 @@ add_string(unsigned int h, const char *str, lu_byte l) {
 	return ts;
 }
 
+
+/* 对于所有short TString，统一由global_state里的stringtable管理，只管理一个副本 */
 static TString *
 internshrstr (lua_State *L, const char *str, size_t l) {
   TString *ts;
   global_State *g = G(L);
-  unsigned int h = luaS_hash(str, l, g->seed);
+  unsigned int h = luaS_hash(str, l, g->seed);/* 计算哈希值 */
   unsigned int h0;
   // lookup global state of this L first
-  ts = queryshrstr (L, str, l, h);
+  ts = queryshrstr (L, str, l, h);/* 搜索stringtable */
   if (ts)
     return ts;
   // lookup SSM again

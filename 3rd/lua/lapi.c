@@ -57,7 +57,12 @@ const char lua_ident[] =
 #define api_checkstackindex(l, i, o)  \
 	api_check(l, isstackindex(i, o), "index not in the stack")
 
-
+/* 取索引idx处的TValue，分四种情况
+** 1:idx>0,取当前调用函数的第idx个参数
+** 2：LUA_REGISTRYINDEX<idx<=0,栈顶往前移动idx个位置处的内容
+** 3：LUA_REGISTRYINDEX==idx，取注册表
+** 4：idx<LUA_REGISTRYINDEX，取当前C Closure的UpValue
+*/
 static TValue *index2addr (lua_State *L, int idx) {
   CallInfo *ci = L->ci;
   if (idx > 0) {
@@ -141,11 +146,13 @@ LUA_API lua_CFunction lua_atpanic (lua_State *L, lua_CFunction panicf) {
   return old;
 }
 
-
+/* 取版本号 */
 LUA_API const lua_Number *lua_version (lua_State *L) {
   static const lua_Number version = LUA_VERSION_NUM;
-  if (L == NULL) return &version;
-  else return G(L)->version;
+  if (L == NULL) 
+	  return &version;
+  else 
+	  return G(L)->version;
 }
 
 
@@ -530,9 +537,10 @@ LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
 }
 
 
+/* C Closure压入栈 */
 LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
   lua_lock(L);
-  if (n == 0) {
+  if (n == 0) {/*  */
     setfvalue(L->top, fn);
   }
   else {
@@ -585,6 +593,7 @@ LUA_API int lua_pushthread (lua_State *L) {
 */
 
 
+/*  */
 static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
   const TValue *slot;
   TString *str = luaS_new(L, k);
@@ -601,7 +610,8 @@ static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
   return ttnov(L->top - 1);
 }
 
-/*  */
+
+/* 从全局表中检索key为name的结点 */
 LUA_API int lua_getglobal (lua_State *L, const char *name) {
   Table *reg = hvalue(&G(L)->l_registry);
   lua_lock(L);
@@ -655,6 +665,7 @@ LUA_API int lua_rawget (lua_State *L, int idx) {
 }
 
 
+/* 只从idx处表示的table里搜索，与lua_geti的区别在于后者在table里搜索不到的情况下，会搜索metatable*/
 LUA_API int lua_rawgeti (lua_State *L, int idx, lua_Integer n) {
   StkId t;
   lua_lock(L);
@@ -663,7 +674,7 @@ LUA_API int lua_rawgeti (lua_State *L, int idx, lua_Integer n) {
   setobj2s(L, L->top, luaH_getint(hvalue(t), n));
   api_incr_top(L);
   lua_unlock(L);
-  return ttnov(L->top - 1);
+  return ttnov(L->top - 1);/* 返回类型 */
 }
 
 

@@ -483,6 +483,7 @@ static const luaL_Reg base_funcs[] = {
 };
 
 
+/* »ù´¡¿â */
 LUAMOD_API int luaopen_base (lua_State *L) {
   /* open lib into global table */
   lua_pushglobaltable(L);
