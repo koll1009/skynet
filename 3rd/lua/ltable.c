@@ -112,7 +112,7 @@ static int l_hashfloat (lua_Number n) {
 #endif
 
 
-/*
+/* 返回key对应的哈希值映射到table的位置
 ** returns the 'main' position of an element in a table (that is, the index
 ** of its hash value)
 */
@@ -514,7 +514,7 @@ const TValue *luaH_getint (Table *t, lua_Integer key) {
 }
 
 
-/*
+/* key为short TString
 ** search function for short strings
 */
 const TValue *luaH_getshortstr (Table *t, TString *key) {
@@ -534,7 +534,7 @@ const TValue *luaH_getshortstr (Table *t, TString *key) {
 }
 
 
-/*
+/* 通用get方法
 ** "Generic" get version. (Not that generic: not valid for integers,
 ** which may be in array part, nor for floats with integral values.)
 */
@@ -553,6 +553,7 @@ static const TValue *getgeneric (Table *t, const TValue *key) {
 }
 
 
+/* 检索，key为TString类型 */
 const TValue *luaH_getstr (Table *t, TString *key) {
   if (key->tt == LUA_TSHRSTR)
     return luaH_getshortstr(t, key);

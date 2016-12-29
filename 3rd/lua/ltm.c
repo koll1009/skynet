@@ -52,7 +52,7 @@ void luaT_init (lua_State *L) {
 }
 
 
-/*
+/* 获取元方法
 ** function to be used with macro "fasttm": optimized for absence of
 ** tag methods
 */
@@ -67,9 +67,10 @@ const TValue *luaT_gettm (Table *events, TMS event, TString *ename) {
 }
 
 
+/* 获取对象o元表里对应事件envnt的元方法 */
 const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o, TMS event) {
   Table *mt;
-  switch (ttnov(o)) {
+  switch (ttnov(o)) {/* get元表 */
     case LUA_TTABLE:
       mt = hvalue(o)->metatable;
       break;

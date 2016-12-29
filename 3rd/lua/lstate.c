@@ -309,7 +309,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g = &l->g;
   L->next = NULL;
   L->tt = LUA_TTHREAD;
-  g->currentwhite = bitmask(WHITE0BIT);
+  g->currentwhite = bitmask(WHITE0BIT);/* 白色标记，用于自动回收 */
   L->marked = luaC_white(g);
   preinit_thread(L, g);
   g->frealloc = f;/* 内存分配函数 */

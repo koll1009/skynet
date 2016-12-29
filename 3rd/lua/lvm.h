@@ -48,7 +48,7 @@
 #define luaV_rawequalobj(t1,t2)		luaV_equalobj(NULL,t1,t2)
 
 
-/*
+/* 当t为table，且key为k的node存在的情况下返回true
 ** fast track for 'gettable': if 't' is a table and 't[k]' is not nil,
 ** return 1 with 'slot' pointing to 't[k]' (final result).  Otherwise,
 ** return 0 (meaning it will have to check metamethod) with 'slot'

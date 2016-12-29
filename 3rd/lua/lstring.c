@@ -56,6 +56,7 @@ unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
 }
 
 
+/* long TString求哈希值 */
 unsigned int luaS_hashlongstr (TString *ts) {
   lua_assert(ts->tt == LUA_TLNGSTR);
   if (ts->extra == 0) {  /* no hash? */
@@ -221,7 +222,7 @@ TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
 }
 
 
-/*
+/* 创建TString
 ** Create or reuse a zero-terminated string, first checking in the
 ** cache (using the string address as a key). The cache can contain
 ** only zero-terminated strings, so it is safe to use 'strcmp' to

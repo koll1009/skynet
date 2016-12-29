@@ -593,11 +593,11 @@ LUA_API int lua_pushthread (lua_State *L) {
 */
 
 
-/*  */
+/* getstr辅助方法 */
 static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
   const TValue *slot;
   TString *str = luaS_new(L, k);
-  if (luaV_fastget(L, t, str, slot, luaH_getstr)) {
+  if (luaV_fastget(L, t, str, slot, luaH_getstr)) {/* 快速检索，如果t为table */
     setobj2s(L, L->top, slot);
     api_incr_top(L);
   }
@@ -615,7 +615,7 @@ static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
 LUA_API int lua_getglobal (lua_State *L, const char *name) {
   Table *reg = hvalue(&G(L)->l_registry);
   lua_lock(L);
-  return auxgetstr(L, luaH_getint(reg, LUA_RIDX_GLOBALS), name);
+  return auxgetstr(L, luaH_getint(reg, LUA_RIDX_GLOBALS), name);/* 从全局表中搜索变量name并返回其类型 */
 }
 
 

@@ -162,7 +162,7 @@ static int forlimit (const TValue *obj, lua_Integer *p, lua_Integer step,
 }
 
 
-/*
+/* 终极get方法
 ** Finish the table access 'val = t[key]'.
 ** if 'slot' is NULL, 't' is not a table; otherwise, 'slot' points to
 ** t[k] entry (which must be nil).
@@ -171,15 +171,15 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
                       const TValue *slot) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
-  for (loop = 0; loop < MAXTAGLOOP; loop++) {
+  for (loop = 0; loop < MAXTAGLOOP; loop++) {/* 设定元表链上限 */
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
-      tm = luaT_gettmbyobj(L, t, TM_INDEX);
+      tm = luaT_gettmbyobj(L, t, TM_INDEX);/* get元方法 */
       if (ttisnil(tm))
         luaG_typeerror(L, t, "index");  /* no metamethod */
       /* else will try the metamethod */
     }
-    else {  /* 't' is a table */
+    else {  /* 't' is a table，but key-value is not in t */
       lua_assert(ttisnil(slot));
       tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
       if (tm == NULL) {  /* no metamethod? */
@@ -192,7 +192,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       luaT_callTM(L, tm, t, key, val, 1);  /* call it */
       return;
     }
-    t = tm;  /* else try to access 'tm[key]' */
+    t = tm;  /* 如果元方法指向table，迭代搜索 else try to access 'tm[key]' */
     if (luaV_fastget(L,t,key,slot,luaH_get)) {  /* fast track? */
       setobj2s(L, val, slot);  /* done */
       return;
