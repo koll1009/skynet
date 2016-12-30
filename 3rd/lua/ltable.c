@@ -401,6 +401,7 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
 */
 
 
+/* 创建一个Table */
 Table *luaH_new (lua_State *L) {
   GCObject *o = luaC_newobj(L, LUA_TTABLE, sizeof(Table));
   Table *t = gco2t(o);

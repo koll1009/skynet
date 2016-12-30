@@ -936,7 +936,7 @@ LUALIB_API void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 }
 
 
-/*
+/* 
 ** ensure that stack[idx][fname] has a table and push that table
 ** into the stack
 */
@@ -954,7 +954,7 @@ LUALIB_API int luaL_getsubtable (lua_State *L, int idx, const char *fname) {
 }
 
 
-/*
+/* 加载库，
 ** Stripped-down 'require': After checking "loaded" table, calls 'openf'
 ** to open a module, registers the result in 'package.loaded' table and,
 ** if 'glb' is true, also registers the result in the global table.
@@ -962,7 +962,7 @@ LUALIB_API int luaL_getsubtable (lua_State *L, int idx, const char *fname) {
 */
 LUALIB_API void luaL_requiref (lua_State *L, const char *modname,
                                lua_CFunction openf, int glb) {
-  luaL_getsubtable(L, LUA_REGISTRYINDEX, "_LOADED");
+  luaL_getsubtable(L, LUA_REGISTRYINDEX, "_LOADED");/* 把_LOADED表压入栈 */
   lua_getfield(L, -1, modname);  /* _LOADED[modname] */
   if (!lua_toboolean(L, -1)) {  /* package not already loaded? */
     lua_pop(L, 1);  /* remove field */
