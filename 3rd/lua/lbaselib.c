@@ -483,16 +483,16 @@ static const luaL_Reg base_funcs[] = {
 };
 
 
-/* 基础库 */
+/* 加载基础库 */
 LUAMOD_API int luaopen_base (lua_State *L) {
   /* open lib into global table */
-  lua_pushglobaltable(L);
-  luaL_setfuncs(L, base_funcs, 0);
+  lua_pushglobaltable(L);/* 压入全局表 */
+  luaL_setfuncs(L, base_funcs, 0);/* 加载全局函数 */
   /* set global _G */
-  lua_pushvalue(L, -1);
+  lua_pushvalue(L, -1); /* _G=_G["_G"] */
   lua_setfield(L, -2, "_G");
   /* set global _VERSION */
-  lua_pushliteral(L, LUA_VERSION);
+  lua_pushliteral(L, LUA_VERSION);/* _G["_VERSION"]=LUA_VERSION */
   lua_setfield(L, -2, "_VERSION");
   return 1;
 }

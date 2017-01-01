@@ -746,7 +746,7 @@ static void createsearcherstable (lua_State *L) {
 }
 
 
-/*
+/* 
 ** create table CLIBS to keep track of loaded C libraries,
 ** setting a finalizer to close all libraries when closing state.
 */
@@ -760,6 +760,7 @@ static void createclibstable (lua_State *L) {
 }
 
 
+/* ¼ÓÔØpackage²Ù×÷¿â */
 LUAMOD_API int luaopen_package (lua_State *L) {
   createclibstable(L);
   luaL_newlib(L, pk_funcs);  /* create 'package' table */

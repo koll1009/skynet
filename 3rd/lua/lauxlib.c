@@ -918,7 +918,7 @@ LUALIB_API void luaL_openlib (lua_State *L, const char *libname,
 #endif
 /* }====================================================== */
 
-/*
+/* 把链表@l里的元素以函数名-函数体的形式插入table中
 ** set functions from list 'l' into table at top - 'nup'; each
 ** function gets the 'nup' elements at the top as upvalues.
 ** Returns with only the table at the stack.

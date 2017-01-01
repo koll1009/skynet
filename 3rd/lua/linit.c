@@ -40,10 +40,10 @@
 ** program
 */
 static const luaL_Reg loadedlibs[] = {/* 库名，库加载函数 */
-  {"_G", luaopen_base},
-  {LUA_LOADLIBNAME, luaopen_package},
-  {LUA_COLIBNAME, luaopen_coroutine},
-  {LUA_TABLIBNAME, luaopen_table},
+  {"_G", luaopen_base},/* 基础库 */
+  {LUA_LOADLIBNAME, luaopen_package},/* 库操作库 */
+  {LUA_COLIBNAME, luaopen_coroutine},/* 协程库 */
+  {LUA_TABLIBNAME, luaopen_table}, 
   {LUA_IOLIBNAME, luaopen_io},
   {LUA_OSLIBNAME, luaopen_os},
   {LUA_STRLIBNAME, luaopen_string},
@@ -57,7 +57,7 @@ static const luaL_Reg loadedlibs[] = {/* 库名，库加载函数 */
 };
 
 
-/* 加载基础库 */
+/* 加载库 */
 LUALIB_API void luaL_openlibs (lua_State *L) {
   const luaL_Reg *lib;
   /* "require" functions from 'loadedlibs' and set results to global table */

@@ -772,6 +772,7 @@ static void auxsetstr (lua_State *L, const TValue *t, const char *k) {
 }
 
 
+/* _G[name]=L->top-1 */
 LUA_API void lua_setglobal (lua_State *L, const char *name) {
   Table *reg = hvalue(&G(L)->l_registry);
   lua_lock(L);  /* unlock done in 'auxsetstr' */

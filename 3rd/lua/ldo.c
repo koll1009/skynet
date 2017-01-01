@@ -492,13 +492,13 @@ static void stackerror (lua_State *L) {
 void luaD_call (lua_State *L, StkId func, int nResults) {
   if (++L->nCcalls >= LUAI_MAXCCALLS)
     stackerror(L);
-  if (!luaD_precall(L, func, nResults))  /* is a Lua function? */
-    luaV_execute(L);  /* call it */
+  if (!luaD_precall(L, func, nResults))  /* c函数调用返回1，lua函数调用返回0 is a Lua function? */
+    luaV_execute(L);  /* call it 执行真正的lua代码 */
   L->nCcalls--;
 }
 
 
-/*
+/* non-yieldable call
 ** Similar to 'luaD_call', but does not allow yields during the call
 */
 void luaD_callnoyield (lua_State *L, StkId func, int nResults) {
