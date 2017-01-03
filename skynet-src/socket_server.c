@@ -31,7 +31,7 @@
 #define SOCKET_TYPE_PACCEPT 7
 #define SOCKET_TYPE_BIND 8
 
-#define MAX_SOCKET (1<<MAX_SOCKET_P)
+#define MAX_SOCKET (1<<MAX_SOCKET_P) /* 2^16 65526 */
 
 #define PRIORITY_HIGH 0
 #define PRIORITY_LOW 1
@@ -70,6 +70,7 @@ struct wb_list {
 	struct write_buffer * tail;
 };
 
+/* Ì×½Ó×ÖÃèÊö·û */
 struct socket {
 	uintptr_t opaque;
 	struct wb_list high;
@@ -89,13 +90,13 @@ struct socket_server {
 	int recvctrl_fd;
 	int sendctrl_fd;
 	int checkctrl;
-	poll_fd event_fd;
+	poll_fd event_fd;/* event poll */
 	int alloc_id;
 	int event_n;
 	int event_index;
 	struct socket_object_interface soi;
 	struct event ev[MAX_EVENT];
-	struct socket slot[MAX_SOCKET];
+	struct socket slot[MAX_SOCKET];/* 65536¸ösocket slot */
 	char buffer[MAX_INFO];
 	uint8_t udpbuffer[MAX_UDP_PACKAGE];
 	fd_set rfds;
@@ -271,6 +272,7 @@ clear_wb_list(struct wb_list *list) {
 	list->tail = NULL;
 }
 
+
 struct socket_server * 
 socket_server_create() {
 	int i;
@@ -296,8 +298,8 @@ socket_server_create() {
 
 	struct socket_server *ss = MALLOC(sizeof(*ss));
 	ss->event_fd = efd;
-	ss->recvctrl_fd = fd[0];
-	ss->sendctrl_fd = fd[1];
+	ss->recvctrl_fd = fd[0];/* pipe read fd */
+	ss->sendctrl_fd = fd[1];/* pipe write fd */
 	ss->checkctrl = 1;
 
 	for (i=0;i<MAX_SOCKET;i++) {

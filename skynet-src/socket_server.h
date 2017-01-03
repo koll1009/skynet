@@ -54,6 +54,8 @@ int64_t socket_server_udp_send(struct socket_server *, int id, const struct sock
 // extract the address of the message, struct socket_message * should be SOCKET_UDP
 const struct socket_udp_address * socket_server_udp_address(struct socket_server *, struct socket_message *, int *addrsz);
 
+
+/*  */
 struct socket_object_interface {
 	void * (*buffer)(void *);
 	int (*size)(void *);

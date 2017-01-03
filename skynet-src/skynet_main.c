@@ -52,17 +52,19 @@ optstring(const char *key,const char * opt) {
 	return str;
 }
 
+/* 把配置文件中的键值对保存到全局表（E->L的全局表）中 */
 static void
 _init_env(lua_State *L) {
 	lua_pushnil(L);  /* first key */
 	while (lua_next(L, -2) != 0) {
+		/* 此时，key=L->top-2，value=L->top-1 */
 		int keyt = lua_type(L, -2);
 		if (keyt != LUA_TSTRING) {
 			fprintf(stderr, "Invalid config table\n");
 			exit(1);
 		}
 		const char * key = lua_tostring(L,-2);
-		if (lua_type(L,-1) == LUA_TBOOLEAN) {
+		if (lua_type(L,-1) == LUA_TBOOLEAN) {/* 把bool转换成对应的"true" or "false"表示 */
 			int b = lua_toboolean(L,-1);
 			skynet_setenv(key,b ? "true" : "false" );
 		} else {
@@ -119,11 +121,11 @@ main(int argc, char *argv[]) {
 	struct lua_State *L = luaL_newstate();
 	luaL_openlibs(L);	// link lua lib
 
-	int err = luaL_loadstring(L, load_config);
+	int err = luaL_loadstring(L, load_config);/*  */
 	assert(err == LUA_OK);
 	lua_pushstring(L, config_file);
 
-	err = lua_pcall(L, 1, 1, 0);
+	err = lua_pcall(L, 1, 1, 0);/* 执行load_config代表的lua代码 */
 	if (err) {
 		fprintf(stderr,"%s\n",lua_tostring(L,-1));
 		lua_close(L);

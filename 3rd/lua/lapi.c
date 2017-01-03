@@ -380,11 +380,13 @@ LUA_API int lua_toboolean (lua_State *L, int idx) {
 }
 
 
+/* idx处TValue转换成char类型,并设置*len为字符串长度，若非TString或者不可转，返回NULL */
 LUA_API const char *lua_tolstring (lua_State *L, int idx, size_t *len) {
   StkId o = index2addr(L, idx);
   if (!ttisstring(o)) {
     if (!cvt2str(o)) {  /* not convertible? */
-      if (len != NULL) *len = 0;
+      if (len != NULL) 
+		  *len = 0;
       return NULL;
     }
     lua_lock(L);  /* 'luaO_tostring' may create a new string */
@@ -526,6 +528,7 @@ LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
 }
 
 
+/* 把格式化字符串压入栈 */
 LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
   const char *ret;
   va_list argp;
@@ -1008,12 +1011,14 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
 }
 
 
+/* 加载并编译lua代码 */
 LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
                       const char *chunkname, const char *mode) {
   ZIO z;
   int status;
   lua_lock(L);
-  if (!chunkname) chunkname = "?";
+  if (!chunkname) 
+	  chunkname = "?";
   luaZ_init(L, &z, reader, data);
   status = luaD_protectedparser(L, &z, chunkname, mode);
   if (status == LUA_OK) {  /* no errors? */
@@ -1190,7 +1195,7 @@ LUA_API int lua_error (lua_State *L) {
   return 0;  /* to avoid warnings */
 }
 
-
+/* 取出Table的next元素 */
 LUA_API int lua_next (lua_State *L, int idx) {
   StkId t;
   int more;
@@ -1198,7 +1203,7 @@ LUA_API int lua_next (lua_State *L, int idx) {
   t = index2addr(L, idx);
   api_check(L, ttistable(t), "table expected");
   more = luaH_next(L, hvalue(t), L->top - 1);
-  if (more) {
+  if (more) {/* 成功取出next元素，此时L->top处保存着value值 */
     api_incr_top(L);
   }
   else  /* no more elements */

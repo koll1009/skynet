@@ -243,6 +243,7 @@ bootstrap(struct skynet_context * logger, const char * cmdline) {
 	}
 }
 
+
 void 
 skynet_start(struct skynet_config * config) {
 	// register SIGHUP for log file reopen

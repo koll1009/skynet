@@ -500,12 +500,12 @@ static void *newbox (lua_State *L, size_t newsize) {
 #define buffonstack(B)	((B)->b != (B)->initb)
 
 
-/*
+/* 
 ** returns a pointer to a free area with at least 'sz' bytes
 */
 LUALIB_API char *luaL_prepbuffsize (luaL_Buffer *B, size_t sz) {
   lua_State *L = B->L;
-  if (B->size - B->n < sz) {  /* not enough space? */
+  if (B->size - B->n < sz) {  /* 空间不足 not enough space? */
     char *newbuff;
     size_t newsize = B->size * 2;  /* double buffer size */
     if (newsize - B->n < sz)  /* not big enough? */
@@ -526,6 +526,7 @@ LUALIB_API char *luaL_prepbuffsize (luaL_Buffer *B, size_t sz) {
 }
 
 
+/* 把字符串s添加到缓冲区B中 */
 LUALIB_API void luaL_addlstring (luaL_Buffer *B, const char *s, size_t l) {
   if (l > 0) {  /* avoid 'memcpy' when 's' can be NULL */
     char *b = luaL_prepbuffsize(B, l);
@@ -567,6 +568,7 @@ LUALIB_API void luaL_addvalue (luaL_Buffer *B) {
 }
 
 
+/* 缓冲区初始化 */
 LUALIB_API void luaL_buffinit (lua_State *L, luaL_Buffer *B) {
   B->L = L;
   B->b = B->initb;
@@ -753,6 +755,7 @@ static const char *getS (lua_State *L, void *ud, size_t *size) {
 }
 
 
+/*  */
 LUALIB_API int luaL_loadbufferx (lua_State *L, const char *buff, size_t size,
                                  const char *name, const char *mode) {
   LoadS ls;
@@ -761,7 +764,7 @@ LUALIB_API int luaL_loadbufferx (lua_State *L, const char *buff, size_t size,
   return lua_load(L, getS, &ls, name, mode);
 }
 
-
+/* 加载lua代码 */
 LUALIB_API int luaL_loadstring (lua_State *L, const char *s) {
   return luaL_loadbuffer(L, s, strlen(s), s);
 }

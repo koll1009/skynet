@@ -10,11 +10,13 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
+/* epoll合法性判断 */
 static bool 
 sp_invalid(int efd) {
 	return efd == -1;
 }
 
+/* 创建epoll对象 */
 static int
 sp_create() {
 	return epoll_create(1024);
@@ -25,6 +27,8 @@ sp_release(int efd) {
 	close(efd);
 }
 
+
+/* 添加事件 */
 static int 
 sp_add(int efd, int sock, void *ud) {
 	struct epoll_event ev;

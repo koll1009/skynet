@@ -139,7 +139,7 @@ static Node *mainposition (const Table *t, const TValue *key) {
 }
 
 
-/*
+/* key在Table的array中，返回索引值，否则返回0
 ** returns the index for 'key' if 'key' is an appropriate key to live in
 ** the array part of the table, 0 otherwise.
 */
@@ -153,14 +153,17 @@ static unsigned int arrayindex (const TValue *key) {
 }
 
 
-/*
+/* 计算key在Table中的索引值
+** 索引值排列规则:1 对于位于array部分的，值为array数组索引+1
+**                2 对于位于node部分的，值为在node数组的索引+1+array数组的长度 
 ** returns the index of a 'key' for table traversals. First goes all
 ** elements in the array part, then elements in the hash part. The
 ** beginning of a traversal is signaled by 0.
 */
 static unsigned int findindex (lua_State *L, Table *t, StkId key) {
   unsigned int i;
-  if (ttisnil(key)) return 0;  /* first iteration */
+  if (ttisnil(key))
+	  return 0;  /* first iteration */
   i = arrayindex(key);
   if (i != 0 && i <= t->sizearray)  /* is 'key' inside array part? */
     return i;  /* yes; that's the index */
@@ -185,6 +188,10 @@ static unsigned int findindex (lua_State *L, Table *t, StkId key) {
 }
 
 
+/* 取Table中的key的下一个元素，key保存next的键，key+1保存next的值 
+** 1:key位于array数组，则遍历array数组，返回第一个非nil元素
+** 2:遍历node数组，返回第一个非nil元素
+*/
 int luaH_next (lua_State *L, Table *t, StkId key) {
   unsigned int i = findindex(L, t, key);  /* find original element */
   for (; i < t->sizearray; i++) {  /* try first array part */

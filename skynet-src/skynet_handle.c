@@ -239,6 +239,8 @@ skynet_handle_namehandle(uint32_t handle, const char *name) {
 	return ret;
 }
 
+
+/* ³õÊ¼»¯handle_storage */
 void 
 skynet_handle_init(int harbor) {
 	assert(H==NULL);

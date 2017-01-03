@@ -13,7 +13,7 @@
 #define MAX_MODULE_TYPE 32
 
 struct modules {
-	int count;
+	int count;/*  */
 	struct spinlock lock;
 	const char * path;
 	struct skynet_module m[MAX_MODULE_TYPE];
@@ -21,6 +21,7 @@ struct modules {
 
 static struct modules * M = NULL;
 
+/* 加载库,库路径为m中的path路径,把字符?替换成库名name */
 static void *
 _try_open(struct modules *m, const char * name) {
 	const char *l;
@@ -35,10 +36,13 @@ _try_open(struct modules *m, const char * name) {
 	do
 	{
 		memset(tmp,0,sz);
-		while (*path == ';') path++;
-		if (*path == '\0') break;
+		while (*path == ';') /* 跳过开头的字符';' */
+			path++;
+		if (*path == '\0')
+			break;
 		l = strchr(path, ';');
-		if (l == NULL) l = path + strlen(path);
+		if (l == NULL) 
+			l = path + strlen(path);
 		int len = l - path;
 		int i;
 		for (i=0;path[i]!='?' && i < len ;i++) {
@@ -62,6 +66,7 @@ _try_open(struct modules *m, const char * name) {
 	return dl;
 }
 
+/* 查找skynet_module是否已载入modules M */
 static struct skynet_module * 
 _query(const char * name) {
 	int i;
@@ -73,6 +78,7 @@ _query(const char * name) {
 	return NULL;
 }
 
+/* 初始化module的函数指针create\init\release\signal */
 static int
 _open_sym(struct skynet_module *mod) {
 	size_t name_size = strlen(mod->name);
@@ -90,6 +96,7 @@ _open_sym(struct skynet_module *mod) {
 	return mod->init == NULL;
 }
 
+/* 查找skynet_module */
 struct skynet_module * 
 skynet_module_query(const char * name) {
 	struct skynet_module * result = _query(name);
@@ -107,7 +114,7 @@ skynet_module_query(const char * name) {
 			M->m[index].name = name;
 			M->m[index].module = dl;
 
-			if (_open_sym(&M->m[index]) == 0) {
+			if (_open_sym(&M->m[index]) == 0) {/*  */
 				M->m[index].name = skynet_strdup(name);
 				M->count ++;
 				result = &M->m[index];
@@ -161,11 +168,12 @@ skynet_module_instance_signal(struct skynet_module *m, void *inst, int signal) {
 	}
 }
 
+
 void 
 skynet_module_init(const char *path) {
 	struct modules *m = skynet_malloc(sizeof(*m));
 	m->count = 0;
-	m->path = skynet_strdup(path);
+	m->path = skynet_strdup(path);/* cpath,c库的路径，默认为./cservice/?.so，？指代具体库文件名 */
 
 	SPIN_INIT(m)
 

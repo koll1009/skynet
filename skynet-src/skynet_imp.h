@@ -1,6 +1,7 @@
 #ifndef SKYNET_IMP_H
 #define SKYNET_IMP_H
 
+/* ≈‰÷√–≈œ¢ */
 struct skynet_config {
 	int thread;
 	int harbor;

@@ -393,6 +393,7 @@ static const char *pushnexttemplate (lua_State *L, const char *path) {
 }
 
 
+/* 检查path+name文件是否存在 */
 static const char *searchpath (lua_State *L, const char *name,
                                              const char *path,
                                              const char *sep,
@@ -429,12 +430,12 @@ static int ll_searchpath (lua_State *L) {
   }
 }
 
-
+/* 搜索文件是否存在 */
 static const char *findfile (lua_State *L, const char *name,
                                            const char *pname,
                                            const char *dirsep) {
   const char *path;
-  lua_getfield(L, lua_upvalueindex(1), pname);
+  lua_getfield(L, lua_upvalueindex(1), pname);/* 目录path */
   path = lua_tostring(L, -1);
   if (path == NULL)
     luaL_error(L, "'package.%s' must be a string", pname);
@@ -453,11 +454,13 @@ static int checkload (lua_State *L, int stat, const char *filename) {
 }
 
 
+/*  */
 static int searcher_Lua (lua_State *L) {
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
   filename = findfile(L, name, "path", LUA_LSUBSEP);
-  if (filename == NULL) return 1;  /* module not found in this path */
+  if (filename == NULL)
+	  return 1;  /* module not found in this path */
   return checkload(L, (luaL_loadfile(L, filename) == LUA_OK), filename);
 }
 
@@ -487,7 +490,7 @@ static int loadfunc (lua_State *L, const char *filename, const char *modname) {
   return lookforfunc(L, filename, openfunc);
 }
 
-
+/* 搜索c库 */
 static int searcher_C (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *filename = findfile(L, name, "cpath", LUA_CSUBSEP);
@@ -518,6 +521,7 @@ static int searcher_Croot (lua_State *L) {
 }
 
 
+/* 搜索package.preload表 */
 static int searcher_preload (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   lua_getfield(L, LUA_REGISTRYINDEX, "_PRELOAD");
@@ -526,7 +530,7 @@ static int searcher_preload (lua_State *L) {
   return 1;
 }
 
-
+/*  */
 static void findloader (lua_State *L, const char *name) {
   int i;
   luaL_Buffer msg;  /* to build error message */
@@ -534,15 +538,15 @@ static void findloader (lua_State *L, const char *name) {
   /* push 'package.searchers' to index 3 in the stack */
   if (lua_getfield(L, lua_upvalueindex(1), "searchers") != LUA_TTABLE)
     luaL_error(L, "'package.searchers' must be a table");
-  /*  iterate over available searchers to find a loader */
-  for (i = 1; ; i++) {
+ 
+  for (i = 1; ; i++) {/* 遍历调用searchers里的 searcher_Lua...searcher_C函数 */
     if (lua_rawgeti(L, 3, i) == LUA_TNIL) {  /* no more searchers? */
       lua_pop(L, 1);  /* remove nil */
       luaL_pushresult(&msg);  /* create error message */
       luaL_error(L, "module '%s' not found:%s", name, lua_tostring(L, -1));
     }
     lua_pushstring(L, name);
-    lua_call(L, 1, 2);  /* call it */
+    lua_call(L, 1, 2);  /* call it 调用 */
     if (lua_isfunction(L, -2))  /* did it find a loader? */
       return;  /* module loader found */
     else if (lua_isstring(L, -2)) {  /* searcher returned error message? */
@@ -555,10 +559,13 @@ static void findloader (lua_State *L, const char *name) {
 }
 
 
+/* lua require函数，以字符串为参数 
+ * 1:搜索_LOADED表，检查库是否已加载
+ */
 static int ll_require (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   lua_settop(L, 1);  /* _LOADED table will be at index 2 */
-  lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+  lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");/* 检测库是否已加载 */
   lua_getfield(L, 2, name);  /* _LOADED[name] */
   if (lua_toboolean(L, -1))  /* is it there? */
     return 1;  /* package is already loaded */
@@ -726,9 +733,10 @@ static const luaL_Reg ll_funcs[] = {
 };
 
 
+/* 创建package.searchers表 */
 static void createsearcherstable (lua_State *L) {
   static const lua_CFunction searchers[] =
-    {searcher_preload, searcher_Lua, searcher_C, searcher_Croot, NULL};
+    {searcher_preload, searcher_Lua, searcher_C, searcher_Croot, NULL};/* 库加载函数 */
   int i;
   /* create 'searchers' table */
   lua_createtable(L, sizeof(searchers)/sizeof(searchers[0]) - 1, 0);

@@ -862,7 +862,7 @@ static int runafewfinalizers (lua_State *L) {
 }
 
 
-/*
+/* 调用析构函数
 ** call all pending finalizers
 */
 static void callallpendingfinalizers (lua_State *L) {
@@ -872,7 +872,7 @@ static void callallpendingfinalizers (lua_State *L) {
 }
 
 
-/*
+/* 返回最后一个节点地址
 ** find last 'next' field in list 'p' list (to add elements in its end)
 */
 static GCObject **findlast (GCObject **p) {
@@ -882,7 +882,7 @@ static GCObject **findlast (GCObject **p) {
 }
 
 
-/*
+/* 
 ** move all unreachable objects (or 'all' objects) that need
 ** finalization from list 'finobj' to list 'tobefnz' (to be finalized)
 */
@@ -972,7 +972,7 @@ static void entersweep (lua_State *L) {
   g->sweepgc = sweeplist(L, &g->allgc, 1);
 }
 
-
+/*  */
 void luaC_freeallobjects (lua_State *L) {
   global_State *g = G(L);
   separatetobefnz(g, 1);  /* separate all objects with finalizers */

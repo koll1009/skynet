@@ -778,6 +778,7 @@ static void f_parser (lua_State *L, void *ud) {
 }
 
 
+/* °²È«±àÒëlua´úÂë */
 int luaD_protectedparser (lua_State *L, ZIO *z, const char *name,
                                         const char *mode) {
   struct SParser p;

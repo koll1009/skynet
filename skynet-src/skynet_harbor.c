@@ -26,6 +26,7 @@ skynet_harbor_message_isremote(uint32_t handle) {
 	return h != HARBOR && h !=0;
 }
 
+
 void
 skynet_harbor_init(int harbor) {
 	HARBOR = (unsigned int)harbor << HANDLE_REMOTE_SHIFT;
