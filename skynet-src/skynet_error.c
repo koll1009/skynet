@@ -10,13 +10,13 @@
 
 #define LOG_MESSAGE_SIZE 256
 
-void 
-skynet_error(struct skynet_context * context, const char *msg, ...) {
+
+void  skynet_error(struct skynet_context * context, const char *msg, ...) {
 	static uint32_t logger = 0;
 	if (logger == 0) {
-		logger = skynet_handle_findname("logger");
+		logger = skynet_handle_findname("logger");/* ≤È’“handle */
 	}
-	if (logger == 0) {
+	if (logger == 0) {/* ≤È’“ ß∞‹ */
 		return;
 	}
 

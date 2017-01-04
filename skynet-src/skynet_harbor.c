@@ -19,11 +19,12 @@ skynet_harbor_send(struct remote_message *rmsg, uint32_t source, int session) {
 	skynet_context_send(REMOTE, rmsg, sizeof(*rmsg) , source, type , session);
 }
 
+/* ÅÐ¶ÏmsgÊÇ·ñÎªremote */
 int 
 skynet_harbor_message_isremote(uint32_t handle) {
 	assert(HARBOR != ~0);
 	int h = (handle & ~HANDLE_MASK);
-	return h != HARBOR && h !=0;
+	return h != HARBOR && h !=0;//
 }
 
 

@@ -11,6 +11,7 @@ struct logger {
 	int close;
 };
 
+/* ´´½¨loggerÃèÊö·û */
 struct logger *
 logger_create(void) {
 	struct logger * inst = skynet_malloc(sizeof(*inst));
@@ -50,10 +51,12 @@ logger_cb(struct skynet_context * context, void *ud, int type, int session, uint
 	return 0;
 }
 
+
+/*  */
 int
 logger_init(struct logger * inst, struct skynet_context *ctx, const char * parm) {
 	if (parm) {
-		inst->handle = fopen(parm,"w");
+		inst->handle = fopen(parm,"w");/* open file for write */
 		if (inst->handle == NULL) {
 			return 1;
 		}

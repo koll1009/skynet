@@ -33,12 +33,13 @@ struct message_queue {
 };
 
 struct global_queue {
-	struct message_queue *head;
-	struct message_queue *tail;
+	struct message_queue *head;/* 头mq指针 */
+	struct message_queue *tail;/* 尾mq指针 */
 	struct spinlock lock;
 };
 
 static struct global_queue *Q = NULL;
+
 
 void 
 skynet_globalmq_push(struct message_queue * queue) {
@@ -74,6 +75,7 @@ skynet_globalmq_pop() {
 	return mq;
 }
 
+/* 创建message queue */
 struct message_queue * 
 skynet_mq_create(uint32_t handle) {
 	struct message_queue *q = skynet_malloc(sizeof(*q));
@@ -89,7 +91,7 @@ skynet_mq_create(uint32_t handle) {
 	q->release = 0;
 	q->overload = 0;
 	q->overload_threshold = MQ_OVERLOAD;
-	q->queue = skynet_malloc(sizeof(struct skynet_message) * q->cap);
+	q->queue = skynet_malloc(sizeof(struct skynet_message) * q->cap);/* 分配skynet_message数组 */
 	q->next = NULL;
 
 	return q;
@@ -175,7 +177,7 @@ static void
 expand_queue(struct message_queue *q) {
 	struct skynet_message *new_queue = skynet_malloc(sizeof(struct skynet_message) * q->cap * 2);
 	int i;
-	for (i=0;i<q->cap;i++) {
+	for (i=0;i<q->cap;i++) {/* 为什么不直接使用内存复制 */
 		new_queue[i] = q->queue[(q->head + i) % q->cap];
 	}
 	q->head = 0;
@@ -186,6 +188,7 @@ expand_queue(struct message_queue *q) {
 	q->queue = new_queue;
 }
 
+/* 把msg压入msg queue */
 void 
 skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 	assert(message);
@@ -197,18 +200,18 @@ skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 	}
 
 	if (q->head == q->tail) {
-		expand_queue(q);
+		expand_queue(q);/* 扩展queue */
 	}
 
 	if (q->in_global == 0) {
 		q->in_global = MQ_IN_GLOBAL;
-		skynet_globalmq_push(q);
+		skynet_globalmq_push(q);/*  */
 	}
 	
 	SPIN_UNLOCK(q)
 }
 
-/* message queue? */
+
 void 
 skynet_mq_init() {
 	struct global_queue *q = skynet_malloc(sizeof(*q));

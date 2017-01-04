@@ -13,7 +13,7 @@
 
 struct handle_name {
 	char * name;
-	uint32_t handle;
+	uint32_t handle;/* skynet_context->handle */
 };
 
 struct handle_storage {
@@ -26,11 +26,12 @@ struct handle_storage {
 	
 	int name_cap;
 	int name_count;
-	struct handle_name *name;
+	struct handle_name *name;/* name数组以升序排列 */
 };
 
 static struct handle_storage *H = NULL;
 
+/* 新增一个skynet_context */
 uint32_t
 skynet_handle_register(struct skynet_context *ctx) {
 	struct handle_storage *s = H;
@@ -40,6 +41,9 @@ skynet_handle_register(struct skynet_context *ctx) {
 	for (;;) {
 		int i;
 		for (i=0;i<s->slot_size;i++) {
+			/* s->handle_index从1开始计数，注册时，slot从索引1-> s->slot_size-1 ->0使用，0使用后
+			 * 表示slot已满。expand slot，重新映射时，会把索引0映射到old s->slot_size
+			 */
 			uint32_t handle = (i+s->handle_index) & HANDLE_MASK;
 			int hash = handle & (s->slot_size-1);
 			if (s->slot[hash] == NULL) {
@@ -56,6 +60,7 @@ skynet_handle_register(struct skynet_context *ctx) {
 		struct skynet_context ** new_slot = skynet_malloc(s->slot_size * 2 * sizeof(struct skynet_context *));
 		memset(new_slot, 0, s->slot_size * 2 * sizeof(struct skynet_context *));
 		for (i=0;i<s->slot_size;i++) {
+			/* 此时slot[0]会被映射到new_slot[old_slot_size]处，其余保持不变 */
 			int hash = skynet_context_handle(s->slot[i]) & (s->slot_size * 2 - 1);
 			assert(new_slot[hash] == NULL);
 			new_slot[hash] = s->slot[i];
@@ -129,6 +134,7 @@ skynet_handle_retireall() {
 	}
 }
 
+/* 通过handle取skynet_context */
 struct skynet_context * 
 skynet_handle_grab(uint32_t handle) {
 	struct handle_storage *s = H;
@@ -148,6 +154,7 @@ skynet_handle_grab(uint32_t handle) {
 	return result;
 }
 
+/* 折半查找，搜索name */
 uint32_t 
 skynet_handle_findname(const char * name) {
 	struct handle_storage *s = H;
@@ -178,6 +185,7 @@ skynet_handle_findname(const char * name) {
 	return handle;
 }
 
+/* @before为插入name的位置 */
 static void
 _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int before) {
 	if (s->name_count >= s->name_cap) {
@@ -204,6 +212,7 @@ _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int b
 	s->name_count ++;
 }
 
+
 static const char *
 _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	int begin = 0;
@@ -213,7 +222,7 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 		struct handle_name *n = &s->name[mid];
 		int c = strcmp(n->name, name);
 		if (c==0) {
-			return NULL;
+			return NULL;/* 已存在，返回0 */
 		}
 		if (c<0) {
 			begin = mid + 1;
@@ -225,9 +234,11 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 
 	_insert_name_before(s, result, handle, begin);
 
-	return result;
+	return result;/* 新插入的返回字符串地址 */
 }
 
+
+//
 const char * 
 skynet_handle_namehandle(uint32_t handle, const char *name) {
 	rwlock_wlock(&H->lock);

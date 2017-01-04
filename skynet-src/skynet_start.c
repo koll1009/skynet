@@ -229,12 +229,13 @@ start(int thread) {
 	free_monitor(m);
 }
 
+/* Òýµ¼³ÌÐò */
 static void
 bootstrap(struct skynet_context * logger, const char * cmdline) {
 	int sz = strlen(cmdline);
 	char name[sz+1];
 	char args[sz+1];
-	sscanf(cmdline, "%s %s", name, args);
+	sscanf(cmdline, "%s %s", name, args);/* for example,cmdline="snlua bootstrap" => name=snlua args=bootstrap */
 	struct skynet_context *ctx = skynet_context_new(name, args);
 	if (ctx == NULL) {
 		skynet_error(NULL, "Bootstrap error : %s\n", cmdline);

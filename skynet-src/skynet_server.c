@@ -40,14 +40,14 @@
 #endif
 
 struct skynet_context {
-	void * instance;
-	struct skynet_module * mod;
+	void * instance;/* 指向各服务模块的描述符对象 */
+	struct skynet_module * mod;/* 模块 */
 	void * cb_ud;
 	skynet_cb cb;
 	struct message_queue *queue;
 	FILE * logfile;
 	char result[32];
-	uint32_t handle;
+	uint32_t handle;/* 低24位为handle_storage.slot的索引，高8位为handle_storge.harbor值 */
 	int session_id;
 	int ref;
 	bool init;
@@ -117,17 +117,18 @@ drop_message(struct skynet_message *msg, void *ud) {
 }
 
 
+
 struct skynet_context * 
 skynet_context_new(const char * name, const char *param) {
-	struct skynet_module * mod = skynet_module_query(name);
+	struct skynet_module * mod = skynet_module_query(name);/* 查询或创建模块 */
 
 	if (mod == NULL)
 		return NULL;
 
-	void *inst = skynet_module_instance_create(mod);
+	void *inst = skynet_module_instance_create(mod);/* 调用module.create函数,返回各服务的描述符 */
 	if (inst == NULL)
 		return NULL;
-	struct skynet_context * ctx = skynet_malloc(sizeof(*ctx));
+	struct skynet_context * ctx = skynet_malloc(sizeof(*ctx));/* 创建skynet_context */
 	CHECKCALLING_INIT(ctx)
 
 	ctx->mod = mod;
@@ -143,12 +144,12 @@ skynet_context_new(const char * name, const char *param) {
 	// Should set to 0 first to avoid skynet_handle_retireall get an uninitialized handle
 	ctx->handle = 0;	
 	ctx->handle = skynet_handle_register(ctx);
-	struct message_queue * queue = ctx->queue = skynet_mq_create(ctx->handle);
+	struct message_queue * queue = ctx->queue = skynet_mq_create(ctx->handle);/* 创建msg queue */
 	// init function maybe use ctx->handle, so it must init at last
 	context_inc();
 
 	CHECKCALLING_BEGIN(ctx)
-	int r = skynet_module_instance_init(mod, inst, ctx, param);
+	int r = skynet_module_instance_init(mod, inst, ctx, param);/* 调用module->init函数 */
 	CHECKCALLING_END(ctx)
 	if (r == 0) {
 		struct skynet_context * ret = skynet_context_release(ctx);
@@ -182,6 +183,7 @@ skynet_context_newsession(struct skynet_context *ctx) {
 	return session;
 }
 
+/* 使用计数+1 */
 void 
 skynet_context_grab(struct skynet_context *ctx) {
 	ATOM_INC(&ctx->ref);
@@ -384,6 +386,8 @@ cmd_timeout(struct skynet_context * context, const char * param) {
 	return context->result;
 }
 
+
+/*  */
 static const char *
 cmd_reg(struct skynet_context * context, const char * param) {
 	if (param == NULL || param[0] == '\0') {
@@ -629,6 +633,7 @@ static struct command_func cmd_funcs[] = {
 	{ NULL, NULL },
 };
 
+/* @cmd为命令名，从预定义的cmd_funcs找出匹配的函数，调用 */
 const char * 
 skynet_command(struct skynet_context * context, const char * cmd , const char * param) {
 	struct command_func * method = &cmd_funcs[0];
@@ -663,6 +668,7 @@ _filter_args(struct skynet_context * context, int type, int *session, void ** da
 	*sz |= (size_t)type << MESSAGE_TYPE_SHIFT;
 }
 
+/*  */
 int
 skynet_send(struct skynet_context * context, uint32_t source, uint32_t destination , int type, int session, void * data, size_t sz) {
 	if ((sz & MESSAGE_TYPE_MASK) != sz) {

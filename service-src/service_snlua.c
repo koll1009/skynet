@@ -11,6 +11,7 @@
 
 #define MEMORY_WARNING_REPORT (1024 * 1024 * 32)
 
+
 struct snlua {
 	lua_State * L;
 	struct skynet_context * ctx;
@@ -144,14 +145,15 @@ launch_cb(struct skynet_context * context, void *ud, int type, int session, uint
 	return 0;
 }
 
+/* snlua模块的init函数 */
 int
 snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	int sz = strlen(args);
 	char * tmp = skynet_malloc(sz);
 	memcpy(tmp, args, sz);
-	skynet_callback(ctx, l , launch_cb);
+	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb函数指针 */
 	const char * self = skynet_command(ctx, "REG", NULL);
-	uint32_t handle_id = strtoul(self+1, NULL, 16);
+	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数 */
 	// it must be first message
 	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz);
 	return 0;
@@ -177,6 +179,7 @@ lalloc(void * ud, void *ptr, size_t osize, size_t nsize) {
 	return skynet_lalloc(ptr, osize, nsize);
 }
 
+/*  */
 struct snlua *
 snlua_create(void) {
 	struct snlua * l = skynet_malloc(sizeof(*l));
