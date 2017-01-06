@@ -260,6 +260,8 @@ gettime() {
 	return t;
 }
 
+
+/* 更新时间 */
 void
 skynet_updatetime(void) {
 	uint64_t cp = gettime();

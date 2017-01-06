@@ -20,6 +20,8 @@ struct connection {
 	struct databuffer buffer;
 };
 
+
+/*  */
 struct gate {
 	struct skynet_context *ctx;
 	int listen_id;
@@ -334,6 +336,7 @@ start_listen(struct gate *g, char * listen_addr) {
 	return 0;
 }
 
+/*  */
 int
 gate_init(struct gate *g , struct skynet_context * ctx, char * parm) {
 	if (parm == NULL)

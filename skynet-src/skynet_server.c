@@ -172,6 +172,7 @@ skynet_context_new(const char * name, const char *param) {
 	}
 }
 
+/* 创建session */
 int
 skynet_context_newsession(struct skynet_context *ctx) {
 	// session always be a positive number
@@ -647,18 +648,19 @@ skynet_command(struct skynet_context * context, const char * cmd , const char * 
 	return NULL;
 }
 
+/* 参数过滤 */
 static void
 _filter_args(struct skynet_context * context, int type, int *session, void ** data, size_t * sz) {
-	int needcopy = !(type & PTYPE_TAG_DONTCOPY);
-	int allocsession = type & PTYPE_TAG_ALLOCSESSION;
+	int needcopy = !(type & PTYPE_TAG_DONTCOPY);/* 是否copy */
+	int allocsession = type & PTYPE_TAG_ALLOCSESSION;/* 是否分配session */
 	type &= 0xff;
 
-	if (allocsession) {
+	if (allocsession) {/* 创建session */
 		assert(*session == 0);
 		*session = skynet_context_newsession(context);
 	}
 
-	if (needcopy && *data) {
+	if (needcopy && *data) {/* 复制数据 */
 		char * msg = skynet_malloc(*sz+1);
 		memcpy(msg, *data, *sz);
 		msg[*sz] = '\0';
@@ -668,10 +670,14 @@ _filter_args(struct skynet_context * context, int type, int *session, void ** da
 	*sz |= (size_t)type << MESSAGE_TYPE_SHIFT;
 }
 
-/*  */
+/* @destination:目标skynet_context的handle id
+ * @type：类型
+ * @session：
+ * @data：数据 @sz：数据大小
+ */
 int
 skynet_send(struct skynet_context * context, uint32_t source, uint32_t destination , int type, int session, void * data, size_t sz) {
-	if ((sz & MESSAGE_TYPE_MASK) != sz) {
+	if ((sz & MESSAGE_TYPE_MASK) != sz) {/* 数据大小要小于0xffffff */
 		skynet_error(context, "The message to %x is too large", destination);
 		if (type & PTYPE_TAG_DONTCOPY) {
 			skynet_free(data);

@@ -104,13 +104,13 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 
 	const char * loader = optstring(ctx, "lualoader", "./lualib/loader.lua");
 
-	int r = luaL_loadfile(L,loader);
+	int r = luaL_loadfile(L,loader); 
 	if (r != LUA_OK) {
 		skynet_error(ctx, "Can't load %s : %s", loader, lua_tostring(L, -1));
 		report_launcher_error(ctx);
 		return 1;
 	}
-	lua_pushlstring(L, args, sz);
+	lua_pushlstring(L, args, sz);/* Ö´ÐÐload */
 	r = lua_pcall(L,1,0,1);
 	if (r != LUA_OK) {
 		skynet_error(ctx, "lua loader error : %s", lua_tostring(L, -1));

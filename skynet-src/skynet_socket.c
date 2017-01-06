@@ -70,6 +70,8 @@ forward_message(int type, bool padding, struct socket_message * result) {
 	}
 }
 
+
+
 int 
 skynet_socket_poll() {
 	struct socket_server *ss = SOCKET_SERVER;

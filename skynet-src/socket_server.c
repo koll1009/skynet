@@ -90,7 +90,7 @@ struct socket_server {
 	int recvctrl_fd;
 	int sendctrl_fd;
 	int checkctrl;
-	poll_fd event_fd;/* event poll */
+	poll_fd event_fd;/* event poll fd */
 	int alloc_id;
 	int event_n;
 	int event_index;

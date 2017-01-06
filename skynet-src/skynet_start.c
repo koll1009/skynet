@@ -19,7 +19,7 @@
 #include <signal.h>
 
 struct monitor {
-	int count;
+	int count;/*  */
 	struct skynet_monitor ** m;
 	pthread_cond_t cond;
 	pthread_mutex_t mutex;
@@ -60,6 +60,7 @@ wakeup(struct monitor *m, int busy) {
 	}
 }
 
+/* socket线程 */
 static void *
 thread_socket(void *p) {
 	struct monitor * m = p;
@@ -90,6 +91,7 @@ free_monitor(struct monitor *m) {
 	skynet_free(m);
 }
 
+/* 监视线程 */
 static void *
 thread_monitor(void *p) {
 	struct monitor * m = p;
@@ -125,6 +127,7 @@ signal_hup() {
 	}
 }
 
+/*  */
 static void *
 thread_timer(void *p) {
 	struct monitor * m = p;
@@ -178,6 +181,7 @@ thread_worker(void *p) {
 	return NULL;
 }
 
+/* @thread为线程数量 */
 static void
 start(int thread) {
 	pthread_t pid[thread+3];
@@ -274,7 +278,7 @@ skynet_start(struct skynet_config * config) {
 
 	bootstrap(ctx, config->bootstrap);
 
-	start(config->thread);
+	start(config->thread);/* 开启线程 */
 
 	// harbor_exit may call socket send, so it should exit before socket_free
 	skynet_harbor_exit();
