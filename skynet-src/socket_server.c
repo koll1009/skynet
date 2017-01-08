@@ -273,6 +273,7 @@ clear_wb_list(struct wb_list *list) {
 }
 
 
+
 struct socket_server * 
 socket_server_create() {
 	int i;
@@ -287,7 +288,7 @@ socket_server_create() {
 		fprintf(stderr, "socket-server: create socket pair failed.\n");
 		return NULL;
 	}
-	if (sp_add(efd, fd[0], NULL)) {
+	if (sp_add(efd, fd[0], NULL)) {/* 把pipe读端添加到epoll里 */
 		// add recvctrl_fd to event poll
 		fprintf(stderr, "socket-server: can't add server fd to event pool.\n");
 		close(fd[0]);
@@ -870,11 +871,19 @@ setopt_socket(struct socket_server *ss, struct request_setopt *request) {
 	setsockopt(s->fd, IPPROTO_TCP, request->what, &v, sizeof(v));
 }
 
+
+/* 读pipe里的数据 */
 static void
 block_readpipe(int pipefd, void *buffer, int sz) {
 	for (;;) {
 		int n = read(pipefd, buffer, sz);
 		if (n<0) {
+			/* 如果进程在执行一个低速系统调用而阻塞期间捕捉到一个信号，
+			 * 则该系统调用就被中断不再继续执行。该系统调用返回出错，其
+			 *　errno被设置EINTR。这样处理的理由是：因为一个信号发生了，
+			 * 进程捕捉到了它，这意味着已经发生了某种事情，所以是个应当
+			 * 唤醒阻塞的系统调用的好机会。
+			 */
 			if (errno == EINTR)
 				continue;
 			fprintf(stderr, "socket-server : read pipe error %s.\n",strerror(errno));
@@ -886,14 +895,21 @@ block_readpipe(int pipefd, void *buffer, int sz) {
 	}
 }
 
+
+/* fd_set set;
+ * FD_ZERO(&set);清空set 
+ * FD_SET(fd, &set);把fd添加到set
+ * FD_CLR(fd, &set);把fd从set中删除
+ * FD_ISSET(fd, &set);fd是否在set中   
+ */
 static int
 has_cmd(struct socket_server *ss) {
 	struct timeval tv = {0,0};
 	int retval;
-
+	/* 检测pipe读端是否有数据可读 */
 	FD_SET(ss->recvctrl_fd, &ss->rfds);
 
-	retval = select(ss->recvctrl_fd+1, &ss->rfds, NULL, NULL, &tv);
+	retval = select(ss->recvctrl_fd+1, &ss->rfds, NULL, NULL, &tv);/* 文件无变化且超时，返回0，错误返回-1，有变化，返回正值 */
 	if (retval == 1) {
 		return 1;
 	}
@@ -951,10 +967,10 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	// the length of message is one byte, so 256+8 buffer size is enough.
 	uint8_t buffer[256];
 	uint8_t header[2];
-	block_readpipe(fd, header, sizeof(header));
+	block_readpipe(fd, header, sizeof(header));/* 读头，头的格式为type+len，各占一个字节 */
 	int type = header[0];
 	int len = header[1];
-	block_readpipe(fd, buffer, len);
+	block_readpipe(fd, buffer, len);/* 读数据，数据根据类型的不同解释为各种结构 */
 	// ctrl command only exist in local fd, so don't worry about endian.
 	switch (type) {
 	case 'S':
@@ -1205,7 +1221,7 @@ int
 socket_server_poll(struct socket_server *ss, struct socket_message * result, int * more) {
 	for (;;) {
 		if (ss->checkctrl) {
-			if (has_cmd(ss)) {
+			if (has_cmd(ss)) {/* pipe有数据可读 */
 				int type = ctrl_cmd(ss, result);
 				if (type != -1) {
 					clear_closed_event(ss, result, type);
