@@ -64,6 +64,8 @@ report_launcher_error(struct skynet_context *ctx) {
 	skynet_sendname(ctx, 0, ".launcher", PTYPE_TEXT, 0, "ERROR", 5);
 }
 
+
+
 static const char *
 optstring(struct skynet_context *ctx, const char *key, const char * str) {
 	const char * ret = skynet_command(ctx, "GETENV", key);
@@ -73,45 +75,48 @@ optstring(struct skynet_context *ctx, const char *key, const char * str) {
 	return ret;
 }
 
+
+/*  */
 static int
 init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t sz) {
 	lua_State *L = l->L;
 	l->ctx = ctx;
 	lua_gc(L, LUA_GCSTOP, 0);
 	lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
-	lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
-	luaL_openlibs(L);
+	lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");/* registry["LUA_NOENV"]=1 */
+	luaL_openlibs(L);/* 加载库 */
 	lua_pushlightuserdata(L, ctx);
-	lua_setfield(L, LUA_REGISTRYINDEX, "skynet_context");
-	luaL_requiref(L, "skynet.codecache", codecache , 0);
+	lua_setfield(L, LUA_REGISTRYINDEX, "skynet_context");/* registry["skynet_context"]=ctx  */
+	luaL_requiref(L, "skynet.codecache", codecache , 0);/* 加载skynet.codecache库 */
 	lua_pop(L,1);
 
-	const char *path = optstring(ctx, "lua_path","./lualib/?.lua;./lualib/?/init.lua");
+	/* 在snlua->L的虚拟机中设置全局变量值 */
+	const char *path = optstring(ctx, "lua_path","./lualib/?.lua;./lualib/?/init.lua");/*  */
 	lua_pushstring(L, path);
-	lua_setglobal(L, "LUA_PATH");
+	lua_setglobal(L, "LUA_PATH");/* lua路径 */
 	const char *cpath = optstring(ctx, "lua_cpath","./luaclib/?.so");
 	lua_pushstring(L, cpath);
-	lua_setglobal(L, "LUA_CPATH");
+	lua_setglobal(L, "LUA_CPATH");/* c路径 */
 	const char *service = optstring(ctx, "luaservice", "./service/?.lua");
 	lua_pushstring(L, service);
-	lua_setglobal(L, "LUA_SERVICE");
+	lua_setglobal(L, "LUA_SERVICE");/* lua服务路径 */
 	const char *preload = skynet_command(ctx, "GETENV", "preload");
 	lua_pushstring(L, preload);
-	lua_setglobal(L, "LUA_PRELOAD");
+	lua_setglobal(L, "LUA_PRELOAD");/*  */
 
 	lua_pushcfunction(L, traceback);
 	assert(lua_gettop(L) == 1);
 
 	const char * loader = optstring(ctx, "lualoader", "./lualib/loader.lua");
 
-	int r = luaL_loadfile(L,loader); 
-	if (r != LUA_OK) {
+	int r = luaL_loadfile(L,loader); /* 加载、编译loader.lua文件 */
+	if (r != LUA_OK) {/* 加载失败 */
 		skynet_error(ctx, "Can't load %s : %s", loader, lua_tostring(L, -1));
 		report_launcher_error(ctx);
 		return 1;
 	}
-	lua_pushlstring(L, args, sz);/* 执行load */
-	r = lua_pcall(L,1,0,1);
+	lua_pushlstring(L, args, sz);
+	r = lua_pcall(L,1,0,1);/* 执行loader.lua */
 	if (r != LUA_OK) {
 		skynet_error(ctx, "lua loader error : %s", lua_tostring(L, -1));
 		report_launcher_error(ctx);
@@ -132,6 +137,13 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 	return 0;
 }
 
+/* @ud:sn_create创建的数据类型，此处为struct snlua  
+ * @type:消息类型
+ * @session:
+ * @source:
+ * @msg:消息数据
+ * @sz：长度
+ */
 static int
 launch_cb(struct skynet_context * context, void *ud, int type, int session, uint32_t source , const void * msg, size_t sz) {
 	assert(type == 0 && session == 0);

@@ -105,6 +105,7 @@ _release(struct message_queue *q) {
 	skynet_free(q);
 }
 
+/* 取msg queue对应的skynet_context的handle */
 uint32_t 
 skynet_mq_handle(struct message_queue *q) {
 	return q->handle;
@@ -136,12 +137,13 @@ skynet_mq_overload(struct message_queue *q) {
 	return 0;
 }
 
+/* 从队列取消息，成功返回0，队列为空返回1 */
 int
 skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 	int ret = 1;
 	SPIN_LOCK(q)
 
-	if (q->head != q->tail) {
+	if (q->head != q->tail) {/* 说明队列里有msg */
 		*message = q->queue[q->head++];
 		ret = 0;
 		int head = q->head;

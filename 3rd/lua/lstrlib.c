@@ -686,6 +686,7 @@ static int gmatch_aux (lua_State *L) {
 }
 
 
+/* string.gmatch */
 static int gmatch (lua_State *L) {
   size_t ls, lp;
   const char *s = luaL_checklstring(L, 1, &ls);

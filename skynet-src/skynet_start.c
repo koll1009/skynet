@@ -152,10 +152,11 @@ thread_timer(void *p) {
 	return NULL;
 }
 
+/* 工作线程 */
 static void *
 thread_worker(void *p) {
 	struct worker_parm *wp = p;
-	int id = wp->id;
+	int id = wp->id;/* 线程索引 */
 	int weight = wp->weight;
 	struct monitor *m = wp->m;
 	struct skynet_monitor *sm = m->m[id];
@@ -163,7 +164,7 @@ thread_worker(void *p) {
 	struct message_queue * q = NULL;
 	while (!m->quit) {
 		q = skynet_context_message_dispatch(sm, q, weight);
-		if (q == NULL) {
+		if (q == NULL) {/* 说明global msg queue 为空 */
 			if (pthread_mutex_lock(&m->mutex) == 0) {
 				++ m->sleep;
 				// "spurious wakeup" is harmless,

@@ -51,5 +51,5 @@ void
 skynet_env_init() {
 	E = skynet_malloc(sizeof(*E));
 	SPIN_INIT(E)
-	E->L = luaL_newstate();
+	E->L = luaL_newstate();/* 用于存储变量值 */
 }

@@ -250,6 +250,8 @@ skynet_isremote(struct skynet_context * ctx, uint32_t handle, int * harbor) {
 	return ret;
 }
 
+
+/* 处理message */
 static void
 dispatch_message(struct skynet_context *ctx, struct skynet_message *msg) {
 	assert(ctx->init);
@@ -260,7 +262,7 @@ dispatch_message(struct skynet_context *ctx, struct skynet_message *msg) {
 	if (ctx->logfile) {
 		skynet_log_output(ctx->logfile, msg->source, type, msg->session, msg->data, sz);
 	}
-	if (!ctx->cb(ctx, ctx->cb_ud, type, msg->session, msg->source, msg->data, sz)) {
+	if (!ctx->cb(ctx, ctx->cb_ud, type, msg->session, msg->source, msg->data, sz)) {/* 执行 */
 		skynet_free(msg->data);
 	} 
 	CHECKCALLING_END(ctx)
@@ -276,6 +278,7 @@ skynet_context_dispatchall(struct skynet_context * ctx) {
 	}
 }
 
+/*  */
 struct message_queue * 
 skynet_context_message_dispatch(struct skynet_monitor *sm, struct message_queue *q, int weight) {
 	if (q == NULL) {
@@ -481,6 +484,7 @@ cmd_launch(struct skynet_context * context, const char * param) {
 	}
 }
 
+/* 获取环境变量命令 */
 static const char *
 cmd_getenv(struct skynet_context * context, const char * param) {
 	return skynet_getenv(param);

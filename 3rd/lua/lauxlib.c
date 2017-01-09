@@ -1197,6 +1197,7 @@ cache_clear(lua_State *L) {
 	return 0;
 }
 
+/* º”‘ÿskynet.codecacheø‚ */
 LUAMOD_API int luaopen_cache(lua_State *L) {
 	luaL_Reg l[] = {
 		{ "clear", cache_clear },
@@ -1205,6 +1206,6 @@ LUAMOD_API int luaopen_cache(lua_State *L) {
 	};
 	luaL_newlib(L,l);
 	lua_getglobal(L, "loadfile");
-	lua_setfield(L, -2, "loadfile");
+	lua_setfield(L, -2, "loadfile");/* skynet.codecache.loadfile=_G["loadfile"] */
 	return 1;
 }

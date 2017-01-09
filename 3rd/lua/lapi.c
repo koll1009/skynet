@@ -1257,6 +1257,7 @@ LUA_API void lua_setallocf (lua_State *L, lua_Alloc f, void *ud) {
 }
 
 
+/*  */
 LUA_API void *lua_newuserdata (lua_State *L, size_t size) {
   Udata *u;
   lua_lock(L);

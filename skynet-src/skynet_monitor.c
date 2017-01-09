@@ -27,6 +27,7 @@ skynet_monitor_delete(struct skynet_monitor *sm) {
 	skynet_free(sm);
 }
 
+/*  */
 void 
 skynet_monitor_trigger(struct skynet_monitor *sm, uint32_t source, uint32_t destination) {
 	sm->source = source;

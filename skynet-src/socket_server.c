@@ -907,9 +907,11 @@ has_cmd(struct socket_server *ss) {
 	struct timeval tv = {0,0};
 	int retval;
 	/* 检测pipe读端是否有数据可读 */
-	FD_SET(ss->recvctrl_fd, &ss->rfds);
+	FD_SET(ss->recvctrl_fd, &ss->rfds); 
 
-	retval = select(ss->recvctrl_fd+1, &ss->rfds, NULL, NULL, &tv);/* 文件无变化且超时，返回0，错误返回-1，有变化，返回正值 */
+    /* 文件无变化且超时，返回0，错误返回-1，有变化，返回正值 */
+	retval = select(ss->recvctrl_fd+1, &ss->rfds, NULL, NULL, &tv);
+	
 	if (retval == 1) {
 		return 1;
 	}
