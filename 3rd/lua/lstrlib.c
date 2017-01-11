@@ -564,6 +564,7 @@ static const char *lmemfind (const char *s1, size_t l1,
 }
 
 
+/* 如果i=0，返回全部匹配，否则返回括号内的匹配 */
 static void push_onecapture (MatchState *ms, int i, const char *s,
                                                     const char *e) {
   if (i >= ms->level) {

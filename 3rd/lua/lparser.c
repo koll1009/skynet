@@ -157,7 +157,7 @@ static void checkname (LexState *ls, expdesc *e) {
   codestring(ls, e, str_checkname(ls));
 }
 
-
+/* 注册局部变量，在proto里插入变量 */
 static int registerlocalvar (LexState *ls, TString *varname) {
   FuncState *fs = ls->fs;
   Proto *fp = fs->f;
@@ -167,12 +167,12 @@ static int registerlocalvar (LexState *ls, TString *varname) {
                   LocVar, SHRT_MAX, "local variables");
   while (oldsize < f->sizelocvars)
     f->locvars[oldsize++].varname = NULL;
-  f->locvars[fs->nlocvars].varname = varname;
+  f->locvars[fs->nlocvars].varname = varname;/* 变量名 */
   luaC_objbarrier(ls->L, fp, varname);
   return fs->nlocvars++;
 }
 
-
+/* 新建局部变量 */
 static void new_localvar (LexState *ls, TString *name) {
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -1353,7 +1353,7 @@ static void forlist (LexState *ls, TString *indexname) {
   new_localvarliteral(ls, "(for control)");
   /* create declared variables */
   new_localvar(ls, indexname);
-  while (testnext(ls, ',')) {
+  while (testnext(ls, ',')) {/*  */
     new_localvar(ls, str_checkname(ls));
     nvars++;
   }
@@ -1376,7 +1376,8 @@ static void forstat (LexState *ls, int line) {
   varname = str_checkname(ls);  /* first variable name */
   switch (ls->t.token) {
     case '=': fornum(ls, varname, line); break;
-    case ',': case TK_IN: forlist(ls, varname); break;
+    case ',': case TK_IN:/* for k,v in ... */
+		forlist(ls, varname); break;
     default: luaX_syntaxerror(ls, "'=' or 'in' expected");
   }
   check_match(ls, TK_END, TK_FOR, line);
