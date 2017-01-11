@@ -119,7 +119,7 @@ l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
 }
 
 
-/*
+/* 
 ** creates a new string and anchors it in scanner's table so that
 ** it will not be collected until the end of the compilation
 ** (by that time it should be anchored somewhere)

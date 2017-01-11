@@ -1339,7 +1339,7 @@ static void fornum (LexState *ls, TString *varname, int line) {
   forbody(ls, base, line, 1, 1);
 }
 
-
+/* for k,v in ... */
 static void forlist (LexState *ls, TString *indexname) {
   /* forlist -> NAME {,NAME} IN explist forbody */
   FuncState *fs = ls->fs;
@@ -1365,6 +1365,7 @@ static void forlist (LexState *ls, TString *indexname) {
 }
 
 
+/* ±àÒëforÓï¾ä */
 static void forstat (LexState *ls, int line) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;

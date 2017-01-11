@@ -395,8 +395,8 @@ typedef struct Upvaldesc {
 ** (used for debug information)
 */
 typedef struct LocVar {
-  TString *varname;
-  int startpc;  /* first point where variable is active */
+  TString *varname;/* 变量名 */
+  int startpc;  /* 变量作用域 first point where variable is active */
   int endpc;    /* first point where variable is dead */
 } LocVar;
 
@@ -415,7 +415,7 @@ typedef struct SharedProto {
   void *l_G;  /* global state belongs to */
   Instruction *code;  /* opcodes */
   int *lineinfo;  /* map from opcodes to source lines (debug information) */
-  LocVar *locvars;  /* information about local variables (debug information) */
+  LocVar *locvars;  /* 局部变量信息 information about local variables (debug information) */
   Upvaldesc *upvalues;  /* upvalue information */
   TString  *source;  /* used for debug information */
 } SharedProto;

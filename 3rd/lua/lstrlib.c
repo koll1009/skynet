@@ -219,9 +219,9 @@ typedef struct MatchState {
   int matchdepth;  /* control for recursive depth (to avoid C stack overflow) */
   unsigned char level;  /* total number of captures (finished or unfinished) */
   struct {
-    const char *init;
+    const char *init;//指向第一个字符
     ptrdiff_t len;
-  } capture[LUA_MAXCAPTURES];
+  } capture[LUA_MAXCAPTURES];/* 最多32个 */
 } MatchState;
 
 
@@ -247,14 +247,17 @@ static int check_capture (MatchState *ms, int l) {
 }
 
 
+
 static int capture_to_close (MatchState *ms) {
   int level = ms->level;
   for (level--; level>=0; level--)
-    if (ms->capture[level].len == CAP_UNFINISHED) return level;
+    if (ms->capture[level].len == CAP_UNFINISHED) /* 括号规则，找出最内层 */
+		return level;
   return luaL_error(ms->L, "invalid pattern capture");
 }
 
 
+/*  */
 static const char *classend (MatchState *ms, const char *p) {
   switch (*p++) {
     case L_ESC: {
@@ -262,7 +265,7 @@ static const char *classend (MatchState *ms, const char *p) {
         luaL_error(ms->L, "malformed pattern (ends with '%%')");
       return p+1;
     }
-    case '[': {
+    case '[': {/* 寻找%f[...]匹配 */
       if (*p == '^') p++;
       do {  /* look for a ']' */
         if (p == ms->p_end)
@@ -279,19 +282,20 @@ static const char *classend (MatchState *ms, const char *p) {
 }
 
 
+/* 字符类型匹配,%a表示字母，%A表示非字母，以此类推 */
 static int match_class (int c, int cl) {
   int res;
   switch (tolower(cl)) {
-    case 'a' : res = isalpha(c); break;
-    case 'c' : res = iscntrl(c); break;
-    case 'd' : res = isdigit(c); break;
-    case 'g' : res = isgraph(c); break;
-    case 'l' : res = islower(c); break;
-    case 'p' : res = ispunct(c); break;
-    case 's' : res = isspace(c); break;
-    case 'u' : res = isupper(c); break;
-    case 'w' : res = isalnum(c); break;
-    case 'x' : res = isxdigit(c); break;
+    case 'a' : res = isalpha(c); break;/* %a为字母字符 */
+    case 'c' : res = iscntrl(c); break;/* %c为控制字符 */
+    case 'd' : res = isdigit(c); break;/* %d为数字字符 */
+    case 'g' : res = isgraph(c); break;/* %g为可绘制字符，包含字母、数字、标点 */
+    case 'l' : res = islower(c); break;/* %l为小写字母 */
+    case 'p' : res = ispunct(c); break;/* %p为标点字符 */
+    case 's' : res = isspace(c); break;/* %s为空格字符 */
+    case 'u' : res = isupper(c); break;/* %u为大写字母 */
+    case 'w' : res = isalnum(c); break;/* %c为控制字符 */
+    case 'x' : res = isxdigit(c); break;/* %x16进制字符 */
     case 'z' : res = (c == 0); break;  /* deprecated option */
     default: return (cl == c);
   }
@@ -299,6 +303,7 @@ static int match_class (int c, int cl) {
 }
 
 
+/* 括号类型匹配，检测字符c是否属于[...]内的类型，^取反 */
 static int matchbracketclass (int c, const char *p, const char *ec) {
   int sig = 1;
   if (*(p+1) == '^') {
@@ -311,7 +316,7 @@ static int matchbracketclass (int c, const char *p, const char *ec) {
       if (match_class(c, uchar(*p)))
         return sig;
     }
-    else if ((*(p+1) == '-') && (p+2 < ec)) {
+    else if ((*(p+1) == '-') && (p+2 < ec)) {/* 0-9/a-z... */
       p+=2;
       if (uchar(*(p-2)) <= c && c <= uchar(*p))
         return sig;
@@ -321,7 +326,7 @@ static int matchbracketclass (int c, const char *p, const char *ec) {
   return !sig;
 }
 
-
+/* 单字符匹配 */
 static int singlematch (MatchState *ms, const char *s, const char *p,
                         const char *ep) {
   if (s >= ms->src_end)
@@ -329,29 +334,36 @@ static int singlematch (MatchState *ms, const char *s, const char *p,
   else {
     int c = uchar(*s);
     switch (*p) {
-      case '.': return 1;  /* matches any char */
-      case L_ESC: return match_class(c, uchar(*(p+1)));
-      case '[': return matchbracketclass(c, p, ep-1);
-      default:  return (uchar(*p) == c);
+      case '.': 
+		  return 1;  /* matches any char */
+      case L_ESC:
+		  return match_class(c, uchar(*(p+1)));
+      case '[': 
+		  return matchbracketclass(c, p, ep-1);
+      default:  
+		  return (uchar(*p) == c);
     }
   }
 }
 
-
+/* %bc1c2,从字符串中搜索以c1...c1开头以c2...c2结尾的串，c1、c2成对匹配*/
 static const char *matchbalance (MatchState *ms, const char *s,
                                    const char *p) {
   if (p >= ms->p_end - 1)
     luaL_error(ms->L, "malformed pattern (missing arguments to '%%b')");
-  if (*s != *p) return NULL;
+  if (*s != *p)
+	  return NULL;
   else {
     int b = *p;
     int e = *(p+1);
     int cont = 1;
     while (++s < ms->src_end) {
       if (*s == e) {
-        if (--cont == 0) return s+1;
+        if (--cont == 0)
+			return s+1;
       }
-      else if (*s == b) cont++;
+      else if (*s == b)
+		  cont++;
     }
   }
   return NULL;  /* string ends out of balance */
@@ -386,11 +398,13 @@ static const char *min_expand (MatchState *ms, const char *s,
 }
 
 
+/* 开始捕获 */
 static const char *start_capture (MatchState *ms, const char *s,
                                     const char *p, int what) {
   const char *res;
   int level = ms->level;
-  if (level >= LUA_MAXCAPTURES) luaL_error(ms->L, "too many captures");
+  if (level >= LUA_MAXCAPTURES) /* 捕获上限 */
+	  luaL_error(ms->L, "too many captures");
   ms->capture[level].init = s;
   ms->capture[level].len = what;
   ms->level = level+1;
@@ -400,6 +414,7 @@ static const char *start_capture (MatchState *ms, const char *s,
 }
 
 
+/* 捕获成功 */
 static const char *end_capture (MatchState *ms, const char *s,
                                   const char *p) {
   int l = capture_to_close(ms);
@@ -411,6 +426,7 @@ static const char *end_capture (MatchState *ms, const char *s,
 }
 
 
+/* %0-9 匹配第n个捕获 */
 static const char *match_capture (MatchState *ms, const char *s, int l) {
   size_t len;
   l = check_capture(ms, l);
@@ -421,7 +437,7 @@ static const char *match_capture (MatchState *ms, const char *s, int l) {
   else return NULL;
 }
 
-
+/* 字符串匹配 */
 static const char *match (MatchState *ms, const char *s, const char *p) {
   if (ms->matchdepth-- == 0)
     luaL_error(ms->L, "pattern too complex");
@@ -442,10 +458,10 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
       case '$': {
         if ((p + 1) != ms->p_end)  /* is the '$' the last char in pattern? */
           goto dflt;  /* no; go to default */
-        s = (s == ms->src_end) ? s : NULL;  /* check end of string */
+        s = (s == ms->src_end) ? s : NULL;  /*  check end of string */
         break;
       }
-      case L_ESC: {  /* escaped sequences not in the format class[*+?-]? */
+      case L_ESC: {  /* 使用%做转义字符 escaped sequences not in the format class[*+?-]? */
         switch (*(p + 1)) {
           case 'b': {  /* balanced string? */
             s = matchbalance(ms, s, p + 2);
@@ -454,16 +470,17 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
             }  /* else fail (s == NULL) */
             break;
           }
-          case 'f': {  /* frontier? */
+          case 'f': {  /*  frontier? */
             const char *ep; char previous;
             p += 2;
-            if (*p != '[')
+            if (*p != '[')//%f后必须要接字符'['
               luaL_error(ms->L, "missing '[' after '%%f' in pattern");
             ep = classend(ms, p);  /* points to what is next */
             previous = (s == ms->src_init) ? '\0' : *(s - 1);
             if (!matchbracketclass(uchar(previous), p, ep - 1) &&
                matchbracketclass(uchar(*s), p, ep - 1)) {
-              p = ep; goto init;  /* return match(ms, s, ep); */
+              p = ep; 
+			  goto init;  /* return match(ms, s, ep); */
             }
             s = NULL;  /* match failed */
             break;
@@ -493,7 +510,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
         }
         else {  /* matched once */
           switch (*ep) {  /* handle optional suffix */
-            case '?': {  /* optional */
+            case '?': {  /* 0次或1次 optional */
               const char *res;
               if ((res = match(ms, s + 1, ep + 1)) != NULL)
                 s = res;
@@ -502,13 +519,13 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
               }
               break;
             }
-            case '+':  /* 1 or more repetitions */
+            case '+':  /* 1次或多次 1 or more repetitions */
               s++;  /* 1 match already done */
               /* FALLTHROUGH */
-            case '*':  /* 0 or more repetitions */
+            case '*':  /* 0次或多次 0 or more repetitions */
               s = max_expand(ms, s, p, ep);
               break;
-            case '-':  /* 0 or more repetitions (minimum) */
+            case '-':  /* 0次或多次 最小匹配 0 or more repetitions (minimum) */
               s = min_expand(ms, s, p, ep);
               break;
             default:  /* no suffix */
@@ -558,7 +575,7 @@ static void push_onecapture (MatchState *ms, int i, const char *s,
   else {
     ptrdiff_t l = ms->capture[i].len;
     if (l == CAP_UNFINISHED) luaL_error(ms->L, "unfinished capture");
-    if (l == CAP_POSITION)
+    if (l == CAP_POSITION)/* 空括号压入地址偏移 */
       lua_pushinteger(ms->L, (ms->capture[i].init - ms->src_init) + 1);
     else
       lua_pushlstring(ms->L, ms->capture[i].init, l);
@@ -566,6 +583,7 @@ static void push_onecapture (MatchState *ms, int i, const char *s,
 }
 
 
+/* 把捕获的内容压入栈 */
 static int push_captures (MatchState *ms, const char *s, const char *e) {
   int i;
   int nlevels = (ms->level == 0 && s) ? 1 : ms->level;
@@ -670,6 +688,7 @@ typedef struct GMatchState {
 } GMatchState;
 
 
+/*  */
 static int gmatch_aux (lua_State *L) {
   GMatchState *gm = (GMatchState *)lua_touserdata(L, lua_upvalueindex(3));
   const char *src;
