@@ -519,7 +519,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
               }
               break;
             }
-            case '+':  /* 1次或多次 1 or more repetitions */
+            case '+':  /* 1次或多次 1 or more repetitions */处                   
               s++;  /* 1 match already done */
               /* FALLTHROUGH */
             case '*':  /* 0次或多次 0 or more repetitions */
@@ -778,7 +778,7 @@ static void add_value (MatchState *ms, luaL_Buffer *b, const char *s,
   luaL_addvalue(b);  /* add result to accumulator */
 }
 
-
+/* string.gsub,全局替换函数 */
 static int str_gsub (lua_State *L) {
   size_t srcl, lp;
   const char *src = luaL_checklstring(L, 1, &srcl);  /* subject */

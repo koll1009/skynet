@@ -172,6 +172,7 @@ LUA_API int lua_absindex (lua_State *L, int idx) {
 }
 
 
+/* 函数后压入栈的数量 */
 LUA_API int lua_gettop (lua_State *L) {
   return cast_int(L->top - (L->ci->func + 1));
 }
@@ -257,6 +258,7 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
 */
 
 
+/* 返回类型 */
 LUA_API int lua_type (lua_State *L, int idx) {
   StkId o = index2addr(L, idx);
   return (isvalid(o) ? ttnov(o) : LUA_TNONE);
@@ -1276,18 +1278,22 @@ static const char *aux_upvalue (StkId fi, int n, TValue **val,
   switch (ttype(fi)) {
     case LUA_TCCL: {  /* C closure */
       CClosure *f = clCvalue(fi);
-      if (!(1 <= n && n <= f->nupvalues)) return NULL;
+      if (!(1 <= n && n <= f->nupvalues))
+		  return NULL;
       *val = &f->upvalue[n-1];
-      if (owner) *owner = f;
+      if (owner)
+		  *owner = f;
       return "";
     }
     case LUA_TLCL: {  /* Lua closure */
       LClosure *f = clLvalue(fi);
       TString *name;
       SharedProto *p = f->p->sp;
-      if (!(1 <= n && n <= p->sizeupvalues)) return NULL;
+      if (!(1 <= n && n <= p->sizeupvalues)) 
+		  return NULL;
       *val = f->upvals[n-1]->v;
-      if (uv) *uv = f->upvals[n - 1];
+      if (uv)
+		  *uv = f->upvals[n - 1];
       name = p->upvalues[n-1].name;
       return (name == NULL) ? "(*no name)" : getstr(name);
     }
@@ -1310,6 +1316,7 @@ LUA_API const char *lua_getupvalue (lua_State *L, int funcindex, int n) {
 }
 
 
+/* 给函数设置upvalue，n为upvalue的索引 */
 LUA_API const char *lua_setupvalue (lua_State *L, int funcindex, int n) {
   const char *name;
   TValue *val = NULL;  /* to avoid warnings */
@@ -1317,7 +1324,7 @@ LUA_API const char *lua_setupvalue (lua_State *L, int funcindex, int n) {
   UpVal *uv = NULL;
   StkId fi;
   lua_lock(L);
-  fi = index2addr(L, funcindex);
+  fi = index2addr(L, funcindex);/* 函数 */
   api_checknelems(L, 1);
   name = aux_upvalue(fi, n, &val, &owner, &uv);
   if (name) {

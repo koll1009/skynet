@@ -284,8 +284,9 @@ static int load_aux (lua_State *L, int status, int envidx) {
 }
 
 
+/* loadfile函数,arg1为文件名 arg2为模式   */
 static int luaB_loadfile (lua_State *L) {
-  const char *fname = luaL_optstring(L, 1, NULL);
+  const char *fname = luaL_optstring(L, 1, NULL); 
   const char *mode = luaL_optstring(L, 2, NULL);
   int env = (!lua_isnone(L, 3) ? 3 : 0);  /* 'env' index or 0 if no 'env' */
   int status = luaL_loadfilex(L, fname, mode);
@@ -382,6 +383,7 @@ static int luaB_assert (lua_State *L) {
 }
 
 
+/* select函数 */
 static int luaB_select (lua_State *L) {
   int n = lua_gettop(L);
   if (lua_type(L, 1) == LUA_TSTRING && *lua_tostring(L, 1) == '#') {
