@@ -45,4 +45,4 @@ if LUA_PRELOAD then
 	LUA_PRELOAD = nil
 end
 
-main(select(2, table.unpack(args)))
+main(select(2, table.unpack(args))) --Ö´ÐÐbootstrap.lua

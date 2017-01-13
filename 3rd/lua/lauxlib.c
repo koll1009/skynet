@@ -428,6 +428,7 @@ static void interror (lua_State *L, int arg) {
 }
 
 
+/*  */
 LUALIB_API lua_Integer luaL_checkinteger (lua_State *L, int arg) {
   int isnum;
   lua_Integer d = lua_tointegerx(L, arg, &isnum);

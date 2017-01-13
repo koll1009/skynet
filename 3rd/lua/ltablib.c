@@ -204,6 +204,9 @@ static int pack (lua_State *L) {
 }
 
 
+/* table.unpack 
+ * arg1:
+ */
 static int unpack (lua_State *L) {
   lua_Unsigned n;
   lua_Integer i = luaL_optinteger(L, 2, 1);

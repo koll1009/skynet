@@ -331,7 +331,7 @@ static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
   return lua_tolstring(L, RESERVEDSLOT, size);
 }
 
-
+/* loadfile */
 static int luaB_load (lua_State *L) {
   int status;
   size_t l;
@@ -383,19 +383,23 @@ static int luaB_assert (lua_State *L) {
 }
 
 
-/* select函数 */
+/* select函数，返回select函数的参数个数或参数值 */
 static int luaB_select (lua_State *L) {
   int n = lua_gettop(L);
+  /* 情况1，第一个参数为字符'#'，此时返回select函数非“#”参数个数 */
   if (lua_type(L, 1) == LUA_TSTRING && *lua_tostring(L, 1) == '#') {
     lua_pushinteger(L, n-1);
     return 1;
   }
   else {
+	/* 情况2，arg1标识了返回的起始参数 */
     lua_Integer i = luaL_checkinteger(L, 1);
-    if (i < 0) i = n + i;
-    else if (i > n) i = n;
+    if (i < 0)
+		i = n + i;
+    else if (i > n) 
+		i = n;
     luaL_argcheck(L, 1 <= i, 1, "index out of range");
-    return n - (int)i;
+    return n - (int)i;/* 从第i个参数返回 */
   }
 }
 
