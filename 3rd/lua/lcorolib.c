@@ -85,7 +85,7 @@ static int luaB_auxwrap (lua_State *L) {
   return r;
 }
 
-
+/* coroutine.create(func()) */
 static int luaB_cocreate (lua_State *L) {
   lua_State *NL;
   luaL_checktype(L, 1, LUA_TFUNCTION);

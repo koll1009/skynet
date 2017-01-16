@@ -87,7 +87,7 @@ lcallback(lua_State *L) {
 	int forward = lua_toboolean(L, 2);
 	luaL_checktype(L,1,LUA_TFUNCTION);
 	lua_settop(L,1);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, _cb);/* 使用函数_cb的地址做为key registry[&_cb]= */
+	lua_rawsetp(L, LUA_REGISTRYINDEX, _cb);/* 使用函数_cb的地址做为key registry[&_cb]=指向skynet.dispatch_message */
 
 	lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 	lua_State *gL = lua_tothread(L,-1);

@@ -106,7 +106,7 @@ static int tinsert (lua_State *L) {
 /* table.remove函数 */
 static int tremove (lua_State *L) {
   lua_Integer size = aux_getn(L, 1, TAB_RW);
-  lua_Integer pos = luaL_optinteger(L, 2, size);
+  lua_Integer pos = luaL_optinteger(L, 2, size);/* arg2为删除元素的索引值 */
   if (pos != size)  /* validate 'pos' if given */
     luaL_argcheck(L, 1 <= pos && pos <= size + 1, 1, "position out of bounds");
   lua_geti(L, 1, pos);  /* result = t[pos] */
@@ -116,7 +116,7 @@ static int tremove (lua_State *L) {
   }
   lua_pushnil(L);
   lua_seti(L, 1, pos);  /* t[pos] = nil */
-  return 1;
+  return 1;/* 返回被删除的TValue* */
 }
 
 

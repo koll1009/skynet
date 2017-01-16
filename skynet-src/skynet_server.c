@@ -760,7 +760,7 @@ skynet_context_handle(struct skynet_context *ctx) {
 }
 
 
-
+/* 设置skynet_context的回调函数 */
 void 
 skynet_callback(struct skynet_context * context, void *ud, skynet_cb cb) {
 	context->cb = cb;

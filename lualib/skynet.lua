@@ -101,11 +101,11 @@ local function co_create(f)
 	local co = table.remove(coroutine_pool)
 	if co == nil then
 		co = coroutine.create(function(...)
-			f(...)
+			f(...) --此处执行 skynet.init_service(start_func)
 			while true do
 				f = nil
-				coroutine_pool[#coroutine_pool+1] = co
-				f = coroutine_yield "EXIT"
+				coroutine_pool[#coroutine_pool+1] = co --逐个插入
+				f = coroutine_yield "EXIT" --执行profile.yield("EXIT")
 				f(coroutine_yield())
 			end
 		end)
@@ -252,7 +252,7 @@ end
 
 
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --
+	local session = c.intcommand("TIMEOUT",ti)  --添加
 	assert(session)
 	local co = co_create(func)
 	assert(session_id_coroutine[session] == nil)
@@ -626,6 +626,7 @@ function skynet.init_service(start)
 		skynet.send(".launcher","lua", "LAUNCHOK")
 	end
 end
+
 
 function skynet.start(start_func)
 	c.callback(skynet.dispatch_message)
