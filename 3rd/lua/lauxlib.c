@@ -376,6 +376,7 @@ LUALIB_API void luaL_checkstack (lua_State *L, int space, const char *msg) {
 }
 
 
+/* 检查索引arg处的TValue类型是否为t */
 LUALIB_API void luaL_checktype (lua_State *L, int arg, int t) {
   if (lua_type(L, arg) != t)
     tag_error(L, arg, t);
@@ -428,7 +429,7 @@ static void interror (lua_State *L, int arg) {
 }
 
 
-/*  */
+/* 检查索引arg处的TValue是否为整型， */
 LUALIB_API lua_Integer luaL_checkinteger (lua_State *L, int arg) {
   int isnum;
   lua_Integer d = lua_tointegerx(L, arg, &isnum);
@@ -775,7 +776,7 @@ LUALIB_API int luaL_loadstring (lua_State *L, const char *s) {
 /* }====================================================== */
 
 
-
+/* 取索引obj处TValue的metatable的字段 */
 LUALIB_API int luaL_getmetafield (lua_State *L, int obj, const char *event) {
   if (!lua_getmetatable(L, obj))  /* no metatable? */
     return LUA_TNIL;

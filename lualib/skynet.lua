@@ -1,4 +1,4 @@
-local c = require "skynet.core"
+local c = require "skynet.core" --╪сть
 local tostring = tostring
 local tonumber = tonumber
 local coroutine = coroutine
@@ -250,8 +250,9 @@ function suspend(co, result, command, param, size)
 	dispatch_error_queue()
 end
 
+
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)
+	local session = c.intcommand("TIMEOUT",ti)  --
 	assert(session)
 	local co = co_create(func)
 	assert(session_id_coroutine[session] == nil)

@@ -39,7 +39,8 @@ static int checkfield (lua_State *L, const char *key, int n) {
 }
 
 
-/*
+/* @arg处的TValue为table或者具有table类的属性（即有metatable表，设置了相应的
+** 读、写、取长度函数
 ** Check that 'arg' either is a table or can behave like one (that is,
 ** has a metatable with the required metamethods)
 */
@@ -47,7 +48,7 @@ static void checktab (lua_State *L, int arg, int what) {
   if (lua_type(L, arg) != LUA_TTABLE) {  /* is it not a table? */
     int n = 1;  /* number of elements to pop */
     if (lua_getmetatable(L, arg) &&  /* must have metatable */
-        (!(what & TAB_R) || checkfield(L, "__index", ++n)) &&
+        (!(what & TAB_R) || checkfield(L, "__index", ++n)) && 
         (!(what & TAB_W) || checkfield(L, "__newindex", ++n)) &&
         (!(what & TAB_L) || checkfield(L, "__len", ++n))) {
       lua_pop(L, n);  /* pop metatable and tested metamethods */
@@ -102,7 +103,7 @@ static int tinsert (lua_State *L) {
   return 0;
 }
 
-
+/* table.remove函数 */
 static int tremove (lua_State *L) {
   lua_Integer size = aux_getn(L, 1, TAB_RW);
   lua_Integer pos = luaL_optinteger(L, 2, size);
@@ -205,7 +206,9 @@ static int pack (lua_State *L) {
 
 
 /* table.unpack 
- * arg1:
+ * arg1:table 
+ * arg2:start index
+ * arg3:end index,默认为table的长度
  */
 static int unpack (lua_State *L) {
   lua_Unsigned n;

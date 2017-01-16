@@ -172,7 +172,7 @@ skynet_context_new(const char * name, const char *param) {
 	}
 }
 
-/* 创建session */
+/* 创建新session */
 int
 skynet_context_newsession(struct skynet_context *ctx) {
 	// session always be a positive number
@@ -219,6 +219,8 @@ skynet_context_release(struct skynet_context *ctx) {
 	return ctx;
 }
 
+
+/* 把message压入handle对应的skynet_context的队列里 */
 int
 skynet_context_push(uint32_t handle, struct skynet_message *message) {
 	struct skynet_context * ctx = skynet_handle_grab(handle);
@@ -380,12 +382,14 @@ struct command_func {
 	const char * (*func)(struct skynet_context * context, const char * param);
 };
 
+
+/* timeout命令 */
 static const char *
 cmd_timeout(struct skynet_context * context, const char * param) {
 	char * session_ptr = NULL;
 	int ti = strtol(param, &session_ptr, 10);
 	int session = skynet_context_newsession(context);
-	skynet_timeout(context->handle, ti, session);
+	skynet_timeout(context->handle, ti, session);/* 新增一条消息压入context的消息队列中 */
 	sprintf(context->result, "%d", session);
 	return context->result;
 }

@@ -178,6 +178,7 @@ LUA_API int lua_gettop (lua_State *L) {
 }
 
 
+/* 设置栈顶 */
 LUA_API void lua_settop (lua_State *L, int idx) {
   StkId func = L->ci->func;
   lua_lock(L);
@@ -364,14 +365,15 @@ LUA_API lua_Number lua_tonumberx (lua_State *L, int idx, int *pisnum) {
 }
 
 
-/* 把idx处的TValue转为integer类型，并保存在pisnum中 */
+/* 把idx处的TValue转为integer类型，是则pisnum返回1 否则返回0 */
 LUA_API lua_Integer lua_tointegerx (lua_State *L, int idx, int *pisnum) {
   lua_Integer res;
   const TValue *o = index2addr(L, idx);
   int isnum = tointeger(o, &res);
   if (!isnum)
     res = 0;  /* call to 'tointeger' may change 'n' even if it fails */
-  if (pisnum) *pisnum = isnum;
+  if (pisnum) 
+	  *pisnum = isnum;
   return res;
 }
 
@@ -424,13 +426,16 @@ LUA_API lua_CFunction lua_tocfunction (lua_State *L, int idx) {
   else return NULL;  /* not a C function */
 }
 
-
+/* idx处TValue转换成user data类型 */
 LUA_API void *lua_touserdata (lua_State *L, int idx) {
   StkId o = index2addr(L, idx);
   switch (ttnov(o)) {
-    case LUA_TUSERDATA: return getudatamem(uvalue(o));
-    case LUA_TLIGHTUSERDATA: return pvalue(o);
-    default: return NULL;
+    case LUA_TUSERDATA:
+		return getudatamem(uvalue(o));
+    case LUA_TLIGHTUSERDATA://
+		return pvalue(o);
+    default: 
+		return NULL;
   }
 }
 
@@ -578,6 +583,7 @@ LUA_API void lua_pushboolean (lua_State *L, int b) {
 }
 
 
+/* 压入light user data，指针压入栈 */
 LUA_API void lua_pushlightuserdata (lua_State *L, void *p) {
   lua_lock(L);
   setpvalue(L->top, p);
@@ -644,7 +650,7 @@ LUA_API int lua_getfield (lua_State *L, int idx, const char *k) {
 }
 
 
-/* 获取字段值，key为int，值入栈，返回类型 */
+/* 获取table(索引为idx)字段值，key为int，值入栈，返回类型 */
 LUA_API int lua_geti (lua_State *L, int idx, lua_Integer n) {
   StkId t;
   const TValue *slot;
@@ -716,6 +722,7 @@ LUA_API void lua_createtable (lua_State *L, int narray, int nrec) {
 }
 
 
+/* 取索引objindex处TValue的metable压入栈，有返回1，否返回0 */
 LUA_API int lua_getmetatable (lua_State *L, int objindex) {
   const TValue *obj;
   Table *mt;
@@ -723,13 +730,13 @@ LUA_API int lua_getmetatable (lua_State *L, int objindex) {
   lua_lock(L);
   obj = index2addr(L, objindex);
   switch (ttnov(obj)) {
-    case LUA_TTABLE:
+    case LUA_TTABLE:/* table userdata类型有专用的metatable指针 */
       mt = hvalue(obj)->metatable;
       break;
     case LUA_TUSERDATA:
       mt = uvalue(obj)->metatable;
       break;
-    default:
+    default:/* 基本类型共享的metatable */
       mt = G(L)->mt[ttnov(obj)];
       break;
   }
@@ -866,7 +873,7 @@ LUA_API void lua_rawsetp (lua_State *L, int idx, const void *p) {
   lua_unlock(L);
 }
 
-
+/* 设置metatable，L->top-1为meta table */
 LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   TValue *obj;
   Table *mt;

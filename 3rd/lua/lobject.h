@@ -212,6 +212,7 @@ typedef struct lua_TValue {
 #define setfvalue(obj,x) \
   { TValue *io=(obj); val_(io).f=(x); settt_(io, LUA_TLCF); }
 
+/* light user-data赋值，设置类型为LUA_TLIGHTUSERDATA */
 #define setpvalue(obj,x) \
   { TValue *io=(obj); val_(io).p=(x); settt_(io, LUA_TLIGHTUSERDATA); }
 

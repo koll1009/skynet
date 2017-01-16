@@ -80,13 +80,14 @@ forward_cb(struct skynet_context * context, void * ud, int type, int session, ui
 	return 1;
 }
 
+/* skynet.core.callback函数 */
 static int
 lcallback(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
 	int forward = lua_toboolean(L, 2);
 	luaL_checktype(L,1,LUA_TFUNCTION);
 	lua_settop(L,1);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, _cb);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, _cb);/* 使用函数_cb的地址做为key registry[&_cb]= */
 
 	lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 	lua_State *gL = lua_tothread(L,-1);
@@ -118,20 +119,21 @@ lcommand(lua_State *L) {
 	return 0;
 }
 
+/* skynet.core.intcommand()函数 */
 static int
 lintcommand(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
-	const char * cmd = luaL_checkstring(L,1);
+	const char * cmd = luaL_checkstring(L,1);/* 第一个参数为命令 */
 	const char * result;
 	const char * parm = NULL;
 	char tmp[64];	// for integer parm
-	if (lua_gettop(L) == 2) {
+	if (lua_gettop(L) == 2) {/* 若有第二个参数，则需为int类型， */
 		int32_t n = (int32_t)luaL_checkinteger(L,2);
 		sprintf(tmp, "%d", n);
 		parm = tmp;
 	}
 
-	result = skynet_command(context, cmd, parm);
+	result = skynet_command(context, cmd, parm);/* 调用cmd */
 	if (result) {
 		lua_Integer r = strtoll(result, NULL, 0);
 		lua_pushinteger(L, r);
@@ -351,6 +353,8 @@ lnow(lua_State *L) {
 	return 1;
 }
 
+
+/* 加载skynet.core库， */
 int
 luaopen_skynet_core(lua_State *L) {
 	luaL_checkversion(L);
@@ -375,13 +379,13 @@ luaopen_skynet_core(lua_State *L) {
 
 	luaL_newlibtable(L, l);
 
-	lua_getfield(L, LUA_REGISTRYINDEX, "skynet_context");
+	lua_getfield(L, LUA_REGISTRYINDEX, "skynet_context");/* 启动snlua时的context */
 	struct skynet_context *ctx = lua_touserdata(L,-1);
 	if (ctx == NULL) {
 		return luaL_error(L, "Init skynet context first");
 	}
 
-	luaL_setfuncs(L,l,1);
+	luaL_setfuncs(L,l,1);/* 初始化库的函数表，以ctx为upvalue */
 
 	return 1;
 }

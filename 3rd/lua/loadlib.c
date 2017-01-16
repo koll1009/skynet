@@ -494,7 +494,8 @@ static int loadfunc (lua_State *L, const char *filename, const char *modname) {
 static int searcher_C (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *filename = findfile(L, name, "cpath", LUA_CSUBSEP);
-  if (filename == NULL) return 1;  /* module not found in this path */
+  if (filename == NULL) 
+	  return 1;  /* module not found in this path */
   return checkload(L, (loadfunc(L, filename, name) == 0), filename);
 }
 

@@ -121,7 +121,7 @@ static int luaB_getmetatable (lua_State *L) {
   return 1;  /* returns either __metatable field (if present) or metatable */
 }
 
-
+/* setmetatableº¯Êý */
 static int luaB_setmetatable (lua_State *L) {
   int t = lua_type(L, 2);
   luaL_checktype(L, 1, LUA_TTABLE);
