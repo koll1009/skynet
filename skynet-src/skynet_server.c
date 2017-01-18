@@ -383,7 +383,7 @@ struct command_func {
 };
 
 
-/* timeoutÃüÁî */
+/* TIMEOUTÃüÁî */
 static const char *
 cmd_timeout(struct skynet_context * context, const char * param) {
 	char * session_ptr = NULL;

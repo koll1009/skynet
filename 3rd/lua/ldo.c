@@ -188,6 +188,7 @@ void luaD_reallocstack (lua_State *L, int newsize) {
 }
 
 
+/* À©Õ¹ÐéÄâ»úµÄÕ» */
 void luaD_growstack (lua_State *L, int n) {
   int size = L->stacksize;
   if (size > LUAI_MAXSTACK)  /* error after extra size? */

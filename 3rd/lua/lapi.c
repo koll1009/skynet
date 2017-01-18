@@ -100,6 +100,7 @@ static void growstack (lua_State *L, void *ud) {
 }
 
 
+/* 检查虚拟机栈中有n个空闲 */
 LUA_API int lua_checkstack (lua_State *L, int n) {
   int res;
   CallInfo *ci = L->ci;
@@ -110,7 +111,7 @@ LUA_API int lua_checkstack (lua_State *L, int n) {
   else {  /* no; need to grow stack */
     int inuse = cast_int(L->top - L->stack) + EXTRA_STACK;
     if (inuse > LUAI_MAXSTACK - n)  /* can grow without overflow? */
-      res = 0;  /* no */
+      res = 0;  /* 无可扩展空间 */
     else  /* try to grow stack */
       res = (luaD_rawrunprotected(L, &growstack, &n) == LUA_OK);
   }
@@ -196,7 +197,7 @@ LUA_API void lua_settop (lua_State *L, int idx) {
 }
 
 
-/*
+/* 翻转函数
 ** Reverse the stack segment from 'from' to 'to'
 ** (auxiliary to 'lua_rotate')
 */
@@ -210,7 +211,7 @@ static void reverse (lua_State *L, StkId from, StkId to) {
 }
 
 
-/*
+/* n>0,表示从末端开始留n个元素;n<0,表示从前端开始留n个元素
 ** Let x = AB, where A is a prefix of length 'n'. Then,
 ** rotate x n == BA. But BA == (A^r . B^r)^r.
 */
@@ -439,7 +440,7 @@ LUA_API void *lua_touserdata (lua_State *L, int idx) {
   }
 }
 
-
+/* idx处TValue转换成lua_State类型 */
 LUA_API lua_State *lua_tothread (lua_State *L, int idx) {
   StkId o = index2addr(L, idx);
   return (!ttisthread(o)) ? NULL : thvalue(o);
@@ -575,6 +576,7 @@ LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
 }
 
 
+/* 压布尔值入栈 */
 LUA_API void lua_pushboolean (lua_State *L, int b) {
   lua_lock(L);
   setbvalue(L->top, (b != 0));  /* ensure that true is 1 */
@@ -961,12 +963,12 @@ LUA_API void lua_callk (lua_State *L, int nargs, int nresults,
 
 
 
-/*
+/* 安全调用
 ** Execute a protected call.
 */
 struct CallS {  /* data to 'f_call' */
-  StkId func;
-  int nresults;
+  StkId func;/* 函数 */
+  int nresults;/* 返回值个数 */
 };
 
 
@@ -976,7 +978,9 @@ static void f_call (lua_State *L, void *ud) {
 }
 
 
-
+/* @nargs:参数个数
+ * @errfunc:错误处理函数的索引
+*/
 LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
                         lua_KContext ctx, lua_KFunction k) {
   struct CallS c;
@@ -991,7 +995,7 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
   if (errfunc == 0)
     func = 0;
   else {
-    StkId o = index2addr(L, errfunc);
+    StkId o = index2addr(L, errfunc);/* 错误处理函数 */
     api_checkstackindex(L, errfunc, o);
     func = savestack(L, o);
   }
@@ -1113,7 +1117,7 @@ LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
   return status;
 }
 
-
+/* 返回lua_State的状态 */
 LUA_API int lua_status (lua_State *L) {
   return L->status;
 }

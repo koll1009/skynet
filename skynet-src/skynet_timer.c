@@ -206,7 +206,9 @@ timer_create_timer() {
 }
 
 
-/*  */
+/* 情况1：time<=0,在handle对应的context消息队列中压入一条新消息
+ * 情况2：time>0,添加时间事件
+ */
 int
 skynet_timeout(uint32_t handle, int time, int session) {
 	if (time <= 0) {

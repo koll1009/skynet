@@ -252,7 +252,7 @@ end
 
 
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --Ìí¼Ó
+	local session = c.intcommand("TIMEOUT",ti)  
 	assert(session)
 	local co = co_create(func)
 	assert(session_id_coroutine[session] == nil)

@@ -18,6 +18,7 @@
 #include "lualib.h"
 
 
+/* 获取参数里的lua_State */
 static lua_State *getco (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
   luaL_argcheck(L, co, 1, "thread expected");
@@ -25,6 +26,8 @@ static lua_State *getco (lua_State *L) {
 }
 
 
+/* @narg为coroutine.resume(lua_state,...)的变参数量
+ */
 static int auxresume (lua_State *L, lua_State *co, int narg) {
   int status;
   if (!lua_checkstack(co, narg)) {
@@ -53,9 +56,9 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
   }
 }
 
-
+/* coroutine.resume函数 */
 static int luaB_coresume (lua_State *L) {
-  lua_State *co = getco(L);
+  lua_State *co = getco(L);/*  */
   int r;
   r = auxresume(L, co, lua_gettop(L) - 1);
   if (r < 0) {
