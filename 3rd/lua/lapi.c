@@ -121,7 +121,7 @@ LUA_API int lua_checkstack (lua_State *L, int n) {
   return res;
 }
 
-
+/* 把from栈顶的n个元素剪切到to的栈上 */
 LUA_API void lua_xmove (lua_State *from, lua_State *to, int n) {
   int i;
   if (from == to) return;

@@ -177,7 +177,7 @@ struct lua_State {
   int basehookcount;
   int hookcount;
   unsigned short nny;  /* number of non-yieldable calls in stack */
-  unsigned short nCcalls;  /* number of nested C calls */
+  unsigned short nCcalls;  /* 嵌套的c函数调用层数 number of nested C calls */
   l_signalT hookmask;
   lu_byte allowhook;
 };

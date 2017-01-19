@@ -38,7 +38,9 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
     lua_pushliteral(L, "cannot resume dead coroutine");
     return -1;  /* error flag */
   }
-  lua_xmove(L, co, narg);
+  lua_xmove(L, co, narg); 
+  /* 以上完成了唤醒co的条件 */
+
   status = lua_resume(co, L, narg);
   if (status == LUA_OK || status == LUA_YIELD) {
     int nres = lua_gettop(co);

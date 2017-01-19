@@ -608,7 +608,7 @@ static l_noret resume_error (lua_State *L, const char *msg, StkId firstArg) {
 }
 
 
-/*
+/* 受保护模式下的resume主体函数
 ** Do the work for 'lua_resume' in protected mode. Most of the work
 ** depends on the status of the coroutine: initial state, suspended
 ** inside a hook, or regularly suspended (optionally with a continuation
@@ -651,7 +651,7 @@ static void resume (lua_State *L, void *ud) {
   lua_assert(nCcalls == L->nCcalls);
 }
 
-
+/* 唤醒线程@L */
 LUA_API int lua_resume (lua_State *L, lua_State *from, int nargs) {
   int status;
   unsigned short oldnny = L->nny;  /* save "number of non-yieldable" calls */
