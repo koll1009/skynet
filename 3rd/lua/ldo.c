@@ -484,7 +484,7 @@ static void stackerror (lua_State *L) {
 }
 
 
-/*
+/* 可yieldable调用
 ** Call a function (C or Lua). The function to be called is at *func.
 ** The arguments are on the stack, right after the function.
 ** When returns, all the results are on the stack, starting at the original
@@ -559,7 +559,7 @@ static void unroll (lua_State *L, void *ud) {
 }
 
 
-/*
+/* 
 ** Try to find a suspended protected call (a "recover point") for the
 ** given thread.
 */
@@ -573,7 +573,7 @@ static CallInfo *findpcall (lua_State *L) {
 }
 
 
-/*
+/* 
 ** Recovers from an error in a coroutine. Finds a recover point (if
 ** there is one) and completes the execution of the interrupted
 ** 'luaD_pcall'. If there is no recover point, returns zero.
@@ -622,12 +622,12 @@ static void resume (lua_State *L, void *ud) {
   CallInfo *ci = L->ci;
   if (nCcalls >= LUAI_MAXCCALLS)
     resume_error(L, "C stack overflow", firstArg);
-  if (L->status == LUA_OK) {  /* may be starting a coroutine */
+  if (L->status == LUA_OK) {  /* 协程创建后第一次执行resume操作 may be starting a coroutine */
     if (ci != &L->base_ci)  /* not in base level? */
       resume_error(L, "cannot resume non-suspended coroutine", firstArg);
     /* coroutine is in base level; start running it */
     if (!luaD_precall(L, firstArg - 1, LUA_MULTRET))  /* Lua function? */
-      luaV_execute(L);  /* call it */
+      luaV_execute(L);  /* 执行lua函数 call it */
   }
   else if (L->status != LUA_YIELD)
     resume_error(L, "cannot resume dead coroutine", firstArg);

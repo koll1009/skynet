@@ -404,7 +404,7 @@ static int luaB_select (lua_State *L) {
 }
 
 
-/*
+/* pcall和xpcall函数的后继操作
 ** Continuation function for 'pcall' and 'xpcall'. Both functions
 ** already pushed a 'true' before doing the call, so in case of success
 ** 'finishpcall' only has to return everything in the stack minus

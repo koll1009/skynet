@@ -239,7 +239,7 @@ static void preinit_thread (lua_State *L, global_State *g) {
   resethookcount(L);
   L->openupval = NULL;
   L->nny = 1;
-  L->status = LUA_OK;
+  L->status = LUA_OK;/* 协程的初始化状态 */
   L->errfunc = 0;
 }
 

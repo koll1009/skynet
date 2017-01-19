@@ -949,7 +949,7 @@ LUA_API void lua_callk (lua_State *L, int nargs, int nresults,
   api_checknelems(L, nargs+1);
   api_check(L, L->status == LUA_OK, "cannot do calls on non-normal thread");
   checkresults(L, nargs, nresults);
-  func = L->top - (nargs+1);/*  */
+  func = L->top - (nargs+1);/* 被调用的函数 */
   if (k != NULL && L->nny == 0) {  /* need to prepare continuation? */
     L->ci->u.c.k = k;  /* save continuation */
     L->ci->u.c.ctx = ctx;  /* save context */
@@ -978,7 +978,8 @@ static void f_call (lua_State *L, void *ud) {
 }
 
 
-/* @nargs:参数个数
+/* 受保护的函数调用
+ * @nargs:参数个数
  * @errfunc:错误处理函数的索引
 */
 LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,

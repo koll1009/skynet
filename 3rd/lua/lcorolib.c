@@ -60,9 +60,9 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
 
 /* coroutine.resume函数 */
 static int luaB_coresume (lua_State *L) {
-  lua_State *co = getco(L);/*  */
+  lua_State *co = getco(L);/* 第一个参数为唤醒的协程 */
   int r;
-  r = auxresume(L, co, lua_gettop(L) - 1);
+  r = auxresume(L, co, lua_gettop(L) - 1);/* lua_gettop(L)-1为传递到唤醒协程的参数数量 */
   if (r < 0) {
     lua_pushboolean(L, 0);
     lua_insert(L, -2);
