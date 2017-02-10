@@ -40,8 +40,8 @@
 #endif
 
 struct skynet_context {
-	void * instance;/* 指向各服务模块的描述符对象 */
-	struct skynet_module * mod;/* 模块 */
+	void * instance;/* 指向各服务模块的描述符对象，例如snlua模块则指向 */
+	struct skynet_module * mod;/* 服务模块的描述符 */
 	void * cb_ud;
 	skynet_cb cb;
 	struct message_queue *queue;
@@ -117,10 +117,10 @@ drop_message(struct skynet_message *msg, void *ud) {
 }
 
 
-
+/* 创建skynet上下文 */
 struct skynet_context * 
 skynet_context_new(const char * name, const char *param) {
-	struct skynet_module * mod = skynet_module_query(name);/* 查询或创建模块 */
+	struct skynet_module * mod = skynet_module_query(name);/* 查询模块，没有则创建 */
 
 	if (mod == NULL)
 		return NULL;

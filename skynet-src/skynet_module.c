@@ -15,8 +15,8 @@
 struct modules {
 	int count;/*  */
 	struct spinlock lock;
-	const char * path;
-	struct skynet_module m[MAX_MODULE_TYPE];
+	const char * path;/* 库的加载路径 */
+	struct skynet_module m[MAX_MODULE_TYPE];/* 预分配32个模块空间 */
 };
 
 static struct modules * M = NULL;
@@ -114,7 +114,7 @@ skynet_module_query(const char * name) {
 			M->m[index].name = name;
 			M->m[index].module = dl;
 
-			if (_open_sym(&M->m[index]) == 0) {/*  */
+			if (_open_sym(&M->m[index]) == 0) {/* 初始化库函数 */
 				M->m[index].name = skynet_strdup(name);
 				M->count ++;
 				result = &M->m[index];
@@ -140,6 +140,7 @@ skynet_module_insert(struct skynet_module *mod) {
 	SPIN_UNLOCK(M)
 }
 
+/* 调用库的create函数 */
 void * 
 skynet_module_instance_create(struct skynet_module *m) {
 	if (m->create) {

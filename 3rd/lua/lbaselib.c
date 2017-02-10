@@ -369,7 +369,7 @@ static int luaB_dofile (lua_State *L) {
   return dofilecont(L, 0, 0);
 }
 
-
+/* assertº¯Êý */
 static int luaB_assert (lua_State *L) {
   if (lua_toboolean(L, 1))  /* condition is true? */
     return lua_gettop(L);  /* return all arguments */
