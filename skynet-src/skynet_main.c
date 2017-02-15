@@ -102,7 +102,7 @@ static const char * load_config = "\
 int
 main(int argc, char *argv[]) {
 	const char * config_file = NULL ;
-	if (argc > 1) {
+	if (argc > 1) {/* 配置文件为程序启动时传入的第一个参数 */
 		config_file = argv[1];
 	} else {
 		fprintf(stderr, "Need a config file. Please read skynet wiki : https://github.com/cloudwu/skynet/wiki/Config\n"
@@ -110,22 +110,22 @@ main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	luaS_initshr();
-	skynet_globalinit();
-	skynet_env_init();
+	luaS_initshr();/* 初始化shamap */
+	skynet_globalinit();/* 初始化全局glable skyent_node */
+	skynet_env_init();/* 初始化环境变量，使用一个单独的lua虚拟机保存 */
 
-	sigign();
+	sigign();/* 屏蔽sig_pipe信号 */
 
 	struct skynet_config config;
 
 	struct lua_State *L = luaL_newstate();
 	luaL_openlibs(L);	// link lua lib
 
-	int err = luaL_loadstring(L, load_config);/*  */
+	int err = luaL_loadstring(L, load_config);/* 编译load_config指向的lua代码 */
 	assert(err == LUA_OK);
 	lua_pushstring(L, config_file);
 
-	err = lua_pcall(L, 1, 1, 0);/* 执行load_config代表的lua代码 */
+	err = lua_pcall(L, 1, 1, 0);/* 执行load_config代表的lua代码，此时栈顶为result table */
 	if (err) {
 		fprintf(stderr,"%s\n",lua_tostring(L,-1));
 		lua_close(L);

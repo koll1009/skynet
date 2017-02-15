@@ -11,7 +11,7 @@
 #include "lobject.h"
 #include "lstate.h"
 
-
+/* lua中字符串会位于UTString结构之后，多一个字符存储'/0' */
 #define sizelstring(l)  (sizeof(union UTString) + ((l) + 1) * sizeof(char))
 
 #define sizeludata(l)	(sizeof(union UUdata) + (l))

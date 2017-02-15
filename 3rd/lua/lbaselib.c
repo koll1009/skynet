@@ -99,9 +99,11 @@ static int luaB_tonumber (lua_State *L) {
 }
 
 
+/* error函数 */
 static int luaB_error (lua_State *L) {
-  int level = (int)luaL_optinteger(L, 2, 1);
-  lua_settop(L, 1);
+  int level = (int)
+	  luaL_optinteger(L, 2, 1);/* 参数2，默认为1 */
+  lua_settop(L, 1);/* 只保留参数1 */
   if (lua_type(L, 1) == LUA_TSTRING && level > 0) {
     luaL_where(L, level);   /* add extra information */
     lua_pushvalue(L, 1);
@@ -331,11 +333,16 @@ static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
   return lua_tolstring(L, RESERVEDSLOT, size);
 }
 
-/* loadfile */
+/* load函数 
+ *参数1：lua代码字符串
+ *参数2：chunk name
+ *参数3：类型，默认为bt
+ *参数4：
+ */
 static int luaB_load (lua_State *L) {
   int status;
   size_t l;
-  const char *s = lua_tolstring(L, 1, &l);
+  const char *s = lua_tolstring(L, 1, &l);/* 参数1为lua代码字符串 */
   const char *mode = luaL_optstring(L, 3, "bt");
   int env = (!lua_isnone(L, 4) ? 4 : 0);  /* 'env' index or 0 if no 'env' */
   if (s != NULL) {  /* loading a string? */
@@ -369,13 +376,16 @@ static int luaB_dofile (lua_State *L) {
   return dofilecont(L, 0, 0);
 }
 
-/* assert函数 */
+/* assert函数
+ * 参数1：条件判断，如果为true，返回所有参数； 
+ * 参数2: 预警串，false情况下的luaB_error的参数
+ */
 static int luaB_assert (lua_State *L) {
   if (lua_toboolean(L, 1))  /* condition is true? */
     return lua_gettop(L);  /* return all arguments */
   else {  /* error */
-    luaL_checkany(L, 1);  /* there must be a condition */
-    lua_remove(L, 1);  /* remove it */
+    luaL_checkany(L, 1);  /* 该函数必须要有一个参数 there must be a condition */
+    lua_remove(L, 1);  /* 删除第一个参数 remove it */
     lua_pushliteral(L, "assertion failed!");  /* default message */
     lua_settop(L, 1);  /* leave only message (default if no other one) */
     return luaB_error(L);  /* call 'error' */

@@ -3,11 +3,11 @@
 
 /* 配置信息 */
 struct skynet_config {
-	int thread;
+	int thread;/* 线程数 */
 	int harbor;
 	const char * daemon;
-	const char * module_path;
-	const char * bootstrap;
+	const char * module_path;/* 库路径 */
+	const char * bootstrap;/*  */
 	const char * logger;
 	const char * logservice;
 };

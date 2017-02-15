@@ -52,7 +52,7 @@ static int currentline (CallInfo *ci) {
 }
 
 
-/*
+/* 交换当前栈帧的extra、func字段信息
 ** If function yielded, its 'func' can be in the 'extra' field. The
 ** next function restores 'func' to its correct value for debugging
 ** purposes. (It exchanges 'func' and 'extra'; so, when called again,
@@ -106,10 +106,12 @@ LUA_API int lua_gethookcount (lua_State *L) {
 }
 
 
+/* 取第@level级栈帧,有返回1，否返回0  */
 LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar) {
   int status;
   CallInfo *ci;
-  if (level < 0) return 0;  /* invalid (negative) level */
+  if (level < 0)/* 栈帧以当前执行的为0，每往前一级则+1 */
+	  return 0;  /* invalid (negative) level */
   lua_lock(L);
   for (ci = L->ci; level > 0 && ci != &L->base_ci; ci = ci->previous)
     level--;
@@ -117,7 +119,8 @@ LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar) {
     status = 1;
     ar->i_ci = ci;
   }
-  else status = 0;  /* no such level */
+  else 
+	  status = 0;  /* no such level */
   lua_unlock(L);
   return status;
 }
@@ -295,6 +298,7 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
 }
 
 
+/* 获取调试信息 */
 LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar) {
   int status;
   Closure *cl;

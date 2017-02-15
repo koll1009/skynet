@@ -132,7 +132,7 @@ l_noret luaD_throw (lua_State *L, int errcode) {
   }
 }
 
-/* 受保护函数运行 */
+/* 受保护的函数调用主体 */
 int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
   unsigned short oldnCcalls = L->nCcalls;
   struct lua_longjmp lj;/* 函数跳转点信息 */
@@ -234,7 +234,7 @@ void luaD_shrinkstack (lua_State *L) {
     condmovestack(L,,);  /* don't change stack (change only for debugging) */
 }
 
-
+/* 栈指针加1 */
 void luaD_inctop (lua_State *L) {
   luaD_checkstack(L, 1);
   L->top++;
@@ -716,12 +716,12 @@ LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
   return 0;  /* return to 'luaD_hook' */
 }
 
-
+/* protected call */
 int luaD_pcall (lua_State *L, Pfunc func, void *u,
                 ptrdiff_t old_top, ptrdiff_t ef) {
   int status;
   CallInfo *old_ci = L->ci;
-  lu_byte old_allowhooks = L->allowhook;
+  lu_byte old_allowhooks = L->allowhook;/* 保存旧的字段，用于后面的恢复 */
   unsigned short old_nny = L->nny;
   ptrdiff_t old_errfunc = L->errfunc;
   L->errfunc = ef;
@@ -741,18 +741,19 @@ int luaD_pcall (lua_State *L, Pfunc func, void *u,
 
 
 
-/*
+/* 安全编译过程中使用的描述符
 ** Execute a protected parser.
 */
 struct SParser {  /* data to 'f_parser' */
   ZIO *z;
   Mbuffer buff;  /* dynamic structure used by the scanner */
   Dyndata dyd;  /* dynamic structures used by the parser */
-  const char *mode;
+  const char *mode;/* 模式， */
   const char *name;
 };
 
 
+/* 检查模式 */
 static void checkmode (lua_State *L, const char *mode, const char *x) {
   if (mode && strchr(mode, x[0]) == NULL) {
     luaO_pushfstring(L,
@@ -762,6 +763,7 @@ static void checkmode (lua_State *L, const char *mode, const char *x) {
 }
 
 
+/* parser function  */
 static void f_parser (lua_State *L, void *ud) {
   LClosure *cl;
   struct SParser *p = cast(struct SParser *, ud);

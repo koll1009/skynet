@@ -130,13 +130,13 @@ void luaS_init (lua_State *L) {
 
 
 
-/* 
+/* 创建新的字符串对象
 ** creates a new string object
 */
 static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {
   TString *ts;
   GCObject *o;
-  size_t totalsize;  /* total size of TString object */
+  size_t totalsize;   
   totalsize = sizelstring(l);
   o = luaC_newobj(L, tag, totalsize);
   ts = gco2ts(o);
@@ -276,13 +276,14 @@ struct shrmap_slot {
 };
 
 struct shrmap {
-	struct shrmap_slot h[SHRSTR_SLOT];
+	struct shrmap_slot h[SHRSTR_SLOT];/* 默认大小0x10000 6536 */
 	int n;
 };
 
 static struct shrmap SSM;
 
 
+/* 初始化share map */
 LUA_API void
 luaS_initshr() {
 	struct shrmap * s = &SSM;

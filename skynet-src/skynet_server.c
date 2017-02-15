@@ -778,6 +778,7 @@ skynet_context_send(struct skynet_context * ctx, void * msg, size_t sz, uint32_t
 	skynet_mq_push(ctx->queue, &smsg);
 }
 
+/* ≥ı ºªØglobal skynet_node */
 void 
 skynet_globalinit(void) {
 	G_NODE.total = 0;

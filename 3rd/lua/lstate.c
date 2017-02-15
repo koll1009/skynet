@@ -219,7 +219,7 @@ static void f_luaopen (lua_State *L, void *ud) {
 }
 
 
-/*
+/* 预初始化lua_State
 ** preinitialize a thread with consistent values without allocating
 ** any memory (to avoid errors)
 */
@@ -258,6 +258,7 @@ static void close_state (lua_State *L) {
 }
 
 
+/* 虚拟机中新建一个lua协程，共享global_State */
 LUA_API lua_State *lua_newthread (lua_State *L) {
   global_State *g = G(L);
   lua_State *L1;

@@ -17,6 +17,7 @@
 
 typedef struct Zio ZIO;
 
+/* 从stream中读取一个字符，若流为空，则使用zio->reader函数填充 */
 #define zgetc(z)  (((z)->n--)>0 ?  cast_uchar(*(z)->p++) : luaZ_fill(z))
 
 
@@ -52,11 +53,12 @@ LUAI_FUNC size_t luaZ_read (ZIO* z, void *b, size_t n);	/* read next n bytes */
 
 /* --------- Private Part ------------------ */
 
+/* 词法解析使用的stream描述符，当n==0时，使用reader方法从data里读取 */
 struct Zio {
   size_t n;			/* bytes still unread */
   const char *p;		/* current position in buffer */
   lua_Reader reader;		/* reader function */
-  void *data;			/* additional data */
+  void *data;			/* reader函数的参数 additional data */
   lua_State *L;			/* Lua state (for reader) */
 };
 

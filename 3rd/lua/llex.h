@@ -46,25 +46,26 @@ typedef union {
   TString *ts;
 } SemInfo;  /* semantics information */
 
-
+/* 词法标记 */
 typedef struct Token {
-  int token;
-  SemInfo seminfo;
+  int token;      /* 类型 */
+  SemInfo seminfo;/* 标记的具体信息，用于标明整型、浮点型、字符串的具体值 */
 } Token;
 
 
-/* state of the lexer plus state of the parser when shared by all
+/* 函数编译过程中的词法分析状态
+   state of the lexer plus state of the parser when shared by all
    functions */
 typedef struct LexState {
-  int current;  /* current character (charint) */
-  int linenumber;  /* input line counter */
-  int lastline;  /* line of last token 'consumed' */
-  Token t;  /* current token */
-  Token lookahead;  /* look ahead token */
+  int current;     /* 当前分析到的字符 current character (charint) */
+  int linenumber;  /* 当前的行 input line counter */
+  int lastline;    /* line of last token 'consumed' */
+  Token t;         /* current token */
+  Token lookahead; /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */
   struct lua_State *L;
   ZIO *z;  /* input stream */
-  Mbuffer *buff;  /* buffer for tokens */
+  Mbuffer *buff;  /* 用以暂存token信息 buffer for tokens */
   Table *h;  /* to avoid collection/reuse strings */
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */

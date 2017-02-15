@@ -211,7 +211,7 @@ static void reverse (lua_State *L, StkId from, StkId to) {
 }
 
 
-/* n>0,表示从末端开始留n个元素;n<0,表示从前端开始留n个元素
+/* n>0,表示B为末端开始的n个元素;n<0,表示A为前端开始的n个元素
 ** Let x = AB, where A is a prefix of length 'n'. Then,
 ** rotate x n == BA. But BA == (A^r . B^r)^r.
 */
@@ -1026,7 +1026,7 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
 }
 
 
-/* 加载并编译lua代码 */
+/* 编译lua代码，为LClosure类型，置于栈顶 */
 LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
                       const char *chunkname, const char *mode) {
   ZIO z;

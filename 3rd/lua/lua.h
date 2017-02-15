@@ -442,6 +442,7 @@ LUA_API int (lua_gethookmask) (lua_State *L);
 LUA_API int (lua_gethookcount) (lua_State *L);
 
 
+/* 调试信息 */
 struct lua_Debug {
   int event;
   const char *name;	/* (n) */
@@ -457,7 +458,7 @@ struct lua_Debug {
   char istailcall;	/* (t) */
   char short_src[LUA_IDSIZE]; /* (S) */
   /* private part */
-  struct CallInfo *i_ci;  /* active function */
+  struct CallInfo *i_ci;  /* 当前的栈帧 active function */
 };
 
 /* }====================================================================== */

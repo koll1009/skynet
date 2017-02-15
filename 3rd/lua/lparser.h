@@ -51,16 +51,17 @@ typedef enum {
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXED)
 #define vkisinreg(k)	((k) == VNONRELOC || (k) == VLOCAL)
 
+/* lua表达式描述符 */
 typedef struct expdesc {
-  expkind k;
+  expkind k;/* 表达式类型 */
   union {
     lua_Integer ival;    /* for VKINT */
-    lua_Number nval;  /* for VKFLT */
-    int info;  /* for generic use */
-    struct {  /* for indexed variables (VINDEXED) */
+    lua_Number nval;     /* for VKFLT */
+    int info;            /* for generic use */
+    struct {             /* for indexed variables (VINDEXED) */
       short idx;  /* index (R/K) */
       lu_byte t;  /* table (register or upvalue) */
-      lu_byte vt;  /* whether 't' is register (VLOCAL) or upvalue (VUPVAL) */
+      lu_byte vt; /* 标识table位于寄存器还是UpValue whether 't' is register (VLOCAL) or upvalue (VUPVAL) */
     } ind;
   } u;
   int t;  /* patch list of 'exit when true' */
@@ -91,7 +92,7 @@ typedef struct Labellist {
 } Labellist;
 
 
-/* dynamic structures used by the parser */
+/* 编译过程中使用的动态结构 dynamic structures used by the parser */
 typedef struct Dyndata {
   struct {  /* list of active local variables */
     Vardesc *arr;

@@ -140,7 +140,7 @@ static TString *str_checkname (LexState *ls) {
   return ts;
 }
 
-
+/* 初始化表达式描述符 */
 static void init_exp (expdesc *e, expkind k, int i) {
   e->f = e->t = NO_JUMP;
   e->k = k;
@@ -226,6 +226,7 @@ static int searchupvalue (FuncState *fs, TString *name) {
 }
 
 
+/* 新增一个UpValue */
 static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
   Proto *fp = fs->f;
   SharedProto *f = fp->sp;
@@ -235,11 +236,11 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
                   Upvaldesc, MAXUPVAL, "upvalues");
   while (oldsize < f->sizeupvalues)
     f->upvalues[oldsize++].name = NULL;
-  f->upvalues[fs->nups].instack = (v->k == VLOCAL);
-  f->upvalues[fs->nups].idx = cast_byte(v->u.info);
-  f->upvalues[fs->nups].name = name;
+  f->upvalues[fs->nups].instack = (v->k == VLOCAL);/* UpValue值是否在栈上 */
+  f->upvalues[fs->nups].idx = cast_byte(v->u.info);/* 索引 */
+  f->upvalues[fs->nups].name = name;               /*  */
   luaC_objbarrier(fs->ls->L, fp, name);
-  return fs->nups++;
+  return fs->nups++;/* 返回索引，计数加1 */
 }
 
 
@@ -438,6 +439,7 @@ static void movegotosout (FuncState *fs, BlockCnt *bl) {
 }
 
 
+
 static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->isloop = isloop;
   bl->nactvar = fs->nactvar;
@@ -528,6 +530,7 @@ static void codeclosure (LexState *ls, expdesc *v) {
 }
 
 
+/* 编译函数前调用 */
 static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   SharedProto *f;
   fs->prev = ls->fs;  /* linked list of funcstates */
@@ -536,7 +539,7 @@ static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   fs->pc = 0;
   fs->lasttarget = 0;
   fs->jpc = NO_JUMP;
-  fs->freereg = 0;
+  fs->freereg = 0;/*  */
   fs->nk = 0;
   fs->np = 0;
   fs->nups = 0;
@@ -1611,7 +1614,7 @@ static void statement (LexState *ls) {
 /* }====================================================================== */
 
 
-/*
+/* 编译的主函数
 ** compiles the main function, which is a regular vararg function with an
 ** upvalue named LUA_ENV
 */
@@ -1621,7 +1624,7 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   open_func(ls, fs, &bl);
   fs->f->sp->is_vararg = 2;  /* main function is always declared vararg */
   init_exp(&v, VLOCAL, 0);  /* create and... */
-  newupvalue(fs, ls->envn, &v);  /* ...set environment upvalue */
+  newupvalue(fs, ls->envn, &v);  /* 用于占位，在完成编译后，会把主LClosure的UpValue[0]里插入全局表...set environment upvalue */
   luaX_next(ls);  /* read first token */
   statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
@@ -1629,11 +1632,12 @@ static void mainfunc (LexState *ls, FuncState *fs) {
 }
 
 
+/* lua代码的编译主体 */
 LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
   LexState lexstate;
   FuncState funcstate;
-  LClosure *cl = luaF_newLclosure(L, 1);  /* create main closure */
+  LClosure *cl = luaF_newLclosure(L, 1);  /* 创建主lua闭包，传入的lua代码或lua文件经编译后会返回一个LClosure */
   setclLvalue(L, L->top, cl);  /* anchor it (to avoid being collected) */
   luaD_inctop(L);
   lexstate.h = luaH_new(L);  /* create table for scanner */

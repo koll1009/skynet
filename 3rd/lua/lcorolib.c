@@ -90,7 +90,7 @@ static int luaB_auxwrap (lua_State *L) {
   return r;
 }
 
-/* coroutine.create(func()) */
+/* coroutine.create(func())º¯Êý */
 static int luaB_cocreate (lua_State *L) {
   lua_State *NL;
   luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -113,15 +113,17 @@ static int luaB_yield (lua_State *L) {
 }
 
 
+/* coroutine.status()º¯Êý */
 static int luaB_costatus (lua_State *L) {
   lua_State *co = getco(L);
-  if (L == co) lua_pushliteral(L, "running");
+  if (L == co)
+	  lua_pushliteral(L, "running");
   else {
     switch (lua_status(co)) {
       case LUA_YIELD:
         lua_pushliteral(L, "suspended");
         break;
-      case LUA_OK: {
+      case LUA_OK: {//
         lua_Debug ar;
         if (lua_getstack(co, 0, &ar) > 0)  /* does it have frames? */
           lua_pushliteral(L, "normal");  /* it is running */

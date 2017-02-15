@@ -382,7 +382,7 @@ LUALIB_API void luaL_checktype (lua_State *L, int arg, int t) {
     tag_error(L, arg, t);
 }
 
-
+/* 检查索引arg是否越栈，是则报错 */
 LUALIB_API void luaL_checkany (lua_State *L, int arg) {
   if (lua_type(L, arg) == LUA_TNONE)
     luaL_argerror(L, arg, "value expected");
@@ -742,30 +742,32 @@ static int luaL_loadfilex_ (lua_State *L, const char *filename,
   return status;
 }
 
-
+/* load("lua 代码")描述符 */ 
 typedef struct LoadS {
-  const char *s;
-  size_t size;
+  const char *s;/* lua代码 */
+  size_t size;/* 长度 */
 } LoadS;
 
 
+/* 获取lua代码字符串的信息 */
 static const char *getS (lua_State *L, void *ud, size_t *size) {
   LoadS *ls = (LoadS *)ud;
   (void)L;  /* not used */
-  if (ls->size == 0) return NULL;
-  *size = ls->size;
+  if (ls->size == 0) /* 如果已分析完毕，返回NULL */
+	  return NULL;
+  *size = ls->size;/* 使用size保存代码的长度 */
   ls->size = 0;
-  return ls->s;
+  return ls->s;/* 返回代码串地址 */
 }
 
 
-/*  */
+/* 加载lua代码,因为lua代码已经位于字符串表中，所以使用地址引用 */
 LUALIB_API int luaL_loadbufferx (lua_State *L, const char *buff, size_t size,
                                  const char *name, const char *mode) {
   LoadS ls;
   ls.s = buff;
   ls.size = size;
-  return lua_load(L, getS, &ls, name, mode);
+  return lua_load(L, getS, &ls, name, mode);/* 使用getS函数填充编译时使用的Zio */
 }
 
 /* 加载lua代码 */

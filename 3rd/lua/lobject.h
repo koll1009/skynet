@@ -381,7 +381,7 @@ typedef union UUdata {
 	  checkliveness(L,io); }
 
 
-/*
+/* UpValue描述符，用以编译时标识信息
 ** Description of an upvalue for function prototypes
 */
 typedef struct Upvaldesc {
@@ -401,6 +401,7 @@ typedef struct LocVar {
   int endpc;    /* first point where variable is dead */
 } LocVar;
 
+
 typedef struct SharedProto {
   lu_byte numparams;  /* number of fixed parameters */
   lu_byte is_vararg;  /* 2: declared vararg; 1: uses vararg */
@@ -416,12 +417,12 @@ typedef struct SharedProto {
   void *l_G;  /* global state belongs to */
   Instruction *code;  /* opcodes */
   int *lineinfo;  /* map from opcodes to source lines (debug information) */
-  LocVar *locvars;  /* 局部变量信息 information about local variables (debug information) */
+  LocVar *locvars;      /* 局部变量信息 information about local variables (debug information) */
   Upvaldesc *upvalues;  /* upvalue information */
-  TString  *source;  /* used for debug information */
+  TString  *source;  /* lua代码块名或者lua文件名 used for debug information */
 } SharedProto;
 
-/*
+/* 函数原型
 ** Function Prototypes
 */
 typedef struct Proto {

@@ -20,21 +20,22 @@
 #include "lzio.h"
 
 
+/* 填充stream z */
 int luaZ_fill (ZIO *z) {
   size_t size;
   lua_State *L = z->L;
   const char *buff;
   lua_unlock(L);
-  buff = z->reader(L, z->data, &size);
+  buff = z->reader(L, z->data, &size);/* 使用流的reader函数执行具体的填充操作 */
   lua_lock(L);
-  if (buff == NULL || size == 0)
+  if (buff == NULL || size == 0)/* 加载完毕，返回EOZ (-1) */
     return EOZ;
   z->n = size - 1;  /* discount char being returned */
   z->p = buff;
-  return cast_uchar(*(z->p++));
+  return cast_uchar(*(z->p++));/* 返回第一个字符，并前进指针 */
 }
 
-
+/* 初始化Zio */
 void luaZ_init (lua_State *L, ZIO *z, lua_Reader reader, void *data) {
   z->L = L;
   z->reader = reader;

@@ -601,7 +601,8 @@ TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
   const TValue *p = luaH_get(t, key);
   if (p != luaO_nilobject)
     return cast(TValue *, p);
-  else return luaH_newkey(L, t, key);
+  else return 
+	  luaH_newkey(L, t, key);
 }
 
 
