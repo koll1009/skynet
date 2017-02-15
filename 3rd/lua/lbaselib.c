@@ -269,11 +269,12 @@ static int luaB_ipairs (lua_State *L) {
 }
 
 
+
 static int load_aux (lua_State *L, int status, int envidx) {
   if (status == LUA_OK) {
-    if (envidx != 0) {  /* 'env' parameter? */
-      lua_pushvalue(L, envidx);  /* environment for loaded function */
-      if (!lua_setupvalue(L, -2, 1))  /* set it as 1st upvalue */
+    if (envidx != 0) { /* 使用load函数的第四个参数作为变量表 */
+      lua_pushvalue(L, envidx);   
+      if (!lua_setupvalue(L, -2, 1))  /* 替换掉编译完成后预设的UpValue(全局表) */
         lua_pop(L, 1);  /* remove 'env' if not used by previous call */
     }
     return 1;
@@ -337,7 +338,7 @@ static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
  *参数1：lua代码字符串
  *参数2：chunk name
  *参数3：类型，默认为bt
- *参数4：
+ *参数4：lua代码解析后的UpValue
  */
 static int luaB_load (lua_State *L) {
   int status;

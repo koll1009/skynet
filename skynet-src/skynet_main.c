@@ -14,7 +14,7 @@
 #include <signal.h>
 #include <assert.h>
 
-/*  */
+/* 获取名为@key的环境变量，无则返回opt */
 static int
 optint(const char *key, int opt) {
 	const char * str = skynet_getenv(key);
@@ -52,14 +52,14 @@ optstring(const char *key,const char * opt) {
 	return str;
 }
 
-/* 把配置文件中的键值对保存到全局表（E->L的全局表）中 */
+/* 把配置文件中的信息保存到环境变量使用的虚拟机的全局表里 */
 static void
 _init_env(lua_State *L) {
-	lua_pushnil(L);  /* first key */
-	while (lua_next(L, -2) != 0) {
-		/* 此时，key=L->top-2，value=L->top-1 */
+	lua_pushnil(L);  
+	while (lua_next(L, -2) != 0) {/* 执行成功后L->top-2为key L->top-1为Value */
+		
 		int keyt = lua_type(L, -2);
-		if (keyt != LUA_TSTRING) {
+		if (keyt != LUA_TSTRING) {/* 配置表里全是键值对，array部分为空 */
 			fprintf(stderr, "Invalid config table\n");
 			exit(1);
 		}
@@ -80,7 +80,7 @@ _init_env(lua_State *L) {
 	lua_pop(L,1);
 }
 
-int sigign() {
+int sigign() {/* 向一个已关闭的socket send数据时，会引发SIGPIPE信号，默认操作为关闭进程，所以要屏蔽掉 */
 	struct sigaction sa;
 	sa.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sa, 0);
@@ -112,7 +112,7 @@ main(int argc, char *argv[]) {
 
 	luaS_initshr();/* 初始化shamap */
 	skynet_globalinit();/* 初始化全局glable skyent_node */
-	skynet_env_init();/* 初始化环境变量，使用一个单独的lua虚拟机保存 */
+	skynet_env_init();/* 初始化环境变量，使用一个单独的lua虚拟机 */
 
 	sigign();/* 屏蔽sig_pipe信号 */
 
@@ -125,13 +125,14 @@ main(int argc, char *argv[]) {
 	assert(err == LUA_OK);
 	lua_pushstring(L, config_file);
 
-	err = lua_pcall(L, 1, 1, 0);/* 执行load_config代表的lua代码，此时栈顶为result table */
+	err = lua_pcall(L, 1, 1, 0);/* 执行load_config代表的lua代码，此时栈顶为result table,里面保存了配置信息 */
 	if (err) {
 		fprintf(stderr,"%s\n",lua_tostring(L,-1));
 		lua_close(L);
 		return 1;
 	}
-	_init_env(L);
+
+	_init_env(L);/* 把result里的配置信息加载到环境变量使用的虚拟机里 */
 
 	config.thread =  optint("thread",8);
 	config.module_path = optstring("cpath","./cservice/?.so");
@@ -143,7 +144,7 @@ main(int argc, char *argv[]) {
 
 	lua_close(L);
 
-	skynet_start(&config);
+	skynet_start(&config);/* 启动 */
 	skynet_globalexit();
 	luaS_exitshr();
 

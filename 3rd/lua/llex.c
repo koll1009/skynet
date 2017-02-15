@@ -307,7 +307,7 @@ endloop:
                                      luaZ_bufflen(ls->buff) - 2*(2 + sep));/* 去掉前后的[=*[和]=*]字符 */
 }
 
-
+/* 字符转换检查 */
 static void esccheck (LexState *ls, int c, const char *msg) {
   if (!c) {
     if (ls->current != EOZ)
@@ -316,7 +316,7 @@ static void esccheck (LexState *ls, int c, const char *msg) {
   }
 }
 
-
+/* 转换为16进制字符 */
 static int gethexa (LexState *ls) {
   save_and_next(ls);
   esccheck (ls, lisxdigit(ls->current), "hexadecimal digit expected");
@@ -324,14 +324,16 @@ static int gethexa (LexState *ls) {
 }
 
 
+/* 读取16进制数，即把\x36转换成对应的字符'6' */
 static int readhexaesc (LexState *ls) {
-  int r = gethexa(ls);
-  r = (r << 4) + gethexa(ls);
+  int r = gethexa(ls);/* 第一个字符为高4位 */
+  r = (r << 4) + gethexa(ls);/* 第二个字符为低4位 */
   luaZ_buffremove(ls->buff, 2);  /* remove saved chars from buffer */
   return r;
 }
 
 
+/* 读取utf字符，\u{abcd} */
 static unsigned long readutf8esc (LexState *ls) {
   unsigned long r;
   int i = 4;  /* chars to be removed: '\', 'u', '{', and first digit */
@@ -341,7 +343,7 @@ static unsigned long readutf8esc (LexState *ls) {
   while ((save_and_next(ls), lisxdigit(ls->current))) {
     i++;
     r = (r << 4) + luaO_hexavalue(ls->current);
-    esccheck(ls, r <= 0x10FFFF, "UTF-8 value too large");
+    esccheck(ls, r <= 0x10FFFF, "UTF-8 value too large");/* utf8值上限为0x10FFFF */
   }
   esccheck(ls, ls->current == '}', "missing '}'");
   next(ls);  /* skip '}' */
@@ -350,6 +352,7 @@ static unsigned long readutf8esc (LexState *ls) {
 }
 
 
+/* utf8字符转换 */
 static void utf8esc (LexState *ls) {
   char buff[UTF8BUFFSZ];
   int n = luaO_utf8esc(buff, readutf8esc(ls));
@@ -371,6 +374,7 @@ static int readdecesc (LexState *ls) {
 }
 
 
+/* 读取lua代码中的字符串，以""or''标识 */
 static void read_string (LexState *ls, int del, SemInfo *seminfo) {
   save_and_next(ls);  /* keep delimiter (for error messages) */
   while (ls->current != del) {
@@ -382,9 +386,10 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
       case '\r':
         lexerror(ls, "unfinished string", TK_STRING);
         break;  /* to avoid warnings */
-      case '\\': {  /* escape sequences */
-        int c;  /* final character to be saved */
-        save_and_next(ls);  /* keep '\\' for error messages */
+
+      case '\\': {  /* 转义字符 */
+        int c;   
+        save_and_next(ls);   
         switch (ls->current) {
           case 'a': c = '\a'; goto read_save;
           case 'b': c = '\b'; goto read_save;
@@ -393,9 +398,16 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
           case 'r': c = '\r'; goto read_save;
           case 't': c = '\t'; goto read_save;
           case 'v': c = '\v'; goto read_save;
-          case 'x': c = readhexaesc(ls); goto read_save;
-          case 'u': utf8esc(ls);  goto no_save;
-          case '\n': case '\r':
+
+          case 'x':/* 使用\xFF格式表示一个字符（0-255） */
+			  c = readhexaesc(ls); 
+			  goto read_save;
+
+          case 'u':/* \u1234表示一个utf8字符 */
+			  utf8esc(ls);  
+			  goto no_save;
+
+          case '\n': case '\r':/*  */
             inclinenumber(ls); c = '\n'; goto only_save;
           case '\\': case '\"': case '\'':
             c = ls->current; goto read_save;
@@ -530,13 +542,17 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '.': {  /* '.', '..', '...', or number */
         save_and_next(ls);
-        if (check_next1(ls, '.')) {
+        if (check_next1(ls, '.')) 
+		{
           if (check_next1(ls, '.'))
-            return TK_DOTS;   /* '...' */
-          else return TK_CONCAT;   /* '..' */
+            return TK_DOTS;   /* '...'标识变参参数 */
+          else
+			  return TK_CONCAT;   /* '..'标识连接符 */
         }
-        else if (!lisdigit(ls->current)) return '.';
-        else return read_numeral(ls, seminfo);
+        else if (!lisdigit(ls->current)) /* 非浮点数 */
+			return '.';
+        else 
+			return read_numeral(ls, seminfo);
       }
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {
@@ -554,10 +570,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          if (isreserved(ts))  /* reserved word? */
+          if (isreserved(ts))  /* 保留的关键字 */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
-            return TK_NAME;
+            return TK_NAME;/* 变量 */
           }
         }
         else {  /* single-char tokens (+ - / ...) */

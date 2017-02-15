@@ -162,8 +162,8 @@ static unsigned int arrayindex (const TValue *key) {
 */
 static unsigned int findindex (lua_State *L, Table *t, StkId key) {
   unsigned int i;
-  if (ttisnil(key))
-	  return 0;  /* first iteration */
+  if (ttisnil(key))/* key为nil作为第一次迭代 */
+	  return 0;   
   i = arrayindex(key);
   if (i != 0 && i <= t->sizearray)  /* is 'key' inside array part? */
     return i;  /* yes; that's the index */

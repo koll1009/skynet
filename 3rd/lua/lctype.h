@@ -35,12 +35,12 @@
 
 #include "llimits.h"
 
-
-#define ALPHABIT	0
-#define DIGITBIT	1
-#define PRINTBIT	2
-#define SPACEBIT	3
-#define XDIGITBIT	4
+/* 用5位来标识字符的种类 */
+#define ALPHABIT	0 /* 字母字符 */
+#define DIGITBIT	1 /* 数字字符 */
+#define PRINTBIT	2 /* 可打印字符 */
+#define SPACEBIT	3 /* 空格字符 */
+#define XDIGITBIT	4 /* 16进制数字字符0-9 and a-f and A-F */
 
 
 #define MASK(B)		(1 << (B))
@@ -59,7 +59,7 @@
 #define lisdigit(c)	testprop(c, MASK(DIGITBIT))
 #define lisspace(c)	testprop(c, MASK(SPACEBIT))
 #define lisprint(c)	testprop(c, MASK(PRINTBIT))
-#define lisxdigit(c)	testprop(c, MASK(XDIGITBIT))
+#define lisxdigit(c)	testprop(c, MASK(XDIGITBIT))/* 是否为16进制字符 */
 
 /*
 ** this 'ltolower' only works for alphabetic characters

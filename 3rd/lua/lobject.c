@@ -160,9 +160,12 @@ void luaO_arith (lua_State *L, int op, const TValue *p1, const TValue *p2,
 }
 
 
+/* 字母字符转换为16进制字符 */
 int luaO_hexavalue (int c) {
-  if (lisdigit(c)) return c - '0';
-  else return (ltolower(c) - 'a') + 10;
+  if (lisdigit(c))
+	  return c - '0';
+  else 
+	  return (ltolower(c) - 'a') + 10;
 }
 
 
@@ -343,6 +346,7 @@ size_t luaO_str2num (const char *s, TValue *o) {
 }
 
 
+/* 把一个整型转换成utf8字符，详见utf8格式11110xxx 10xxxxxx 10xxxxx 10xxxxxx */
 int luaO_utf8esc (char *buff, unsigned long x) {
   int n = 1;  /* number of bytes put in buffer (backwards) */
   lua_assert(x <= 0x10FFFF);

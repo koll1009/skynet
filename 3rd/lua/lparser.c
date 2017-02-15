@@ -595,12 +595,15 @@ static int block_follow (LexState *ls, int withuntil) {
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
       return 1;
-    case TK_UNTIL: return withuntil;
-    default: return 0;
+    case TK_UNTIL:
+		return withuntil;
+    default: 
+		return 0;
   }
 }
 
 
+/* ½âÊÍluaÉùÃ÷µÄÓï¾ä */
 static void statlist (LexState *ls) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {

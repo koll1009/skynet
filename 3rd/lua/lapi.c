@@ -1210,7 +1210,7 @@ LUA_API int lua_error (lua_State *L) {
   return 0;  /* to avoid warnings */
 }
 
-/* 取出Table的next元素 */
+/* 取出Table的next元素，idx为table的索引，L->top-1为key值 */
 LUA_API int lua_next (lua_State *L, int idx) {
   StkId t;
   int more;
