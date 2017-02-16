@@ -415,7 +415,7 @@ cmd_reg(struct skynet_context * context, const char * param) {
 
 static const char *
 cmd_query(struct skynet_context * context, const char * param) {
-	if (param[0] == '.') {
+	if (param[0] == '.') {//test
 		uint32_t handle = skynet_handle_findname(param+1);
 		if (handle) {
 			sprintf(context->result, ":%x", handle);
