@@ -11,6 +11,7 @@
 #define DEFAULT_SLOT_SIZE 4
 #define MAX_SLOT_SIZE 0x40000000
 
+/*  */
 struct handle_name {
 	char * name;
 	uint32_t handle;/* skynet_context->handle */
@@ -212,12 +213,12 @@ _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int b
 	s->name_count ++;
 }
 
-
+/* 插入handle_name */
 static const char *
 _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	int begin = 0;
 	int end = s->name_count - 1;
-	while (begin<=end) {
+	while (begin<=end) {/* 折半查找已保存的handle_name */
 		int mid = (begin+end)/2;
 		struct handle_name *n = &s->name[mid];
 		int c = strcmp(n->name, name);
@@ -232,13 +233,14 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	}
 	char * result = skynet_strdup(name);
 
+	/* 最后一次循环时，begin=mid */
 	_insert_name_before(s, result, handle, begin);
 
 	return result;/* 新插入的返回字符串地址 */
 }
 
 
-//
+/* 建立name-handle关联，已建立的返回null */
 const char * 
 skynet_handle_namehandle(uint32_t handle, const char *name) {
 	rwlock_wlock(&H->lock);

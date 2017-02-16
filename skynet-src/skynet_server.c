@@ -399,11 +399,12 @@ cmd_timeout(struct skynet_context * context, const char * param) {
 /* 注册命令 */
 static const char *
 cmd_reg(struct skynet_context * context, const char * param) {
-	if (param == NULL || param[0] == '\0')
+	if (param == NULL || param[0] == '\0')/* 把handle以16进制格式存于result，并返回 */
 	{
 		sprintf(context->result, ":%x", context->handle);
 		return context->result;
-	} else if (param[0] == '.') 
+	} 
+	else if (param[0] == '.') 
 	{
 		return skynet_handle_namehandle(context->handle, param + 1);
 	} else 
