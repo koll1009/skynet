@@ -234,13 +234,16 @@ start(int thread) {
 	free_monitor(m);
 }
 
-/* 引导程序 */
+/* 引导程序
+ * @logger:日志服务
+ * @cmdline:命令行，由服务名+空格+参数构成
+ */
 static void
 bootstrap(struct skynet_context * logger, const char * cmdline) {
 	int sz = strlen(cmdline);
 	char name[sz+1];
 	char args[sz+1];
-	sscanf(cmdline, "%s %s", name, args);/* for example,cmdline="snlua bootstrap" => name=snlua args=bootstrap */
+	sscanf(cmdline, "%s %s", name, args);/* cmdline="snlua bootstrap" => name=snlua args=bootstrap */
 	struct skynet_context *ctx = skynet_context_new(name, args);
 	if (ctx == NULL) {
 		skynet_error(NULL, "Bootstrap error : %s\n", cmdline);
@@ -264,10 +267,10 @@ skynet_start(struct skynet_config * config) {
 			exit(1);
 		}
 	}
-	skynet_harbor_init(config->harbor);
-	skynet_handle_init(config->harbor);
+	skynet_harbor_init(config->harbor);/* 初始化 */
+	skynet_handle_init(config->harbor);/* 初始化skynet_context存储器 */
 	skynet_mq_init();
-	skynet_module_init(config->module_path);
+	skynet_module_init(config->module_path);/* 初始化skynet_module存储器 */
 	skynet_timer_init();
 	skynet_socket_init();
 
@@ -277,7 +280,7 @@ skynet_start(struct skynet_config * config) {
 		exit(1);
 	}
 
-	bootstrap(ctx, config->bootstrap);
+	bootstrap(ctx, config->bootstrap);/* 引导程序 */
 
 	start(config->thread);/* 开启线程 */
 

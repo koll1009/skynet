@@ -18,9 +18,10 @@
 #define MQ_IN_GLOBAL 1
 #define MQ_OVERLOAD 1024
 
+/* 服务使用的消息队列 */
 struct message_queue {
 	struct spinlock lock;
-	uint32_t handle;
+	uint32_t handle;/* 服务的handle值 */
 	int cap;
 	int head;
 	int tail;
@@ -28,7 +29,7 @@ struct message_queue {
 	int in_global;
 	int overload;
 	int overload_threshold;
-	struct skynet_message *queue;
+	struct skynet_message *queue;/* 存储消息 */
 	struct message_queue *next;
 };
 
@@ -75,7 +76,7 @@ skynet_globalmq_pop() {
 	return mq;
 }
 
-/* 创建message queue */
+/* 创建message queue,默认大小为64，FIFO */
 struct message_queue * 
 skynet_mq_create(uint32_t handle) {
 	struct message_queue *q = skynet_malloc(sizeof(*q));
@@ -214,6 +215,7 @@ skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 }
 
 
+/* 初始化全局消息队列 */
 void 
 skynet_mq_init() {
 	struct global_queue *q = skynet_malloc(sizeof(*q));

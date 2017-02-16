@@ -96,7 +96,7 @@ _open_sym(struct skynet_module *mod) {
 	return mod->init == NULL;
 }
 
-/* 查找skynet_module */
+/* 查找skynet_module是否已加载 */
 struct skynet_module * 
 skynet_module_query(const char * name) {
 	struct skynet_module * result = _query(name);
@@ -114,7 +114,7 @@ skynet_module_query(const char * name) {
 			M->m[index].name = name;
 			M->m[index].module = dl;
 
-			if (_open_sym(&M->m[index]) == 0) {/* 初始化库函数 */
+			if (_open_sym(&M->m[index]) == 0) {/* 初始化skynet_module的函数 */
 				M->m[index].name = skynet_strdup(name);
 				M->count ++;
 				result = &M->m[index];
@@ -170,6 +170,7 @@ skynet_module_instance_signal(struct skynet_module *m, void *inst, int signal) {
 }
 
 
+/* 初始化库storage，用于保存skynet_module */
 void 
 skynet_module_init(const char *path) {
 	struct modules *m = skynet_malloc(sizeof(*m));

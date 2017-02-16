@@ -31,7 +31,7 @@ struct handle_storage {
 
 static struct handle_storage *H = NULL;
 
-/* 新增一个skynet_context */
+/* 把skynet_context存储到handle_storage里，索引为handle值 */
 uint32_t
 skynet_handle_register(struct skynet_context *ctx) {
 	struct handle_storage *s = H;
@@ -251,18 +251,18 @@ skynet_handle_namehandle(uint32_t handle, const char *name) {
 }
 
 
-/* 初始化handle_storage */
+/* 初始化handle_storage，用于保存所有服务的上线文(skynet_context) */
 void 
 skynet_handle_init(int harbor) {
 	assert(H==NULL);
 	struct handle_storage * s = skynet_malloc(sizeof(*H));
 	s->slot_size = DEFAULT_SLOT_SIZE;
-	s->slot = skynet_malloc(s->slot_size * sizeof(struct skynet_context *));
+	s->slot = skynet_malloc(s->slot_size * sizeof(struct skynet_context *)); 
 	memset(s->slot, 0, s->slot_size * sizeof(struct skynet_context *));
 
 	rwlock_init(&s->lock);
 	// reserve 0 for system
-	s->harbor = (uint32_t) (harbor & 0xff) << HANDLE_REMOTE_SHIFT;
+	s->harbor = (uint32_t) (harbor & 0xff) << HANDLE_REMOTE_SHIFT;/* 低24位用于skynet_context的索引，高8位用于remote id */
 	s->handle_index = 1;
 	s->name_cap = 2;
 	s->name_count = 0;

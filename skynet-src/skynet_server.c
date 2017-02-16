@@ -117,15 +117,15 @@ drop_message(struct skynet_message *msg, void *ud) {
 }
 
 
-/* 创建skynet上下文 */
+ 
 struct skynet_context * 
 skynet_context_new(const char * name, const char *param) {
-	struct skynet_module * mod = skynet_module_query(name);/* 查询模块，没有则创建 */
+	struct skynet_module * mod = skynet_module_query(name);/* 查询模块，没有则创建; */
 
 	if (mod == NULL)
 		return NULL;
 
-	void *inst = skynet_module_instance_create(mod);/* 调用module.create函数,返回各服务的描述符 */
+	void *inst = skynet_module_instance_create(mod);/* 调用module.create函数,返回各服务使用的上下文 */
 	if (inst == NULL)
 		return NULL;
 	struct skynet_context * ctx = skynet_malloc(sizeof(*ctx));/* 创建skynet_context */
@@ -143,10 +143,11 @@ skynet_context_new(const char * name, const char *param) {
 	ctx->endless = false;
 	// Should set to 0 first to avoid skynet_handle_retireall get an uninitialized handle
 	ctx->handle = 0;	
-	ctx->handle = skynet_handle_register(ctx);
+	ctx->handle = skynet_handle_register(ctx);/* skynet_context存储于handle_storage集中管理 */
 	struct message_queue * queue = ctx->queue = skynet_mq_create(ctx->handle);/* 创建msg queue */
+
 	// init function maybe use ctx->handle, so it must init at last
-	context_inc();
+	context_inc();/*  */
 
 	CHECKCALLING_BEGIN(ctx)
 	int r = skynet_module_instance_init(mod, inst, ctx, param);/* 调用module->init函数 */
@@ -395,15 +396,18 @@ cmd_timeout(struct skynet_context * context, const char * param) {
 }
 
 
-/*  */
+/* 注册命令 */
 static const char *
 cmd_reg(struct skynet_context * context, const char * param) {
-	if (param == NULL || param[0] == '\0') {
+	if (param == NULL || param[0] == '\0')
+	{
 		sprintf(context->result, ":%x", context->handle);
 		return context->result;
-	} else if (param[0] == '.') {
+	} else if (param[0] == '.') 
+	{
 		return skynet_handle_namehandle(context->handle, param + 1);
-	} else {
+	} else 
+	{
 		skynet_error(context, "Can't register global name %s in C", param);
 		return NULL;
 	}
@@ -642,7 +646,7 @@ static struct command_func cmd_funcs[] = {
 	{ NULL, NULL },
 };
 
-/* @cmd为命令名，从预定义的cmd_funcs找出匹配的函数，调用 */
+/* 调用相应的命令函数，@cmd为命令名 */
 const char * 
 skynet_command(struct skynet_context * context, const char * cmd , const char * param) {
 	struct command_func * method = &cmd_funcs[0];
@@ -754,6 +758,7 @@ skynet_sendname(struct skynet_context * context, uint32_t source, const char * a
 	return skynet_send(context, source, des, type, session, data, sz);
 }
 
+/* 返回skynet_context的handle值 */
 uint32_t 
 skynet_context_handle(struct skynet_context *ctx) {
 	return ctx->handle;

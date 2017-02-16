@@ -28,6 +28,7 @@ skynet_harbor_message_isremote(uint32_t handle) {
 }
 
 
+/* 设置harbor的初始化值， */
 void
 skynet_harbor_init(int harbor) {
 	HARBOR = (unsigned int)harbor << HANDLE_REMOTE_SHIFT;

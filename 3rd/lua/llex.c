@@ -570,7 +570,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          if (isreserved(ts))  /* 保留的关键字 */
+          if (isreserved(ts))  /* 保留的关键字, */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
             return TK_NAME;/* 变量 */

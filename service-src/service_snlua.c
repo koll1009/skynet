@@ -11,7 +11,7 @@
 
 #define MEMORY_WARNING_REPORT (1024 * 1024 * 32)
 
-
+/*  */
 struct snlua {
 	lua_State * L;
 	struct skynet_context * ctx;
@@ -157,33 +157,37 @@ launch_cb(struct skynet_context * context, void *ud, int type, int session, uint
 	return 0;
 }
 
-/* snlua模块的init函数 */
+/* snlua服务的init函数 */
 int
 snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	int sz = strlen(args);
 	char * tmp = skynet_malloc(sz);
 	memcpy(tmp, args, sz);
-	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb函数指针 */
+	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb回调函数 */
 	const char * self = skynet_command(ctx, "REG", NULL);
 	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数 */
+
 	// it must be first message
 	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz);
 	return 0;
 }
 
+/* lua虚拟机使用的内存分配函数 */
 static void *
 lalloc(void * ud, void *ptr, size_t osize, size_t nsize) {
 	struct snlua *l = ud;
 	size_t mem = l->mem;
 	l->mem += nsize;
 	if (ptr)
-		l->mem -= osize;
-	if (l->mem_limit != 0 && l->mem > l->mem_limit) {
+		l->mem -= osize;/* 此时为realloc */
+
+	if (l->mem_limit != 0 && l->mem > l->mem_limit) {/* 超出内存上限，不分配 */
 		if (ptr == NULL || nsize > osize) {
 			l->mem = mem;
 			return NULL;
 		}
 	}
+
 	if (l->mem > l->mem_report) {
 		l->mem_report *= 2;
 		skynet_error(l->ctx, "Memory warning %.2f M", (float)l->mem / (1024 * 1024));
@@ -191,14 +195,14 @@ lalloc(void * ud, void *ptr, size_t osize, size_t nsize) {
 	return skynet_lalloc(ptr, osize, nsize);
 }
 
-/*  */
+/* snlua服务的create函数，用以创建服务使用的上下文 */
 struct snlua *
 snlua_create(void) {
 	struct snlua * l = skynet_malloc(sizeof(*l));
 	memset(l,0,sizeof(*l));
 	l->mem_report = MEMORY_WARNING_REPORT;
 	l->mem_limit = 0;
-	l->L = lua_newstate(lalloc, l);
+	l->L = lua_newstate(lalloc, l);/* 单独使用一个虚拟机 */
 	return l;
 }
 
