@@ -19,7 +19,7 @@
 #include <signal.h>
 
 struct monitor {
-	int count;/*  */
+	int count;/* 与工作线程数一致 */
 	struct skynet_monitor ** m;
 	pthread_cond_t cond;
 	pthread_mutex_t mutex;
@@ -27,6 +27,7 @@ struct monitor {
 	int quit;
 };
 
+/* 工作线程参数 */
 struct worker_parm {
 	struct monitor *m;
 	int id;
@@ -182,6 +183,7 @@ thread_worker(void *p) {
 	return NULL;
 }
 
+
 /* @thread为线程数量 */
 static void
 start(int thread) {
@@ -206,16 +208,16 @@ start(int thread) {
 		exit(1);
 	}
 
-	create_thread(&pid[0], thread_monitor, m);
+	create_thread(&pid[0], thread_monitor, m); 
 	create_thread(&pid[1], thread_timer, m);
 	create_thread(&pid[2], thread_socket, m);
 
-	static int weight[] = { 
+	static int weight[] = { /* 线程处理同一种服务消息的权重数 */
 		-1, -1, -1, -1, 0, 0, 0, 0,
-		1, 1, 1, 1, 1, 1, 1, 1, 
-		2, 2, 2, 2, 2, 2, 2, 2, 
-		3, 3, 3, 3, 3, 3, 3, 3, };
-	struct worker_parm wp[thread];
+		1, 1, 1, 1, 1, 1, 1, 1, /* 1/2 */
+		2, 2, 2, 2, 2, 2, 2, 2, /* 1/4 */
+		3, 3, 3, 3, 3, 3, 3, 3, /* 1/8 */};
+	struct worker_parm wp[thread];/* 工作线程参数 */
 	for (i=0;i<thread;i++) {
 		wp[i].m = m;
 		wp[i].id = i;

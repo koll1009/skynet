@@ -93,7 +93,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 	/* 在snlua->L的虚拟机中设置全局变量值 */
 	const char *path = optstring(ctx, "lua_path","./lualib/?.lua;./lualib/?/init.lua");/*  */
 	lua_pushstring(L, path);
-	lua_setglobal(L, "LUA_PATH");/* lua路径 */
+	lua_setglobal(L, "LUA_PATH"); /* lua路径 */
 	const char *cpath = optstring(ctx, "lua_cpath","./luaclib/?.so");
 	lua_pushstring(L, cpath);
 	lua_setglobal(L, "LUA_CPATH");/* c路径 */
@@ -102,7 +102,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 	lua_setglobal(L, "LUA_SERVICE");/* lua服务路径 */
 	const char *preload = skynet_command(ctx, "GETENV", "preload");
 	lua_pushstring(L, preload);
-	lua_setglobal(L, "LUA_PRELOAD");/*  */
+	lua_setglobal(L, "LUA_PRELOAD");/* 预加载路径 */
 
 	lua_pushcfunction(L, traceback);
 	assert(lua_gettop(L) == 1);
@@ -116,7 +116,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 		return 1;
 	}
 	lua_pushlstring(L, args, sz);
-	r = lua_pcall(L,1,0,1);/* 执行loader.lua */
+	r = lua_pcall(L,1,0,1);/* 执行loader.lua，error func为traceback函数 */
 	if (r != LUA_OK) {
 		skynet_error(ctx, "lua loader error : %s", lua_tostring(L, -1));
 		report_launcher_error(ctx);
@@ -147,7 +147,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 static int
 launch_cb(struct skynet_context * context, void *ud, int type, int session, uint32_t source , const void * msg, size_t sz) {
 	assert(type == 0 && session == 0);
-	struct snlua *l = ud;
+	struct snlua *l = ud;/* 在snlua_init里，把context->cb_ud设置成了服务的上下文snlua */
 	skynet_callback(context, NULL, NULL);
 	int err = init_cb(l, context, msg, sz);
 	if (err) {
@@ -165,7 +165,7 @@ snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	memcpy(tmp, args, sz);
 	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb回调函数 */
 	const char * self = skynet_command(ctx, "REG", NULL);/* self指向ctx的result数组，result里保存有handle值 */
-	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数 */
+	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数,此时handle_id=ctx->handle */
 
 	// it must be first message
 	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz);

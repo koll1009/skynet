@@ -27,8 +27,8 @@ struct message_queue {
 	int tail;
 	int release;
 	int in_global;
-	int overload;
-	int overload_threshold;
+	int overload;/* 消息过载 */
+	int overload_threshold;/* 消息队列大小的极限值 */
 	struct skynet_message *queue;/* 存储消息 */
 	struct message_queue *next;
 };
@@ -41,7 +41,7 @@ struct global_queue {
 
 static struct global_queue *Q = NULL;
 
-
+/* 把msg queue插入到global_queue中，尾部插入 */
 void 
 skynet_globalmq_push(struct message_queue * queue) {
 	struct global_queue *q= Q;
@@ -57,6 +57,7 @@ skynet_globalmq_push(struct message_queue * queue) {
 	SPIN_UNLOCK(q)
 }
 
+/* 从全局消息队列中取出一个msg queue */
 struct message_queue * 
 skynet_globalmq_pop() {
 	struct global_queue *q = Q;
@@ -112,6 +113,7 @@ skynet_mq_handle(struct message_queue *q) {
 	return q->handle;
 }
 
+/* 计算消息队列中，消息的数量 */
 int
 skynet_mq_length(struct message_queue *q) {
 	int head, tail,cap;
@@ -128,6 +130,7 @@ skynet_mq_length(struct message_queue *q) {
 	return tail + cap - head;
 }
 
+
 int
 skynet_mq_overload(struct message_queue *q) {
 	if (q->overload) {
@@ -138,7 +141,7 @@ skynet_mq_overload(struct message_queue *q) {
 	return 0;
 }
 
-/* 从队列取消息，成功返回0，队列为空返回1 */
+/* 取消息，成功返回0，队列为空返回1 */
 int
 skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 	int ret = 1;
@@ -151,7 +154,7 @@ skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 		int tail = q->tail;
 		int cap = q->cap;
 
-		if (head >= cap) {
+		if (head >= cap) {/* head==0 表示已到队列末尾 */
 			q->head = head = 0;
 		}
 		int length = tail - head;
@@ -176,11 +179,12 @@ skynet_mq_pop(struct message_queue *q, struct skynet_message *message) {
 	return ret;
 }
 
+/* 扩展消息队列 */
 static void
 expand_queue(struct message_queue *q) {
 	struct skynet_message *new_queue = skynet_malloc(sizeof(struct skynet_message) * q->cap * 2);
 	int i;
-	for (i=0;i<q->cap;i++) {/* 为什么不直接使用内存复制 */
+	for (i=0;i<q->cap;i++) {/* q->head为第一个要处理的msg */
 		new_queue[i] = q->queue[(q->head + i) % q->cap];
 	}
 	q->head = 0;
@@ -191,24 +195,24 @@ expand_queue(struct message_queue *q) {
 	q->queue = new_queue;
 }
 
-/* 把msg压入msg queue */
+/* msg队列push操作 */
 void 
 skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 	assert(message);
 	SPIN_LOCK(q)
 
 	q->queue[q->tail] = *message;
-	if (++ q->tail >= q->cap) {
+	if (++ q->tail >= q->cap) { 
 		q->tail = 0;
 	}
 
-	if (q->head == q->tail) {
-		expand_queue(q);/* 扩展queue */
+	if (q->head == q->tail) {/* 已满，扩展queue */
+		expand_queue(q);
 	}
 
 	if (q->in_global == 0) {
 		q->in_global = MQ_IN_GLOBAL;
-		skynet_globalmq_push(q);/*  */
+		skynet_globalmq_push(q);/* 把消息队列链入全局消息队列 */
 	}
 	
 	SPIN_UNLOCK(q)

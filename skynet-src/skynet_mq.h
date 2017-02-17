@@ -5,9 +5,9 @@
 #include <stdint.h>
 
 struct skynet_message {
-	uint32_t source;/* skynet_context handle */
+	uint32_t source;/* source handle */
 	int session;
-	void * data;
+	void * data;/* 消息数据 */
 	size_t sz;/* 高八位为类型，低24位为长度 */
 };
 
