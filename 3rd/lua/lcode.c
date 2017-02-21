@@ -419,7 +419,7 @@ static void freeexps (FuncState *fs, expdesc *e1, expdesc *e2) {
 }
 
 
-/*
+/* 添加常量
 ** Add constant 'v' to prototype's list of constants (field 'k').
 ** Use scanner's table to cache position of constants in constant list
 ** and try to reuse constants. Because some values should not be used
@@ -429,7 +429,7 @@ static void freeexps (FuncState *fs, expdesc *e1, expdesc *e2) {
 static int addk (FuncState *fs, TValue *key, TValue *v) {
   lua_State *L = fs->ls->L;
   Proto *f = fs->f;
-  TValue *idx = luaH_set(L, fs->ls->h, key);  /* index scanner table */
+  TValue *idx = luaH_set(L, fs->ls->h, key); /* 常量也会缓存在scanner table表中，value为常量表里的索引，便于常量的重复性使用 */ 
   int k, oldsize;
   if (ttisinteger(idx)) {  /* is there an index there? */
     k = cast_int(ivalue(idx));
@@ -445,7 +445,8 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
      table has no metatable, so it does not need to invalidate cache */
   setivalue(idx, k);
   luaM_growvector(L, f->k, k, f->sp->sizek, TValue, MAXARG_Ax, "constants");
-  while (oldsize < f->sp->sizek) setnilvalue(&f->k[oldsize++]);
+  while (oldsize < f->sp->sizek) 
+	  setnilvalue(&f->k[oldsize++]);
   setobj(L, &f->k[k], v);
   fs->nk++;
   luaC_barrier(L, f, v);
@@ -453,7 +454,7 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
 }
 
 
-/*
+/* 字符串常量
 ** Add a string to list of constants and return its index.
 */
 int luaK_stringK (FuncState *fs, TString *s) {
@@ -463,7 +464,7 @@ int luaK_stringK (FuncState *fs, TString *s) {
 }
 
 
-/*
+/* 
 ** Add an integer to list of constants and return its index.
 ** Integers use userdata as keys to avoid collision with floats with
 ** same value; conversion to 'void*' is used only for hashing, so there
@@ -1057,7 +1058,7 @@ static void codecomp (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
 }
 
 
-/*
+/* 
 ** Aplly prefix operation 'op' to expression 'e'.
 */
 void luaK_prefix (FuncState *fs, UnOpr op, expdesc *e, int line) {

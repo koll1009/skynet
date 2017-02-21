@@ -90,7 +90,8 @@ static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
 
 
 static void checklimit (FuncState *fs, int v, int l, const char *what) {
-  if (v > l) errorlimit(fs, l, what);
+  if (v > l) 
+	  errorlimit(fs, l, what);
 }
 
 
@@ -132,12 +133,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
+/* 变量名检查 */
 static TString *str_checkname (LexState *ls) {
   TString *ts;
-  check(ls, TK_NAME);
+  check(ls, TK_NAME);/* token类型 */
   ts = ls->t.seminfo.ts;
   luaX_next(ls);
-  return ts;
+  return ts;/* 返回变量名 */
 }
 
 /* 初始化表达式描述符 */
@@ -148,6 +150,7 @@ static void init_exp (expdesc *e, expkind k, int i) {
 }
 
 
+/* 编译字符串常量 */
 static void codestring (LexState *ls, expdesc *e, TString *s) {
   init_exp(e, VK, luaK_stringK(ls->fs, s));
 }
@@ -162,7 +165,7 @@ static int registerlocalvar (LexState *ls, TString *varname) {
   FuncState *fs = ls->fs;
   Proto *fp = fs->f;
   SharedProto *f = fp->sp;
-  int oldsize = f->sizelocvars;
+  int oldsize = f->sizelocvars;/* 已创建的局部变量数量 */
   luaM_growvector(ls->L, f->locvars, fs->nlocvars, f->sizelocvars,
                   LocVar, SHRT_MAX, "local variables");
   while (oldsize < f->sizelocvars)
@@ -185,6 +188,7 @@ static void new_localvar (LexState *ls, TString *name) {
 }
 
 
+/* 新建局部变量，@name为变量名 @sz为长度 */
 static void new_localvarliteral_ (LexState *ls, const char *name, size_t sz) {
   new_localvar(ls, luaX_newstring(ls, name, sz));
 }
@@ -294,7 +298,7 @@ static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
   }
 }
 
-
+/* 编译变量 */
 static void singlevar (LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   FuncState *fs = ls->fs;
@@ -877,10 +881,11 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
 */
 
 
+/* 基本表达式 */
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   switch (ls->t.token) {
-    case '(': {
+    case '(': {/* 括号表达式 */
       int line = ls->linenumber;
       luaX_next(ls);
       expr(ls, v);
@@ -898,7 +903,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
   }
 }
 
-
+/* 后缀表达式 */
 static void suffixedexp (LexState *ls, expdesc *v) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
@@ -937,33 +942,34 @@ static void suffixedexp (LexState *ls, expdesc *v) {
 }
 
 
+/* 简单表达式 */
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
-    case TK_FLT: {
+    case TK_FLT: {/* 浮点型 */
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
-    case TK_INT: {
+    case TK_INT: {/* 整型 */
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;
     }
-    case TK_STRING: {
+    case TK_STRING: {/* 字符串 */
       codestring(ls, v, ls->t.seminfo.ts);
       break;
     }
-    case TK_NIL: {
+    case TK_NIL: {/* nil */
       init_exp(v, VNIL, 0);
       break;
     }
-    case TK_TRUE: {
+    case TK_TRUE: {/* true */
       init_exp(v, VTRUE, 0);
       break;
     }
-    case TK_FALSE: {
+    case TK_FALSE: {/* false */
       init_exp(v, VFALSE, 0);
       break;
     }
@@ -979,7 +985,7 @@ static void simpleexp (LexState *ls, expdesc *v) {
       constructor(ls, v);
       return;
     }
-    case TK_FUNCTION: {
+    case TK_FUNCTION: {/* 函数 */
       luaX_next(ls);
       body(ls, v, 0, ls->linenumber);
       return;
@@ -1003,7 +1009,7 @@ static UnOpr getunopr (int op) {
   }
 }
 
-
+/* 取二元操作符 */
 static BinOpr getbinopr (int op) {
   switch (op) {
     case '+': return OPR_ADD;
@@ -1048,6 +1054,7 @@ static const struct {
    {2, 2}, {1, 1}            /* and, or */
 };
 
+/* 比所有2元操作符优先级都高，实现一元操作符和操作数的结合 */
 #define UNARY_PRIORITY	12  /* priority for unary operators */
 
 
@@ -1059,17 +1066,19 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
-  uop = getunopr(ls->t.token);
+  uop = getunopr(ls->t.token);/* 取一元运算 */
   if (uop != OPR_NOUNOPR) {
     int line = ls->linenumber;
     luaX_next(ls);
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
   }
-  else simpleexp(ls, v);
+  else
+	  simpleexp(ls, v);
+
   /* expand while operators have priorities higher than 'limit' */
-  op = getbinopr(ls->t.token);
-  while (op != OPR_NOBINOPR && priority[op].left > limit) {
+  op = getbinopr(ls->t.token);/* 取二元运算符 */
+  while (op != OPR_NOBINOPR && priority[op].left > limit) {/* 如果新运算符的权限大于前置值，则先进行本次运算 */
     expdesc v2;
     BinOpr nextop;
     int line = ls->linenumber;
@@ -1084,7 +1093,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
   return op;  /* return first untreated operator */
 }
 
-
+/* 表达式解析 */
 static void expr (LexState *ls, expdesc *v) {
   subexpr(ls, v, 0);
 }
@@ -1287,6 +1296,7 @@ static void repeatstat (LexState *ls, int line) {
 }
 
 
+/* 编译一个lua表达式 */
 static int exp1 (LexState *ls) {
   expdesc e;
   int reg;
@@ -1298,6 +1308,7 @@ static int exp1 (LexState *ls) {
 }
 
 
+/* for循环的block主体 */
 static void forbody (LexState *ls, int base, int line, int nvars, int isnum) {
   /* forbody -> DO block */
   BlockCnt bl;
@@ -1324,6 +1335,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isnum) {
 }
 
 
+/* 编译for varname=init,limit,step do ... end语句 */
 static void fornum (LexState *ls, TString *varname, int line) {
   /* fornum -> NAME = exp1,exp1[,exp1] forbody */
   FuncState *fs = ls->fs;
@@ -1339,7 +1351,7 @@ static void fornum (LexState *ls, TString *varname, int line) {
   if (testnext(ls, ','))
     exp1(ls);  /* optional step */
   else {  /* default step = 1 */
-    luaK_codek(fs, fs->freereg, luaK_intK(fs, 1));
+    luaK_codek(fs, fs->freereg, luaK_intK(fs, 1));/* 默认每步递增1 */
     luaK_reserveregs(fs, 1);
   }
   forbody(ls, base, line, 1, 1);
@@ -1381,10 +1393,13 @@ static void forstat (LexState *ls, int line) {
   luaX_next(ls);  /* skip 'for' */
   varname = str_checkname(ls);  /* first variable name */
   switch (ls->t.token) {
-    case '=': fornum(ls, varname, line); break;
-    case ',': case TK_IN:/* for k,v in ... */
+    case '=': /* for varname=init,limit,step do ... end语句 */
+		fornum(ls, varname, line); 
+		break;
+    case ',': case TK_IN: /* for k,v in ... */
 		forlist(ls, varname); break;
-    default: luaX_syntaxerror(ls, "'=' or 'in' expected");
+    default: 
+		luaX_syntaxerror(ls, "'=' or 'in' expected");
   }
   check_match(ls, TK_END, TK_FOR, line);
   leaveblock(fs);  /* loop scope ('break' jumps to this point) */

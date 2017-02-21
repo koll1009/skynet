@@ -428,7 +428,7 @@ typedef struct SharedProto {
 typedef struct Proto {
   CommonHeader;
   struct SharedProto *sp;
-  TValue *k;  /* constants used by the function */
+  TValue *k;  /* 函数使用的常量 constants used by the function */
   struct Proto **p;  /* functions defined inside the function */
   struct LClosure *cache;  /* last-created closure with this prototype */
   GCObject *gclist;

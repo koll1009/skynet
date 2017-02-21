@@ -1201,7 +1201,7 @@ void luaV_execute (lua_State *L) {
           goto newframe;  /* restart luaV_execute over new Lua function */
         }
       }
-      vmcase(OP_FORLOOP) {
+      vmcase(OP_FORLOOP) { /* for */
         if (ttisinteger(ra)) {  /* integer loop? */
           lua_Integer step = ivalue(ra + 2);
           lua_Integer idx = intop(+, ivalue(ra), step); /* increment index */
@@ -1225,10 +1225,10 @@ void luaV_execute (lua_State *L) {
         }
         vmbreak;
       }
-      vmcase(OP_FORPREP) {
-        TValue *init = ra;
-        TValue *plimit = ra + 1;
-        TValue *pstep = ra + 2;
+      vmcase(OP_FORPREP) { /*  */
+        TValue *init = ra;/* 初始值 */
+        TValue *plimit = ra + 1;/* 临界值 */
+        TValue *pstep = ra + 2;/* 递增因子 */
         lua_Integer ilimit;
         int stopnow;
         if (ttisinteger(init) && ttisinteger(pstep) &&
@@ -1250,7 +1250,7 @@ void luaV_execute (lua_State *L) {
             luaG_runerror(L, "'for' initial value must be a number");
           setfltvalue(init, luai_numsub(L, ninit, nstep));
         }
-        ci->u.l.savedpc += GETARG_sBx(i);
+        ci->u.l.savedpc += GETARG_sBx(i);/* 指令跳转 */
         vmbreak;
       }
       vmcase(OP_TFORCALL) {
