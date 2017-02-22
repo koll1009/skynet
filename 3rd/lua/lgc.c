@@ -191,7 +191,7 @@ void luaC_upvalbarrier_ (lua_State *L, UpVal *uv) {
 }
 
 
-/*  */
+/* 把gcobject设置为不可回收类型 */
 void luaC_fix (lua_State *L, GCObject *o) {
   global_State *g = G(L);
   if (g->allgc != o)

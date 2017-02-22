@@ -70,12 +70,13 @@ static void save (LexState *ls, int c) {
 /* 词法分析初始化 */
 void luaX_init (lua_State *L) {
   int i;
-  TString *e = luaS_newliteral(L, LUA_ENV);  /* create env name */
+  TString *e = luaS_newliteral(L, LUA_ENV);  /* 创建环境变量名 */
   luaC_fix(L, obj2gco(e));  /* never collect this name */
-  for (i=0; i<NUM_RESERVED; i++) {
+  for (i=0; i<NUM_RESERVED; i++)
+  {/* 预留关键字设为不可回收 */
     TString *ts = luaS_new(L, luaX_tokens[i]);
-    luaC_fix(L, obj2gco(ts));  /* reserved words are never collected */
-    ts->extra = cast_byte(i+1);  /* reserved word */
+    luaC_fix(L, obj2gco(ts));   
+    ts->extra = cast_byte(i+1);  
   }
 }
 

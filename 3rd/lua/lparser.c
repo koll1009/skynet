@@ -196,7 +196,7 @@ static void new_localvarliteral_ (LexState *ls, const char *name, size_t sz) {
 #define new_localvarliteral(ls,v) \
 	new_localvarliteral_(ls, "" v, (sizeof(v)/sizeof(char))-1)
 
-
+/* 取变量信息 */
 static LocVar *getlocvar (FuncState *fs, int i) {
   int idx = fs->ls->dyd->actvar.arr[fs->firstlocal + i].idx;
   lua_assert(idx < fs->nlocvars);
@@ -220,11 +220,13 @@ static void removevars (FuncState *fs, int tolevel) {
 }
 
 
+/* 搜索upvalue表 */
 static int searchupvalue (FuncState *fs, TString *name) {
   int i;
   Upvaldesc *up = fs->f->sp->upvalues;
   for (i = 0; i < fs->nups; i++) {
-    if (eqstr(up[i].name, name)) return i;
+    if (eqstr(up[i].name, name))
+		return i;
   }
   return -1;  /* not found */
 }
@@ -248,6 +250,7 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
 }
 
 
+/* 从已解析的变量表中搜索变量@n */
 static int searchvar (FuncState *fs, TString *n) {
   int i;
   for (i = cast_int(fs->nactvar) - 1; i >= 0; i--) {
@@ -270,7 +273,7 @@ static void markupval (FuncState *fs, int level) {
 }
 
 
-/*
+/*变量搜索
   Find variable with given name 'n'. If it is an upvalue, add this
   upvalue into all intermediate functions.
 */
