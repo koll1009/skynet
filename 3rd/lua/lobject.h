@@ -402,10 +402,11 @@ typedef struct LocVar {
 } LocVar;
 
 
+
 typedef struct SharedProto {
-  lu_byte numparams;  /* number of fixed parameters */
-  lu_byte is_vararg;  /* 2: declared vararg; 1: uses vararg */
-  lu_byte maxstacksize;  /* number of registers needed by this function */
+  lu_byte numparams;  /* 固定参数数量 number of fixed parameters */
+  lu_byte is_vararg;  /* 是否为变参函数 2: declared vararg; 1: uses vararg */
+  lu_byte maxstacksize;  /*  number of registers needed by this function */
   int sizeupvalues;  /* size of 'upvalues' */
   int sizek;  /* size of 'k' */
   int sizecode;

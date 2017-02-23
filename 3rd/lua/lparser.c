@@ -1661,11 +1661,11 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   LClosure *cl = luaF_newLclosure(L, 1);  /* 创建主lua闭包，传入的lua代码或lua文件经编译后会返回一个LClosure */
   setclLvalue(L, L->top, cl);  /* anchor it (to avoid being collected) */
   luaD_inctop(L);
-  lexstate.h = luaH_new(L);  /* create table for scanner */
-  sethvalue(L, L->top, lexstate.h);  /* anchor it */
+  lexstate.h = luaH_new(L); 
+  sethvalue(L, L->top, lexstate.h);  
   luaD_inctop(L);
   funcstate.f = cl->p = luaF_newproto(L, NULL);
-  funcstate.f->sp->source = luaS_new(L, name);  /* create and anchor TString */
+  funcstate.f->sp->source = luaS_new(L, name);  /*  */
   lua_assert(iswhite(funcstate.f));  /* do not need barrier here */
   lexstate.buff = buff;
   lexstate.dyd = dyd;

@@ -94,7 +94,7 @@ typedef struct Labellist {
 
 /* 编译过程中使用的动态结构 dynamic structures used by the parser */
 typedef struct Dyndata {
-  struct {  /* list of active local variables */
+  struct {  /* 局部变量表 list of active local variables */
     Vardesc *arr;
     int n;
     int size;
@@ -108,21 +108,21 @@ typedef struct Dyndata {
 struct BlockCnt;  /* defined in lparser.c */
 
 
-/* state needed to generate code for a given function */
+/* 编译函数时使用的辅助结构 state needed to generate code for a given function */
 typedef struct FuncState {
-  Proto *f;  /* current function header */
+  Proto *f;  /* 函数原型（里面有函数运行需要的所有信息） */
   struct FuncState *prev;  /* enclosing function */
   struct LexState *ls;  /* lexical state */
   struct BlockCnt *bl;  /* chain of current blocks */
   int pc;  /* next position to code (equivalent to 'ncode') */
   int lasttarget;   /* 'label' of last 'jump label' */
   int jpc;  /* list of pending jumps to 'pc' */
-  int nk;  /* number of elements in 'k' */
+  int nk;  /* 常量数量 */
   int np;  /* number of elements in 'p' */
-  int firstlocal;  /* index of first local var (in Dyndata array) */
-  short nlocvars;  /* number of elements in 'f->locvars' */
+  int firstlocal;  /* 第一个局部变量的索引（在dyndata里的索引） */
+  short nlocvars;  /* 局部变量数量 number of elements in 'f->locvars' */
   lu_byte nactvar;  /* number of active local variables */
-  lu_byte nups;  /* number of upvalues */
+  lu_byte nups;  /* UpValue数量 number of upvalues */
   lu_byte freereg;  /* first free register */
 } FuncState;
 

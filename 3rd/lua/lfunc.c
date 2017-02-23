@@ -96,6 +96,7 @@ void luaF_close (lua_State *L, StkId level) {
 }
 
 
+/* 新建一个函数原型 */
 Proto *luaF_newproto (lua_State *L, SharedProto *sp) {
   GCObject *o = luaC_newobj(L, LUA_TPROTO, sizeof(Proto));
   Proto *f = gco2p(o);

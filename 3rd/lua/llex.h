@@ -59,14 +59,14 @@ typedef struct Token {
 typedef struct LexState {
   int current;     /* 当前分析到的字符 current character (charint) */
   int linenumber;  /* 当前的行 input line counter */
-  int lastline;    /* line of last token 'consumed' */
-  Token t;         /* current token */
-  Token lookahead; /* look ahead token */
-  struct FuncState *fs;  /* current function (parser) */
+  int lastline;    /* 最后一行的计数 line of last token 'consumed' */
+  Token t;         /* 当前的标记 current token */
+  Token lookahead; /* 下一个标记 look ahead token */
+  struct FuncState *fs;  /* 函数状态描述符 current function (parser) */
   struct lua_State *L;
-  ZIO *z;  /* input stream */
+  ZIO *z;  /* 输入流,里面input stream */
   Mbuffer *buff;  /* 用以暂存token信息 buffer for tokens */
-  Table *h;  /* to avoid collection/reuse strings */
+  Table *h;  /* scanner table  to avoid collection/reuse strings */
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
