@@ -1,21 +1,21 @@
 local args = {}
-for word in string.gmatch(..., "%S+") do
+for word in string.gmatch(..., "%S+") do --传入的第一个参数为'bootstrap'
 	table.insert(args, word)
 end
 
-SERVICE_NAME = args[1]
+SERVICE_NAME = args[1] --服务名为'bootstrap'
 
 local main, pattern
 
 local err = {}
-for pat in string.gmatch(LUA_SERVICE, "([^;]+);*") do
-	local filename = string.gsub(pat, "?", SERVICE_NAME)
-	local f, msg = loadfile(filename)
+for pat in string.gmatch(LUA_SERVICE, "([^;]+);*") do  --以;分割luaservice路径
+	local filename = string.gsub(pat, "?", SERVICE_NAME) --用"bootstrap"代替？
+	local f, msg = loadfile(filename)    --加载该lua文件
 	if not f then
 		table.insert(err, msg)
 	else
-		pattern = pat
-		main = f
+		pattern = pat 
+		main = f --main为bootstrap.lua文件编译后的LClosure
 		break
 	end
 end

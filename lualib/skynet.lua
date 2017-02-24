@@ -629,7 +629,7 @@ end
 
 
 function skynet.start(start_func)
-	c.callback(skynet.dispatch_message)
+	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)
 	skynet.timeout(0, function()
 		skynet.init_service(start_func)
 	end)

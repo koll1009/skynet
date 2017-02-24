@@ -76,7 +76,7 @@ optstring(struct skynet_context *ctx, const char *key, const char * str) {
 }
 
 
-/*  */
+/* ³õÊ¼»¯ */
 static int
 init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t sz) {
 	lua_State *L = l->L;

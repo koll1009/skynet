@@ -45,6 +45,7 @@
 #define MINSIZEARRAY	4
 
 
+/* ÄÚ´æÀ©Õ¹¸¨Öúº¯Êý */
 void *luaM_growaux_ (lua_State *L, void *block, int *size, size_t size_elems,
                      int limit, const char *what) {
   void *newblock;

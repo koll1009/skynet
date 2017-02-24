@@ -29,14 +29,14 @@
 #include "lvm.h"
 
 
-/* Maximum number of registers in a Lua function (must fit in 8 bits) */
+/* 寄存器的最大数量 Maximum number of registers in a Lua function (must fit in 8 bits) */
 #define MAXREGS		255
 
-
+/* 是否有跳转 */
 #define hasjumps(e)	((e)->t != (e)->f)
 
 
-/*
+/* 如果表达式为数值类型，则赋值给@v并返回1 
 ** If expression is a numeric constant, fills 'v' with its value
 ** and returns 1. Otherwise, returns 0.
 */
@@ -45,12 +45,15 @@ static int tonumeral(expdesc *e, TValue *v) {
     return 0;  /* not a numeral */
   switch (e->k) {
     case VKINT:
-      if (v) setivalue(v, e->u.ival);
+      if (v) 
+		  setivalue(v, e->u.ival);
       return 1;
     case VKFLT:
-      if (v) setfltvalue(v, e->u.nval);
+      if (v) 
+		  setfltvalue(v, e->u.nval);
       return 1;
-    default: return 0;
+    default:
+		return 0;
   }
 }
 
@@ -151,7 +154,7 @@ void luaK_ret (FuncState *fs, int first, int nret) {
 }
 
 
-/*
+/* 生成条件跳转指令
 ** Code a "conditional jump", that is, a test or comparison opcode
 ** followed by a jump. Return jump position.
 */
@@ -355,22 +358,22 @@ int luaK_codek (FuncState *fs, int reg, int k) {
 }
 
 
-/*
+/* 检查寄存器栈
 ** Check register-stack level, keeping track of its maximum size
 ** in field 'maxstacksize'
 */
 void luaK_checkstack (FuncState *fs, int n) {
   int newstack = fs->freereg + n;
   if (newstack > fs->f->sp->maxstacksize) {
-    if (newstack >= MAXREGS)
+    if (newstack >= MAXREGS)/* 寄存器最大255个 */
       luaX_syntaxerror(fs->ls,
         "function or expression needs too many registers");
-    fs->f->sp->maxstacksize = cast_byte(newstack);
+    fs->f->sp->maxstacksize = cast_byte(newstack);/* 函数执行中最多使用到的寄存器数量 */
   }
 }
 
 
-/*
+/* 预留@n个寄存器单元
 ** Reserve 'n' registers in register stack
 */
 void luaK_reserveregs (FuncState *fs, int n) {
@@ -379,7 +382,7 @@ void luaK_reserveregs (FuncState *fs, int n) {
 }
 
 
-/*
+/* 释放寄存器
 ** Free register 'reg', if it is neither a constant index nor
 ** a local variable.
 )
@@ -419,7 +422,7 @@ static void freeexps (FuncState *fs, expdesc *e1, expdesc *e2) {
 }
 
 
-/* 添加常量
+/* 添加常量的通用函数
 ** Add constant 'v' to prototype's list of constants (field 'k').
 ** Use scanner's table to cache position of constants in constant list
 ** and try to reuse constants. Because some values should not be used
@@ -429,9 +432,11 @@ static void freeexps (FuncState *fs, expdesc *e1, expdesc *e2) {
 static int addk (FuncState *fs, TValue *key, TValue *v) {
   lua_State *L = fs->ls->L;
   Proto *f = fs->f;
-  TValue *idx = luaH_set(L, fs->ls->h, key); /* 常量也会缓存在scanner table表中，value为常量表里的索引，便于常量的重复性使用 */ 
+
+  /* 常量也会缓存在scanner table表中，value为常量表里的索引，便于常量的重复性使用 */ 
+  TValue *idx = luaH_set(L, fs->ls->h, key);   
   int k, oldsize;
-  if (ttisinteger(idx)) {  /* is there an index there? */
+  if (ttisinteger(idx)) {  /* 常量已存在 is there an index there? */
     k = cast_int(ivalue(idx));
     /* correct value? (warning: must distinguish floats from integers!) */
     if (k < fs->nk && ttype(&f->k[k]) == ttype(v) &&
@@ -454,7 +459,7 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
 }
 
 
-/* 字符串常量
+/* 把字符串@s添加到常量表中
 ** Add a string to list of constants and return its index.
 */
 int luaK_stringK (FuncState *fs, TString *s) {
@@ -464,7 +469,7 @@ int luaK_stringK (FuncState *fs, TString *s) {
 }
 
 
-/* 
+/* 把整型数值@n添加到常量表中
 ** Add an integer to list of constants and return its index.
 ** Integers use userdata as keys to avoid collision with floats with
 ** same value; conversion to 'void*' is used only for hashing, so there
@@ -477,7 +482,7 @@ int luaK_intK (FuncState *fs, lua_Integer n) {
   return addk(fs, &k, &o);
 }
 
-/*
+/* 把浮点数@r添加到常量表中
 ** Add a float to list of constants and return its index.
 */
 static int luaK_numberK (FuncState *fs, lua_Number r) {
@@ -487,7 +492,7 @@ static int luaK_numberK (FuncState *fs, lua_Number r) {
 }
 
 
-/*
+/* 把布尔值@b添加到常量表中
 ** Add a boolean to list of constants and return its index.
 */
 static int boolK (FuncState *fs, int b) {
@@ -497,14 +502,13 @@ static int boolK (FuncState *fs, int b) {
 }
 
 
-/*
+/* 把nil添加到常量表中
 ** Add nil to list of constants and return its index.
 */
 static int nilK (FuncState *fs) {
   TValue k, v;
   setnilvalue(&v);
-  /* cannot use nil as key; instead use table itself to represent nil */
-  sethvalue(fs->ls->L, &k, fs->ls->h);
+  sethvalue(fs->ls->L, &k, fs->ls->h);/* 因为table不允许使用nil为key值，所以使用scantable的地址为key */
   return addk(fs, &k, &v);
 }
 
@@ -528,7 +532,7 @@ void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
 }
 
 
-/*
+/* 设置一个返回值
 ** Fix an expression to return one result.
 ** If expression is not a multi-ret expression (function call or
 ** vararg), it already returns one result, so nothing needs to be done.
@@ -552,21 +556,21 @@ void luaK_setoneret (FuncState *fs, expdesc *e) {
 }
 
 
-/*
+/* 
 ** Ensure that expression 'e' is not a variable.
 */
 void luaK_dischargevars (FuncState *fs, expdesc *e) {
   switch (e->k) {
-    case VLOCAL: {  /* already in a register */
+    case VLOCAL: {  /* 局部变量 */
       e->k = VNONRELOC;  /* becomes a non-relocatable value */
       break;
     }
-    case VUPVAL: {  /* move value to some (pending) register */
+    case VUPVAL: {  /* UpValue */
       e->u.info = luaK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
-      e->k = VRELOCABLE;
+      e->k = VRELOCABLE;/* 需分配返回值的寄存器位置 */
       break;
     }
-    case VINDEXED: {
+    case VINDEXED: {/* 成员变量，例如object.name */
       OpCode op;
       freereg(fs, e->u.ind.idx);
       if (e->u.ind.vt == VLOCAL) {  /* is 't' in a register? */
@@ -581,7 +585,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
       e->k = VRELOCABLE;
       break;
     }
-    case VVARARG: case VCALL: {
+    case VVARARG: case VCALL: {/* 变参或者函数调用，设置返回值数量为1个 */
       luaK_setoneret(fs, e);
       break;
     }
@@ -590,7 +594,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
 }
 
 
-/*
+/* 全包所有表达式值都位于寄存器@reg上
 ** Ensures expression value is in register 'reg' (and therefore
 ** 'e' will become a non-relocatable expression).
 */
@@ -601,7 +605,7 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
       luaK_nil(fs, reg, 1);
       break;
     }
-    case VFALSE: case VTRUE: {
+    case VFALSE: case VTRUE: { /*  */
       luaK_codeABC(fs, OP_LOADBOOL, reg, e->k == VTRUE, 0);
       break;
     }
@@ -637,12 +641,12 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
 }
 
 
-/*
+/* 确保所有的表达式值都位于寄存其中
 ** Ensures expression value is in any register.
 */
 static void discharge2anyreg (FuncState *fs, expdesc *e) {
   if (e->k != VNONRELOC) {  /* no fixed register yet? */
-    luaK_reserveregs(fs, 1);  /* get a register */
+    luaK_reserveregs(fs, 1);  /* 分配寄存器 get a register */
     discharge2reg(fs, e, fs->freereg-1);  /* put value there */
   }
 }
@@ -832,7 +836,7 @@ static void negatecondition (FuncState *fs, expdesc *e) {
 }
 
 
-/*
+/* 在条件@cond下跳转
 ** Emit instruction to jump if 'e' is 'cond' (that is, if 'cond'
 ** is true, code will jump if 'e' is true.) Return jump position.
 ** Optimize when 'e' is 'not' something, inverting the condition
@@ -842,10 +846,10 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
   if (e->k == VRELOCABLE) {
     Instruction ie = getinstruction(fs, e);
     if (GET_OPCODE(ie) == OP_NOT) {
-      fs->pc--;  /* remove previous OP_NOT */
+      fs->pc--; 
       return condjump(fs, OP_TEST, GETARG_B(ie), 0, !cond);
     }
-    /* else go through */
+    
   }
   discharge2anyreg(fs, e);
   freeexp(fs, e);
@@ -853,11 +857,11 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 }
 
 
-/*
+/* 生成指令，如果e为true则顺序执行，否则跳转
 ** Emit code to go through if 'e' is true, jump otherwise.
 */
 void luaK_goiftrue (FuncState *fs, expdesc *e) {
-  int pc;  /* pc of new jump */
+  int pc;   
   luaK_dischargevars(fs, e);
   switch (e->k) {
     case VJMP: {  /* condition? */
@@ -865,8 +869,8 @@ void luaK_goiftrue (FuncState *fs, expdesc *e) {
       pc = e->u.info;  /* save jump position */
       break;
     }
-    case VK: case VKFLT: case VKINT: case VTRUE: {
-      pc = NO_JUMP;  /* always true; do nothing */
+    case VK: case VKFLT: case VKINT: case VTRUE: {/* 此时为true，不跳转 */
+      pc = NO_JUMP;  
       break;
     }
     default: {

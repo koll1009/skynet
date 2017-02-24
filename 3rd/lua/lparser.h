@@ -12,7 +12,7 @@
 #include "lzio.h"
 
 
-/*
+/* 
 ** Expression and variable descriptor.
 ** Code generation for variables and expressions can be delayed to allow
 ** optimizations; An 'expdesc' structure describes a potentially-delayed
@@ -25,26 +25,26 @@
 typedef enum {
   VVOID,  /* when 'expdesc' describes the last expression a list,
              this kind means an empty list (so, no expression) */
-  VNIL,  /* constant nil */
+  VNIL,   /* constant nil */
   VTRUE,  /* constant true */
-  VFALSE,  /* constant false */
-  VK,  /* constant in 'k'; info = index of constant in 'k' */
+  VFALSE, /* constant false */
+  VK,     /* constant in 'k'; info = index of constant in 'k' */
   VKFLT,  /* floating constant; nval = numerical float value */
   VKINT,  /* integer constant; nval = numerical integer value */
   VNONRELOC,  /* expression has its value in a fixed register;
                  info = result register */
-  VLOCAL,  /* local variable; info = local register */
-  VUPVAL,  /* upvalue variable; info = index of upvalue in 'upvalues' */
+  VLOCAL, /* local variable; info = local register */
+  VUPVAL, /* upvalue variable; info = index of upvalue in 'upvalues' */
   VINDEXED,  /* indexed variable;
                 ind.vt = whether 't' is register or upvalue;
                 ind.t = table register or upvalue;
                 ind.idx = key's R/K index */
-  VJMP,  /* expression is a test/comparison;
+  VJMP,   /* expression is a test/comparison;
             info = pc of corresponding jump instruction */
   VRELOCABLE,  /* expression can put result in any register;
                   info = instruction pc */
   VCALL,  /* expression is a function call; info = instruction pc */
-  VVARARG  /* vararg expression; info = instruction pc */
+  VVARARG /* vararg expression; info = instruction pc */
 } expkind;
 
 

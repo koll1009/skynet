@@ -1307,7 +1307,7 @@ void luaV_execute (lua_State *L) {
         checkGC(L, ra + 1);
         vmbreak;
       }
-      vmcase(OP_VARARG) {
+      vmcase(OP_VARARG) {/* 取变参值 */
         int b = GETARG_B(i) - 1;  /* required results */
         int j;
         int n = cast_int(base - ci->func) - cl->p->sp->numparams - 1;

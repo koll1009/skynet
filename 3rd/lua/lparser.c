@@ -236,6 +236,8 @@ static int searchupvalue (FuncState *fs, TString *name) {
 static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
   Proto *fp = fs->f;
   SharedProto *f = fp->sp;
+
+  /* 原型里的sizeupvalues字段表示upvalue数组的大小，fs->nups字段表示原型里使用的upvalue数量 */
   int oldsize = f->sizeupvalues;
   checklimit(fs, fs->nups + 1, MAXUPVAL, "upvalues");
   luaM_growvector(fs->ls->L, f->upvalues, fs->nups, f->sizeupvalues,
@@ -446,7 +448,7 @@ static void movegotosout (FuncState *fs, BlockCnt *bl) {
 }
 
 
-
+/* block代表{}包裹的一些lua代码 */
 static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->isloop = isloop;
   bl->nactvar = fs->nactvar;
@@ -592,7 +594,7 @@ static void close_func (LexState *ls) {
 /*============================================================*/
 
 
-/*
+/* 检查当前的token是否为新的block
 ** check whether current token is in the follow set of a block.
 ** 'until' closes syntactical blocks, but do not close scope,
 ** so it is handled in separate.
@@ -980,7 +982,7 @@ static void simpleexp (LexState *ls, expdesc *v) {
       FuncState *fs = ls->fs;
       check_condition(ls, fs->f->sp->is_vararg,
                       "cannot use '...' outside a vararg function");
-      fs->f->sp->is_vararg = 1;  /* function actually uses vararg */
+      fs->f->sp->is_vararg = 1;  /* 把原型的是否变参函数类型设为true */
       init_exp(v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 1, 0));
       break;
     }
@@ -1408,14 +1410,14 @@ static void forstat (LexState *ls, int line) {
   leaveblock(fs);  /* loop scope ('break' jumps to this point) */
 }
 
-
+/* 检查if or elseif表达式的true|false，编译true后的lua语句(因为表达式后紧跟着then关键字，所以为then block) */
 static void test_then_block (LexState *ls, int *escapelist) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
-  luaX_next(ls);  /* skip IF or ELSEIF */
+  luaX_next(ls);  /* 跳过if、elseif */
   expr(ls, &v);  /* read condition */
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_GOTO || ls->t.token == TK_BREAK) {
@@ -1443,7 +1445,7 @@ static void test_then_block (LexState *ls, int *escapelist) {
   luaK_patchtohere(fs, jf);
 }
 
-
+/* 解析if语句 */
 static void ifstat (LexState *ls, int line) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
@@ -1564,15 +1566,16 @@ static void retstat (LexState *ls) {
 }
 
 
+/* 解析lua语句 */
 static void statement (LexState *ls) {
   int line = ls->linenumber;  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
-    case ';': {  /* stat -> ';' (empty statement) */
+    case ';': {  /* ";"标点符非必要，直接跳过 stat -> ';' (empty statement) */
       luaX_next(ls);  /* skip ';' */
       break;
     }
-    case TK_IF: {  /* stat -> ifstat */
+    case TK_IF: {  /* if语句 stat -> ifstat */
       ifstat(ls, line);
       break;
     }
@@ -1635,7 +1638,7 @@ static void statement (LexState *ls) {
 /* }====================================================================== */
 
 
-/* 编译的主函数
+/* 编译的函数主体
 ** compiles the main function, which is a regular vararg function with an
 ** upvalue named LUA_ENV
 */
@@ -1664,7 +1667,7 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   lexstate.h = luaH_new(L); 
   sethvalue(L, L->top, lexstate.h);  
   luaD_inctop(L);
-  funcstate.f = cl->p = luaF_newproto(L, NULL);
+  funcstate.f = cl->p = luaF_newproto(L, NULL);/* 创建新的函数原型 */
   funcstate.f->sp->source = luaS_new(L, name);  /*  */
   lua_assert(iswhite(funcstate.f));  /* do not need barrier here */
   lexstate.buff = buff;
