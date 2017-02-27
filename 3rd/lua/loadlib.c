@@ -382,12 +382,16 @@ static int readable (const char *filename) {
 }
 
 
+/* 取出下一个文件夹路径 */
 static const char *pushnexttemplate (lua_State *L, const char *path) {
   const char *l;
-  while (*path == *LUA_PATH_SEP) path++;  /* skip separators */
-  if (*path == '\0') return NULL;  /* no more templates */
+  while (*path == *LUA_PATH_SEP)
+	  path++;  /* 跳过路径分隔符 skip separators */
+  if (*path == '\0')
+	  return NULL;  /* no more templates */
   l = strchr(path, *LUA_PATH_SEP);  /* find next separator */
-  if (l == NULL) l = path + strlen(path);
+  if (l == NULL)
+	  l = path + strlen(path);
   lua_pushlstring(L, path, l - path);  /* template */
   return l;
 }
@@ -402,7 +406,7 @@ static const char *searchpath (lua_State *L, const char *name,
   luaL_buffinit(L, &msg);
   if (*sep != '\0')  /* non-empty separator? */
     name = luaL_gsub(L, name, sep, dirsep);  /* replace it by 'dirsep' */
-  while ((path = pushnexttemplate(L, path)) != NULL) {
+  while ((path = pushnexttemplate(L, path)) != NULL) {/* 取一个文件夹路径 */
     const char *filename = luaL_gsub(L, lua_tostring(L, -1),
                                      LUA_PATH_MARK, name);
     lua_remove(L, -2);  /* remove path template */
@@ -430,7 +434,11 @@ static int ll_searchpath (lua_State *L) {
   }
 }
 
-/* 搜索文件是否存在 */
+/* 搜索库文件是否存在
+ * @name：文件名
+ * @pname：搜索的路径名，以之为key，从package表中搜索
+ * @dirsep:路径分隔符
+ */
 static const char *findfile (lua_State *L, const char *name,
                                            const char *pname,
                                            const char *dirsep) {
@@ -454,7 +462,7 @@ static int checkload (lua_State *L, int stat, const char *filename) {
 }
 
 
-/*  */
+/* 搜索lua库 */
 static int searcher_Lua (lua_State *L) {
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
@@ -505,7 +513,8 @@ static int searcher_Croot (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *p = strchr(name, '.');
   int stat;
-  if (p == NULL) return 0;  /* is root */
+  if (p == NULL) 
+	  return 0;  /* is root */
   lua_pushlstring(L, name, p - name);
   filename = findfile(L, lua_tostring(L, -1), "cpath", LUA_CSUBSEP);
   if (filename == NULL) return 1;  /* root not found */

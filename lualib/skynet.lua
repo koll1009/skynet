@@ -252,9 +252,9 @@ end
 
 
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  
+	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand
 	assert(session)
-	local co = co_create(func)
+	local co = co_create(func) --调用
 	assert(session_id_coroutine[session] == nil)
 	session_id_coroutine[session] = co
 end
@@ -629,7 +629,7 @@ end
 
 
 function skynet.start(start_func)
-	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)
+	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)，重新设置lua服务的回调函数
 	skynet.timeout(0, function()
 		skynet.init_service(start_func)
 	end)

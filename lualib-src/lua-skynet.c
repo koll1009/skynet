@@ -80,7 +80,10 @@ forward_cb(struct skynet_context * context, void * ud, int type, int session, ui
 	return 1;
 }
 
-/* skynet.core.callback函数 */
+/* skynet.core.callback函数
+ * @arg1:服务的回调函数
+ * @arg2：bool值，用于区分回调函数
+ */
 static int
 lcallback(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
@@ -95,13 +98,14 @@ lcallback(lua_State *L) {
 	if (forward) {
 		skynet_callback(context, gL, forward_cb);
 	} else {
-		skynet_callback(context, gL, _cb);/* 设置skynet_context的回调函数 */
+		skynet_callback(context, gL, _cb);/* 重设skynet_context的回调函数 */
 	}
 
 	return 0;
 }
 
 
+/* skynet.core.int */
 static int
 lcommand(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
@@ -355,7 +359,7 @@ lnow(lua_State *L) {
 }
 
 
-/* 加载skynet.core库， */
+/* 加载skynet.core库，require函数的search_croot函数中执行 */
 int
 luaopen_skynet_core(lua_State *L) {
 	luaL_checkversion(L);

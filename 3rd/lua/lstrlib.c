@@ -519,7 +519,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
               }
               break;
             }
-            case '+':  /* 1次或多次 1 or more repetitions */处                   
+            case '+':  /* 1次或多次 1 or more repetitions */                  
               s++;  /* 1 match already done */
               /* FALLTHROUGH */
             case '*':  /* 0次或多次 0 or more repetitions */

@@ -91,15 +91,15 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 	lua_pop(L,1);
 
 	/* 在snlua->L的虚拟机中设置全局变量值 */
-	const char *path = optstring(ctx, "lua_path","./lualib/?.lua;./lualib/?/init.lua");/*  */
+	const char *path = optstring(ctx, "lua_path","./lualib/?.lua;./lualib/?/init.lua"); /* lua路径 */
 	lua_pushstring(L, path);
-	lua_setglobal(L, "LUA_PATH"); /* lua路径 */
-	const char *cpath = optstring(ctx, "lua_cpath","./luaclib/?.so");
+	lua_setglobal(L, "LUA_PATH"); 
+	const char *cpath = optstring(ctx, "lua_cpath","./luaclib/?.so");/* c路径 */
 	lua_pushstring(L, cpath);
-	lua_setglobal(L, "LUA_CPATH");/* c路径 */
-	const char *service = optstring(ctx, "luaservice", "./service/?.lua");
+	lua_setglobal(L, "LUA_CPATH");
+	const char *service = optstring(ctx, "luaservice", "./service/?.lua");/* lua服务路径 */
 	lua_pushstring(L, service);
-	lua_setglobal(L, "LUA_SERVICE");/* lua服务路径 */
+	lua_setglobal(L, "LUA_SERVICE");
 	const char *preload = skynet_command(ctx, "GETENV", "preload");
 	lua_pushstring(L, preload);
 	lua_setglobal(L, "LUA_PRELOAD");/* 预加载路径 */

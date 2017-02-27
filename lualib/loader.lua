@@ -25,7 +25,7 @@ if not main then
 end
 
 LUA_SERVICE = nil
-package.path , LUA_PATH = LUA_PATH
+package.path , LUA_PATH = LUA_PATH   --重新设置lua库和c库的路径
 package.cpath , LUA_CPATH = LUA_CPATH
 
 local service_path = string.match(pattern, "(.*/)[^/?]+$")
