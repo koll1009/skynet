@@ -212,7 +212,7 @@ skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 
 	if (q->in_global == 0) {
 		q->in_global = MQ_IN_GLOBAL;
-		skynet_globalmq_push(q);/* 把消息队列链入全局消息队列 */
+		skynet_globalmq_push(q);/* 第一次压入消息后，把消息队列链入全局消息队列 */
 	}
 	
 	SPIN_UNLOCK(q)

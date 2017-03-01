@@ -125,9 +125,10 @@ LUA_API int lua_checkstack (lua_State *L, int n) {
 /* 把from栈顶的n个元素剪切到to的栈上 */
 LUA_API void lua_xmove (lua_State *from, lua_State *to, int n) {
   int i;
-  if (from == to) return;
+  if (from == to)
+	  return;
   lua_lock(to);
-  api_checknelems(from, n);
+  api_checknelems(from, n);/* 栈帧越界检查 */
   api_check(from, G(from) == G(to), "moving among independent states");
   api_check(from, to->ci->top - to->top >= n, "stack overflow");
   from->top -= n;
@@ -861,18 +862,19 @@ LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
 }
 
 
+/* key为lightuserdata类型， */
 LUA_API void lua_rawsetp (lua_State *L, int idx, const void *p) {
   StkId o;
   TValue k, *slot;
   lua_lock(L);
   api_checknelems(L, 1);
-  o = index2addr(L, idx);
+  o = index2addr(L, idx);/* 取table */
   api_check(L, ttistable(o), "table expected");
   setpvalue(&k, cast(void *, p));
-  slot = luaH_set(L, hvalue(o), &k);
-  setobj2t(L, slot, L->top - 1);
+  slot = luaH_set(L, hvalue(o), &k);/* 在table中的哈希表中分配一个节点 */
+  setobj2t(L, slot, L->top - 1);/* value在栈顶 */
   luaC_barrierback(L, hvalue(o), L->top - 1);
-  L->top--;
+  L->top--;/* pop value */
   lua_unlock(L);
 }
 
@@ -1008,7 +1010,7 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
   }
   else {  /* prepare continuation (call is already protected by 'resume') */
     CallInfo *ci = L->ci;
-    ci->u.c.k = k;  /* save continuation */
+    ci->u.c.k = k;  /* 设置yield下继续运行的函数 save continuation */
     ci->u.c.ctx = ctx;  /* save context */
     /* save information for error recovery */
     ci->extra = savestack(L, c.func);

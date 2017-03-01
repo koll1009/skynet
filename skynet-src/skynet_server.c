@@ -333,7 +333,7 @@ skynet_context_message_dispatch(struct skynet_monitor *sm, struct message_queue 
 
 	assert(q == ctx->queue);
 	struct message_queue *nq = skynet_globalmq_pop();
-	if (nq) {
+	if (nq) {/* 为了消息被平等的处理 */
 		// If global mq is not empty , push q back, and return next queue (nq)
 		// Else (global mq is empty or block, don't push q back, and return q again (for next dispatch)
 		skynet_globalmq_push(q);
@@ -395,7 +395,7 @@ cmd_timeout(struct skynet_context * context, const char * param) {
 	char * session_ptr = NULL;
 	int ti = strtol(param, &session_ptr, 10);
 	int session = skynet_context_newsession(context);
-	skynet_timeout(context->handle, ti, session);/* 新增一条消息压入context的消息队列中 */
+	skynet_timeout(context->handle, ti, session);/* ti大于0，新增一个定时事件，否则新增一条消息 */
 	sprintf(context->result, "%d", session);
 	return context->result;
 }

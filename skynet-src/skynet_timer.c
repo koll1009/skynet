@@ -237,7 +237,7 @@ skynet_timeout(uint32_t handle, int time, int session) {
 		timer_add(TI, &event, sizeof(event), time);
 	}
 
-	return session;
+	return session;/*  */
 }
 
 /* centisecond: 1/100 second 

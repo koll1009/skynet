@@ -103,7 +103,7 @@ local function co_create(f)
 		co = coroutine.create(function(...)
 			f(...) --此处执行 skynet.init_service(start_func)
 			while true do
-				f = nil
+				f = nil --f
 				coroutine_pool[#coroutine_pool+1] = co --逐个插入
 				f = coroutine_yield "EXIT" --执行profile.yield("EXIT")
 				f(coroutine_yield())
@@ -252,11 +252,11 @@ end
 
 
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand
+	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand,session
 	assert(session)
-	local co = co_create(func) --调用
+	local co = co_create(func) --第一次调用co_create返回创建的协程
 	assert(session_id_coroutine[session] == nil)
-	session_id_coroutine[session] = co
+	session_id_coroutine[session] = co   --保存到..表中
 end
 
 function skynet.sleep(ti)
@@ -496,6 +496,7 @@ local function raw_dispatch_message(prototype, msg, sz, session, source)
 	end
 end
 
+/* lua服务的消息处理函数 */
 function skynet.dispatch_message(...)
 	local succ, err = pcall(raw_dispatch_message,...)
 	while true do

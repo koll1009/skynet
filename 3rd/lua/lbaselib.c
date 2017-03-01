@@ -433,13 +433,14 @@ static int finishpcall (lua_State *L, int status, lua_KContext extra) {
 }
 
 
+/* pcall函数 */
 static int luaB_pcall (lua_State *L) {
   int status;
-  luaL_checkany(L, 1);
+  luaL_checkany(L, 1);/* 检查是否有传入函数 */
   lua_pushboolean(L, 1);  /* first result if no errors */
-  lua_insert(L, 1);  /* put it in place */
-  status = lua_pcallk(L, lua_gettop(L) - 2, LUA_MULTRET, 0, 0, finishpcall);
-  return finishpcall(L, status, 0);
+  lua_insert(L, 1);  /* 把true与参数调换位置 put it in place */
+  status = lua_pcallk(L, lua_gettop(L) - 2, LUA_MULTRET, 0, 0, finishpcall);/*  */
+  return finishpcall(L, status, 0);/* 返回true以及所有的被调用函数的返回值 */
 }
 
 

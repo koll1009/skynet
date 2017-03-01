@@ -27,6 +27,8 @@ traceback (lua_State *L) {
 	return 1;
 }
 
+
+/* 消息处理，intcommand函数里重置了消息处理函数 */
 static int
 _cb(struct skynet_context * context, void * ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
 	lua_State *L = ud;
@@ -34,12 +36,12 @@ _cb(struct skynet_context * context, void * ud, int type, int session, uint32_t 
 	int r;
 	int top = lua_gettop(L);
 	if (top == 0) {
-		lua_pushcfunction(L, traceback);
-		lua_rawgetp(L, LUA_REGISTRYINDEX, _cb);
+		lua_pushcfunction(L, traceback);/* 压入traceback函数 */
+		lua_rawgetp(L, LUA_REGISTRYINDEX, _cb);/* 压入skynet.dispatchmessage函数 */
 	} else {
 		assert(top == 2);
 	}
-	lua_pushvalue(L,2);
+	lua_pushvalue(L,2);/*  */
 
 	lua_pushinteger(L, type);
 	lua_pushlightuserdata(L, (void *)msg);
@@ -47,7 +49,7 @@ _cb(struct skynet_context * context, void * ud, int type, int session, uint32_t 
 	lua_pushinteger(L, session);
 	lua_pushinteger(L, source);
 
-	r = lua_pcall(L, 5, 0 , trace);
+	r = lua_pcall(L, 5, 0 , trace);/* 执行skynet.dispatchmessage */
 
 	if (r == LUA_OK) {
 		return 0;

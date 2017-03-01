@@ -271,8 +271,8 @@ LUA_API lua_State *lua_newthread (lua_State *L) {
   /* link it on list 'allgc' */
   L1->next = g->allgc;
   g->allgc = obj2gco(L1);
-  /* anchor it on L stack */
-  setthvalue(L, L->top, L1);
+
+  setthvalue(L, L->top, L1);/* Ñ¹ÈëÕ» */
   api_incr_top(L);
   preinit_thread(L1, g);
   L1->hookmask = L->hookmask;
