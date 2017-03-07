@@ -76,7 +76,7 @@ optstring(struct skynet_context *ctx, const char *key, const char * str) {
 }
 
 
-/* 初始化 */
+/* 初始化服务 */
 static int
 init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t sz) {
 	lua_State *L = l->L;
@@ -109,7 +109,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 
 	const char * loader = optstring(ctx, "lualoader", "./lualib/loader.lua");
 
-	int r = luaL_loadfile(L,loader); /* 加载、编译loader.lua文件 */
+	int r = luaL_loadfile(L,loader); /* 加载loader.lua文件 */
 	if (r != LUA_OK) {/* 加载失败 */
 		skynet_error(ctx, "Can't load %s : %s", loader, lua_tostring(L, -1));
 		report_launcher_error(ctx);
@@ -163,7 +163,7 @@ snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	int sz = strlen(args);
 	char * tmp = skynet_malloc(sz);
 	memcpy(tmp, args, sz);
-	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb回调函数 */
+	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb回调函数，并把snlua指针设置为相应的参数 */
 	const char * self = skynet_command(ctx, "REG", NULL);/* self指向ctx的result数组，result里保存有handle值 */
 	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数,此时handle_id=ctx->handle */
 

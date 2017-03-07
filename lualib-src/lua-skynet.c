@@ -41,13 +41,13 @@ _cb(struct skynet_context * context, void * ud, int type, int session, uint32_t 
 	} else {
 		assert(top == 2);
 	}
-	lua_pushvalue(L,2);/*  */
+	lua_pushvalue(L,2);/* skynet.dispatchmessage函数 */
 
-	lua_pushinteger(L, type);
-	lua_pushlightuserdata(L, (void *)msg);
-	lua_pushinteger(L,sz);
-	lua_pushinteger(L, session);
-	lua_pushinteger(L, source);
+	lua_pushinteger(L, type);/* 消息类型 */
+	lua_pushlightuserdata(L, (void *)msg);/* 数据 */
+	lua_pushinteger(L,sz);/* 数据长度 */
+	lua_pushinteger(L, session); 
+	lua_pushinteger(L, source);/* 消息来源 */
 
 	r = lua_pcall(L, 5, 0 , trace);/* 执行skynet.dispatchmessage */
 
@@ -95,7 +95,7 @@ lcallback(lua_State *L) {
 	lua_rawsetp(L, LUA_REGISTRYINDEX, _cb);/* 使用函数_cb的地址做为key registry[&_cb]=skynet.dispatch_message */
 
 	lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-	lua_State *gL = lua_tothread(L,-1);
+	lua_State *gL = lua_tothread(L,-1);//主线程
 
 	if (forward) {
 		skynet_callback(context, gL, forward_cb);
@@ -107,15 +107,15 @@ lcallback(lua_State *L) {
 }
 
 
-/* skynet.core.int */
+/* skynet.core.command函数 */
 static int
 lcommand(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
-	const char * cmd = luaL_checkstring(L,1);
+	const char * cmd = luaL_checkstring(L,1);/* 参数1为命令字符串 */
 	const char * result;
 	const char * parm = NULL;
 	if (lua_gettop(L) == 2) {
-		parm = luaL_checkstring(L,2);
+		parm = luaL_checkstring(L,2);/* 参数2为命令的参数 */
 	}
 
 	result = skynet_command(context, cmd, parm);
@@ -166,7 +166,7 @@ get_dest_string(lua_State *L, int index) {
 	return dest_string;
 }
 
-/*
+/* skynet.core.send函数
 	uint32 address
 	 string address
 	integer type

@@ -622,6 +622,7 @@ static void resume (lua_State *L, void *ud) {
   CallInfo *ci = L->ci;
   if (nCcalls >= LUAI_MAXCCALLS)
     resume_error(L, "C stack overflow", firstArg);
+
   if (L->status == LUA_OK) {  /* 协程创建后第一次执行resume操作 may be starting a coroutine */
     if (ci != &L->base_ci)  /* not in base level? */
       resume_error(L, "cannot resume non-suspended coroutine", firstArg);
@@ -631,7 +632,8 @@ static void resume (lua_State *L, void *ud) {
   }
   else if (L->status != LUA_YIELD)
     resume_error(L, "cannot resume dead coroutine", firstArg);
-  else {  /* resuming from previous yield */
+  else  /* resuming from previous yield */
+  { 
     L->status = LUA_OK;  /* mark that it is running (again) */
     ci->func = restorestack(L, ci->extra);
     if (isLua(ci))  /* yielded inside a hook? */
@@ -657,7 +659,7 @@ LUA_API int lua_resume (lua_State *L, lua_State *from, int nargs) {
   unsigned short oldnny = L->nny;  /* save "number of non-yieldable" calls */
   lua_lock(L);
   luai_userstateresume(L, nargs);
-  L->nCcalls = (from) ? from->nCcalls + 1 : 1;
+  L->nCcalls = (from) ? from->nCcalls + 1 : 1;/* 函数调用嵌套计数，与主线程一并计算 */
   L->nny = 0;  /* allow yields */
   api_checknelems(L, (L->status == LUA_OK) ? nargs + 1 : nargs);
   status = luaD_rawrunprotected(L, resume, &nargs);

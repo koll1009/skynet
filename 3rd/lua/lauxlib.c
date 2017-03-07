@@ -559,6 +559,7 @@ LUALIB_API void luaL_pushresultsize (luaL_Buffer *B, size_t sz) {
 }
 
 
+/* 把L->top-1处的值转换为字符串，复制到缓冲区B中 */
 LUALIB_API void luaL_addvalue (luaL_Buffer *B) {
   lua_State *L = B->L;
   size_t l;
@@ -804,7 +805,7 @@ LUALIB_API int luaL_callmeta (lua_State *L, int obj, const char *event) {
   return 1;
 }
 
-
+/* 取长度 */
 LUALIB_API lua_Integer luaL_len (lua_State *L, int idx) {
   lua_Integer l;
   int isnum;

@@ -61,12 +61,15 @@ static int str_len (lua_State *L) {
 
 /* translate a relative string position: negative means back from end */
 static lua_Integer posrelat (lua_Integer pos, size_t len) {
-  if (pos >= 0) return pos;
-  else if (0u - (size_t)pos > len) return 0;
-  else return (lua_Integer)len + pos + 1;
+  if (pos >= 0) 
+	  return pos;
+  else if (0u - (size_t)pos > len) 
+	  return 0;
+  else 
+	  return (lua_Integer)len + pos + 1;
 }
 
-
+/* string.subº¯Êý */
 static int str_sub (lua_State *L) {
   size_t l;
   const char *s = luaL_checklstring(L, 1, &l);

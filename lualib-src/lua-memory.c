@@ -34,9 +34,10 @@ ldump(lua_State *L) {
 	return 0;
 }
 
+/* memory.ssexpand函数 */
 static int
 lexpandshrtbl(lua_State *L) {
-	int n = luaL_checkinteger(L, 1);
+	int n = luaL_checkinteger(L, 1);/* 返回扩充内存的大小 */
 	luaS_expandshr(n);
 	return 0;
 }

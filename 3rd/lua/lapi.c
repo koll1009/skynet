@@ -294,7 +294,7 @@ LUA_API int lua_isnumber (lua_State *L, int idx) {
   return tonumber(o, &n);
 }
 
-
+/* 是否为字符串，包含字符串本身及可转换的数字类两种 */
 LUA_API int lua_isstring (lua_State *L, int idx) {
   const TValue *o = index2addr(L, idx);
   return (ttisstring(o) || cvt2str(o));
@@ -565,7 +565,7 @@ LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
     api_check(L, n <= MAXUPVAL, "upvalue index too large");
     cl = luaF_newCclosure(L, n);
     cl->f = fn;
-    L->top -= n;
+    L->top -= n;/*  */
     while (n--) {
       setobj2n(L, &cl->upvalue[n], L->top + n);
       /* does not need barrier because closure is white */
@@ -611,7 +611,7 @@ LUA_API int lua_pushthread (lua_State *L) {
 */
 
 
-/* table["key"]辅助方法,key为字符串 */
+/* table["key"]辅助方法,key为字符串,把结果存储到栈顶 */
 static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
   const TValue *slot;
   TString *str = luaS_new(L, k);
@@ -913,7 +913,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
       break;
     }
   }
-  L->top--;
+  L->top--;/* pop 元表 */
   lua_unlock(L);
   return 1;
 }
@@ -983,7 +983,10 @@ static void f_call (lua_State *L, void *ud) {
 
 /* 受保护的函数调用
  * @nargs:参数个数
+ * @nresults:
  * @errfunc:错误处理函数的索引
+ * @ctx:
+ * @k:
 */
 LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
                         lua_KContext ctx, lua_KFunction k) {
@@ -1246,12 +1249,12 @@ LUA_API void lua_concat (lua_State *L, int n) {
   lua_unlock(L);
 }
 
-
+/* 取长度 */
 LUA_API void lua_len (lua_State *L, int idx) {
   StkId t;
   lua_lock(L);
   t = index2addr(L, idx);
-  luaV_objlen(L, L->top, t);
+  luaV_objlen(L, L->top, t);/*  */
   api_incr_top(L);
   lua_unlock(L);
 }

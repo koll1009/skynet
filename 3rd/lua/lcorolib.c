@@ -34,14 +34,15 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
     lua_pushliteral(L, "too many arguments to resume");
     return -1;  /* error flag */
   }
-  if (lua_status(co) == LUA_OK && lua_gettop(co) == 0) {
+
+  if (lua_status(co) == LUA_OK && lua_gettop(co) == 0) {/* co的栈上至少应有被唤醒函数 */
     lua_pushliteral(L, "cannot resume dead coroutine");
     return -1;  /* error flag */
   }
-  lua_xmove(L, co, narg); 
+  lua_xmove(L, co, narg);/* 把所有变参复制到co的栈上 */
   /* 以上完成了唤醒co的条件 */
 
-  status = lua_resume(co, L, narg);
+  status = lua_resume(co, L, narg);/* 调用唤醒函数 */
   if (status == LUA_OK || status == LUA_YIELD) {
     int nres = lua_gettop(co);
     if (!lua_checkstack(L, nres + 1)) {

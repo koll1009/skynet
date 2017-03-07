@@ -276,7 +276,7 @@ struct shrmap_slot {
 };
 
 struct shrmap {
-	struct shrmap_slot h[SHRSTR_SLOT];/* 默认大小0x10000 6536 */
+	struct shrmap_slot h[SHRSTR_SLOT];/* 默认大小0x10000 65536 */
 	int n;
 };
 

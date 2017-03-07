@@ -412,7 +412,8 @@ cmd_reg(struct skynet_context * context, const char * param) {
 	else if (param[0] == '.') 
 	{
 		return skynet_handle_namehandle(context->handle, param + 1);
-	} else 
+	} 
+	else 
 	{
 		skynet_error(context, "Can't register global name %s in C", param);
 		return NULL;
@@ -431,21 +432,22 @@ cmd_query(struct skynet_context * context, const char * param) {
 	return NULL;
 }
 
+/* NAME命令 */
 static const char *
 cmd_name(struct skynet_context * context, const char * param) {
 	int size = strlen(param);
 	char name[size+1];
 	char handle[size+1];
-	sscanf(param,"%s %s",name,handle);
+	sscanf(param,"%s %s",name,handle);/* 参数由name+' '+handle组成 */
 	if (handle[0] != ':') {
 		return NULL;
 	}
-	uint32_t handle_id = strtoul(handle+1, NULL, 16);
+	uint32_t handle_id = strtoul(handle+1, NULL, 16);/* 取handle */
 	if (handle_id == 0) {
 		return NULL;
 	}
 	if (name[0] == '.') {
-		return skynet_handle_namehandle(handle_id, name + 1);
+		return skynet_handle_namehandle(handle_id, name + 1);/* handle_storage中新增一个handle_name */
 	} else {
 		skynet_error(context, "Can't set global name %s in C", name);
 	}
@@ -481,6 +483,8 @@ cmd_kill(struct skynet_context * context, const char * param) {
 	return NULL;
 }
 
+
+/* LAUNCH命令 */
 static const char *
 cmd_launch(struct skynet_context * context, const char * param) {
 	size_t sz = strlen(param);
@@ -489,12 +493,12 @@ cmd_launch(struct skynet_context * context, const char * param) {
 	char * args = tmp;
 	char * mod = strsep(&args, " \t\r\n");
 	args = strsep(&args, "\r\n");
-	struct skynet_context * inst = skynet_context_new(mod,args);
+	struct skynet_context * inst = skynet_context_new(mod,args);/*  */
 	if (inst == NULL) {
 		return NULL;
 	} else {
 		id_to_hex(context->result, inst->handle);
-		return context->result;
+		return context->result;/* 返回handle值 */
 	}
 }
 

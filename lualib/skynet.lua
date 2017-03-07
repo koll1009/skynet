@@ -97,14 +97,17 @@ end
 
 local coroutine_pool = setmetatable({}, { __mode = "kv" })
 
+
+--
 local function co_create(f)
-	local co = table.remove(coroutine_pool)
+	local co = table.remove(coroutine_pool)--删除coroutine_pool array的最后一项
 	if co == nil then
+	    --创建一个协程co
 		co = coroutine.create(function(...)
-			f(...) --此处执行 skynet.init_service(start_func)
+			f(...) 
 			while true do
-				f = nil --f
-				coroutine_pool[#coroutine_pool+1] = co --逐个插入
+				f = nil 
+				coroutine_pool[#coroutine_pool+1] = co --末尾插入co
 				f = coroutine_yield "EXIT" --执行profile.yield("EXIT")
 				f(coroutine_yield())
 			end
@@ -252,11 +255,11 @@ end
 
 
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand,session
+	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand，返回session对应的字符串
 	assert(session)
 	local co = co_create(func) --第一次调用co_create返回创建的协程
 	assert(session_id_coroutine[session] == nil)
-	session_id_coroutine[session] = co   --保存到..表中
+	session_id_coroutine[session] = co   --保存到表中
 end
 
 function skynet.sleep(ti)
@@ -378,6 +381,7 @@ local function yield_call(service, session)
 	return msg,sz
 end
 
+--
 function skynet.call(addr, typename, ...)
 	local p = proto[typename]
 	local session = c.send(addr, p.id , nil , p.pack(...))
@@ -456,17 +460,18 @@ function skynet.fork(func,...)
 	return co
 end
 
+--真正的lua消息处理函数
 local function raw_dispatch_message(prototype, msg, sz, session, source)
 	-- skynet.PTYPE_RESPONSE = 1, read skynet.h
 	if prototype == 1 then
-		local co = session_id_coroutine[session]
+		local co = session_id_coroutine[session] --co_create创建的协程
 		if co == "BREAK" then
 			session_id_coroutine[session] = nil
 		elseif co == nil then
 			unknown_response(session, source, msg, sz)
 		else
 			session_id_coroutine[session] = nil
-			suspend(co, coroutine_resume(co, true, msg, sz))
+			suspend(co, coroutine_resume(co, true, msg, sz)) --coroutine_resume=profile.resume
 		end
 	else
 		local p = proto[prototype]
@@ -489,7 +494,7 @@ local function raw_dispatch_message(prototype, msg, sz, session, source)
 			local co = co_create(f)
 			session_coroutine_id[co] = session
 			session_coroutine_address[co] = source
-			suspend(co, coroutine_resume(co, session,source, p.unpack(msg,sz)))
+			suspend(co, coroutine_resume(co, session,source, p.unpack(msg,sz))) --coroutine_resume指向profile.resume函数
 		else
 			unknown_request(session, source, msg, sz, proto[prototype].name)
 		end
@@ -498,7 +503,7 @@ end
 
 /* lua服务的消息处理函数 */
 function skynet.dispatch_message(...)
-	local succ, err = pcall(raw_dispatch_message,...)
+	local succ, err = pcall(raw_dispatch_message,...)--调用raw_dispatch_message(...),并返回返回值
 	while true do
 		local key,co = next(fork_queue)
 		if co == nil then
@@ -592,6 +597,7 @@ function skynet.init(f, name)
 	end
 end
 
+--调用初始化函数
 local function init_all()
 	local funcs = init_func
 	init_func = nil
@@ -610,15 +616,16 @@ end
 local function init_template(start, ...)
 	init_all()
 	init_func = {}
-	return ret(init_all, start(...))
+	return ret(init_all, start(...)) 
 end
 
 function skynet.pcall(start, ...)
-	return xpcall(init_template, debug.traceback, start, ...)
+	return xpcall(init_template, debug.traceback, start, ...)--调用init_template函数
 end
 
+
 function skynet.init_service(start)
-	local ok, err = skynet.pcall(start)
+	local ok, err = skynet.pcall(start) --xpcall 
 	if not ok then
 		skynet.error("init service failed: " .. tostring(err))
 		skynet.send(".launcher","lua", "ERROR")
@@ -631,7 +638,7 @@ end
 
 function skynet.start(start_func)
 	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)，重新设置lua服务的回调函数
-	skynet.timeout(0, function()
+	skynet.timeout(0, function()        --压入一条新消息
 		skynet.init_service(start_func)
 	end)
 end

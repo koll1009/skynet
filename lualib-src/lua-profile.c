@@ -107,12 +107,13 @@ lstop(lua_State *L) {
 	return 1;
 }
 
+
 static int
 timing_resume(lua_State *L) {
 #ifdef DEBUG_LOG
 	lua_State *from = lua_tothread(L, -1);
 #endif
-	lua_rawget(L, lua_upvalueindex(2));
+	lua_rawget(L, lua_upvalueindex(2));/* 取total table[&co] 第一次时为空 */
 	if (lua_isnil(L, -1)) {		// check total time
 		lua_pop(L,1);
 	} else {
@@ -128,12 +129,13 @@ timing_resume(lua_State *L) {
 
 	lua_CFunction co_resume = lua_tocfunction(L, lua_upvalueindex(3));
 
-	return co_resume(L);
+	return co_resume(L);/* 调用coroutine.resume(L)，唤醒co协程 */
 }
 
+/* profile.resume函数 */
 static int
 lresume(lua_State *L) {
-	lua_pushvalue(L,1);
+	lua_pushvalue(L,1); /* 第一个参数指向协程lua_State */
 	
 	return timing_resume(L);
 }
@@ -194,6 +196,8 @@ lyield_co(lua_State *L) {
 	return timing_yield(L);
 }
 
+
+/* 加载profile库 */
 int
 luaopen_profile(lua_State *L) {
 	luaL_checkversion(L);
@@ -206,59 +210,58 @@ luaopen_profile(lua_State *L) {
 		{ "yield_co", lyield_co },
 		{ NULL, NULL },
 	};
-	luaL_newlibtable(L,l);
+	luaL_newlibtable(L,l);/* 创建profile库需要的table */
 	lua_newtable(L);	// table thread->start time
 	lua_newtable(L);	// table thread->total time
 
-	lua_newtable(L);	// weak table
+	lua_newtable(L);	// weak table，
 	lua_pushliteral(L, "kv");
 	lua_setfield(L, -2, "__mode");
 
-	lua_pushvalue(L, -1);
-	lua_setmetatable(L, -3); 
-	lua_setmetatable(L, -3);
+	lua_pushvalue(L, -1);/* 复制weak table */
+	lua_setmetatable(L, -3);/* 把复制后weak table设置为total time table的元表 */
+	lua_setmetatable(L, -3);/* 把weak table设置为start time table的元表，设置完后，两个weak table出栈 */ 
 
-	lua_pushnil(L);	// cfunction (coroutine.resume or coroutine.yield)
-	luaL_setfuncs(L,l,3);
+	lua_pushnil(L);	// 用于占位 cfunction (coroutine.resume or coroutine.yield)
+	luaL_setfuncs(L,l,3);/* 以start time table、total time table、nil为upvalue初始化profile库的函数表 */
 
-	int libtable = lua_gettop(L);
+	int libtable = lua_gettop(L);/* profile table在栈上的索引 */
 
 	lua_getglobal(L, "coroutine");
 	lua_getfield(L, -1, "resume");
 
-	lua_CFunction co_resume = lua_tocfunction(L, -1);
+	lua_CFunction co_resume = lua_tocfunction(L, -1);/* 即coroutine.resume函数 */
 	if (co_resume == NULL)
 		return luaL_error(L, "Can't get coroutine.resume");
 	lua_pop(L,1);
 
-	lua_getfield(L, libtable, "resume");
+	lua_getfield(L, libtable, "resume");/* 取profile.resume函数 */
 	lua_pushcfunction(L, co_resume);
-	lua_setupvalue(L, -2, 3);
+	lua_setupvalue(L, -2, 3);/* 把coroutine.resume函数设置为profile.resume函数的第三个UpValue */
 	lua_pop(L,1);
 
-	lua_getfield(L, libtable, "resume_co");
+	lua_getfield(L, libtable, "resume_co");/* 取profile.resume_co函数 */
 	lua_pushcfunction(L, co_resume);
-	lua_setupvalue(L, -2, 3);
+	lua_setupvalue(L, -2, 3);/* 把coroutine.resume函数设置为profile.resume_co函数的第三个UpValue */
 	lua_pop(L,1);
 
-	lua_getfield(L, -1, "yield");
-
+	lua_getfield(L, -1, "yield");/* co_yield指向coroutine.yield函数 */
 	lua_CFunction co_yield = lua_tocfunction(L, -1);
 	if (co_yield == NULL)
 		return luaL_error(L, "Can't get coroutine.yield");
 	lua_pop(L,1);
 
-	lua_getfield(L, libtable, "yield");
+	lua_getfield(L, libtable, "yield");/* 取profile.yield函数 */
 	lua_pushcfunction(L, co_yield);
-	lua_setupvalue(L, -2, 3);
+	lua_setupvalue(L, -2, 3);/* 把coroutine.yield函数设置为profile.yield函数的第三个UpValue */
 	lua_pop(L,1);
 
-	lua_getfield(L, libtable, "yield_co");
+	lua_getfield(L, libtable, "yield_co");/* 取profile.yield_co函数 */
 	lua_pushcfunction(L, co_yield);
-	lua_setupvalue(L, -2, 3);
-	lua_pop(L,1);
+	lua_setupvalue(L, -2, 3);/* 把coroutine.yield函数设置为profile.yield_co函数的第三个UpValue */
+	lua_pop(L,1); 
 
-	lua_settop(L, libtable);
+	lua_settop(L, libtable);/* 使栈上最后一个元素为profile库表，return 1时返回该表*/
 
 	return 1;
 }

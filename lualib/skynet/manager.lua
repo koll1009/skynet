@@ -2,7 +2,7 @@ local skynet = require "skynet"
 local c = require "skynet.core"
 
 function skynet.launch(...)
-	local addr = c.command("LAUNCH", table.concat({...}," "))
+	local addr = c.command("LAUNCH", table.concat({...}," ")) --c.command("LAUNCH","snlua launch")，返回新建的服务上下文的handle值字符串
 	if addr then
 		return tonumber("0x" .. string.sub(addr , 2))
 	end
@@ -21,9 +21,9 @@ function skynet.abort()
 end
 
 local function globalname(name, handle)
-	local c = string.sub(name,1,1)
+	local c = string.sub(name,1,1) --取第一个字符
 	assert(c ~= ':')
-	if c == '.' then
+	if c == '.' then   --第一个字符为'.'
 		return false
 	end
 
@@ -43,9 +43,10 @@ function skynet.register(name)
 	end
 end
 
+--name
 function skynet.name(name, handle)
 	if not globalname(name, handle) then
-		c.command("NAME", name .. " " .. skynet.address(handle))
+		c.command("NAME", name .. " " .. skynet.address(handle)) --
 	end
 end
 

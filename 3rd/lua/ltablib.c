@@ -157,9 +157,9 @@ static int tmove (lua_State *L) {
   return 1;
 }
 
-
+/*  */
 static void addfield (lua_State *L, luaL_Buffer *b, lua_Integer i) {
-  lua_geti(L, 1, i);
+  lua_geti(L, 1, i);/* 从i中取出第i个元素 */
   if (!lua_isstring(L, -1))
     luaL_error(L, "invalid value (%s) at index %d in table for 'concat'",
                   luaL_typename(L, -1), i);
@@ -167,12 +167,13 @@ static void addfield (lua_State *L, luaL_Buffer *b, lua_Integer i) {
 }
 
 
+/* table.concat函数 */
 static int tconcat (lua_State *L) {
   luaL_Buffer b;
-  lua_Integer last = aux_getn(L, 1, TAB_R);
+  lua_Integer last = aux_getn(L, 1, TAB_R);/* 可读，并取长度 */
   size_t lsep;
-  const char *sep = luaL_optlstring(L, 2, "", &lsep);
-  lua_Integer i = luaL_optinteger(L, 3, 1);
+  const char *sep = luaL_optlstring(L, 2, "", &lsep);/* 取分隔符 */
+  lua_Integer i = luaL_optinteger(L, 3, 1);/* 取起始索引 */
   last = luaL_optinteger(L, 4, last);
   luaL_buffinit(L, &b);
   for (; i < last; i++) {

@@ -433,7 +433,7 @@ static int finishpcall (lua_State *L, int status, lua_KContext extra) {
 }
 
 
-/* pcall函数 */
+/* pcall函数，@arg1为被调用的函数，后跟参数*/
 static int luaB_pcall (lua_State *L) {
   int status;
   luaL_checkany(L, 1);/* 检查是否有传入函数 */
@@ -445,6 +445,7 @@ static int luaB_pcall (lua_State *L) {
 
 
 /* xpcall函数
+ * @arg1:用作context info  @arg2:错误处理函数 @args3:被调用的函数 @4及之后为变参
 ** Do a protected call with error handling. After 'lua_rotate', the
 ** stack will have <f, err, true, f, [args...]>; so, the function passes
 ** 2 to 'finishpcall' to skip the 2 first values when returning results.
@@ -453,10 +454,10 @@ static int luaB_xpcall (lua_State *L) {
   int status;
   int n = lua_gettop(L);/* 参数个数 */
   luaL_checktype(L, 2, LUA_TFUNCTION);  /* check error function */
-  lua_pushboolean(L, 1);  /* first result */
+  lua_pushboolean(L, 1);  /* 压入true first result */
   lua_pushvalue(L, 1);  /* 把参数1压入栈 function */
-  lua_rotate(L, 3, 2);  /* move them below function's arguments */
-  status = lua_pcallk(L, n - 2, LUA_MULTRET, 2, 2, finishpcall);
+  lua_rotate(L, 3, 2);  /* 执行后，前2个参数不变，从@arg3开始为true、arg1的复制、被调用的函数（原arg3）、变参 */
+  status = lua_pcallk(L, n - 2, LUA_MULTRET, 2, 2, finishpcall);/* 调用arg1 */
   return finishpcall(L, status, 2);
 }
 
