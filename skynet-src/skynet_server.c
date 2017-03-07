@@ -745,9 +745,12 @@ skynet_sendname(struct skynet_context * context, uint32_t source, const char * a
 		source = context->handle;
 	}
 	uint32_t des = 0;
-	if (addr[0] == ':') {
+	if (addr[0] == ':')
+	{
 		des = strtoul(addr+1, NULL, 16);
-	} else if (addr[0] == '.') {
+	} 
+	else if (addr[0] == '.') 
+	{
 		des = skynet_handle_findname(addr + 1);
 		if (des == 0) {
 			if (type & PTYPE_TAG_DONTCOPY) {
@@ -755,7 +758,9 @@ skynet_sendname(struct skynet_context * context, uint32_t source, const char * a
 			}
 			return -1;
 		}
-	} else {
+	} 
+	else 
+	{
 		_filter_args(context, type, &session, (void **)&data, &sz);
 
 		struct remote_message * rmsg = skynet_malloc(sizeof(*rmsg));

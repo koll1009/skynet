@@ -438,8 +438,8 @@ static int luaB_pcall (lua_State *L) {
   int status;
   luaL_checkany(L, 1);/* 检查是否有传入函数 */
   lua_pushboolean(L, 1);  /* first result if no errors */
-  lua_insert(L, 1);  /* 把true与参数调换位置 put it in place */
-  status = lua_pcallk(L, lua_gettop(L) - 2, LUA_MULTRET, 0, 0, finishpcall);/*  */
+  lua_insert(L, 1);  /* 把true与pcall的参数调换位置 put it in place */
+  status = lua_pcallk(L, lua_gettop(L) - 2, LUA_MULTRET, 0, 0, finishpcall);/* 减去bool、被调用函数两个 */
   return finishpcall(L, status, 0);/* 返回true以及所有的被调用函数的返回值 */
 }
 

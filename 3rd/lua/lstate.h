@@ -81,7 +81,7 @@ typedef struct CallInfo {
       const Instruction *savedpc;
     } l;
     struct {  /* only for C functions */
-      lua_KFunction k;  /* continuation in case of yields */
+      lua_KFunction k;  /* 从yield状态唤醒时调用continuation in case of yields */
       ptrdiff_t old_errfunc;
       lua_KContext ctx;  /* context info. in case of yields */
     } c;

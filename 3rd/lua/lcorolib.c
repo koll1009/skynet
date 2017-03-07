@@ -26,7 +26,7 @@ static lua_State *getco (lua_State *L) {
 }
 
 
-/* @narg为coroutine.resume(lua_state,...)的变参数量
+/* @narg为coroutine.resume(co,...)的变参数量
  */
 static int auxresume (lua_State *L, lua_State *co, int narg) {
   int status;
@@ -43,14 +43,15 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
   /* 以上完成了唤醒co的条件 */
 
   status = lua_resume(co, L, narg);/* 调用唤醒函数 */
-  if (status == LUA_OK || status == LUA_YIELD) {
-    int nres = lua_gettop(co);
+  if (status == LUA_OK || status == LUA_YIELD) /* yield状态时，coroutine.yield函数的栈帧未释放 */
+  {
+    int nres = lua_gettop(co);/* 返回值数量或者yiled函数传入的参数 */
     if (!lua_checkstack(L, nres + 1)) {
       lua_pop(co, nres);  /* remove results anyway */
       lua_pushliteral(L, "too many results to resume");
       return -1;  /* error flag */
     }
-    lua_xmove(co, L, nres);  /* move yielded values */
+    lua_xmove(co, L, nres);  /* 把返回值赋值到主协程上，并返回 move yielded values */
     return nres;
   }
   else {
@@ -64,13 +65,13 @@ static int luaB_coresume (lua_State *L) {
   lua_State *co = getco(L);/* 第一个参数为唤醒的协程 */
   int r;
   r = auxresume(L, co, lua_gettop(L) - 1);/* lua_gettop(L)-1为传递到唤醒协程的参数数量 */
-  if (r < 0) {
-    lua_pushboolean(L, 0);
-    lua_insert(L, -2);
-    return 2;  /* return false + error message */
+  if (r < 0) {/* 运行时错误 */
+    lua_pushboolean(L, 0);/* 插入false */
+    lua_insert(L, -2);    /* 把false和errormsg调换位置 */
+    return 2;             /* return false + error message */
   }
   else {
-    lua_pushboolean(L, 1);
+    lua_pushboolean(L, 1);/* 插入true */
     lua_insert(L, -(r + 1));
     return r + 1;  /* return true + 'resume' returns */
   }
@@ -109,6 +110,7 @@ static int luaB_cowrap (lua_State *L) {
 }
 
 
+/* coroutine.yield函数 */
 static int luaB_yield (lua_State *L) {
   return lua_yield(L, lua_gettop(L));
 }
@@ -143,6 +145,7 @@ static int luaB_costatus (lua_State *L) {
 }
 
 
+/* 是否可让出执行 */
 static int luaB_yieldable (lua_State *L) {
   lua_pushboolean(L, lua_isyieldable(L));
   return 1;

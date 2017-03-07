@@ -31,6 +31,7 @@ local skynet = {
 -- code cache
 skynet.cache = require "skynet.codecache"
 
+--登记协议，把每类都存于
 function skynet.register_protocol(class)
 	local name = class.name
 	local id = class.id
@@ -563,7 +564,7 @@ do
 
 	REG {
 		name = "lua",
-		id = skynet.PTYPE_LUA,
+		id = skynet.PTYPE_LUA,--10
 		pack = skynet.pack,
 		unpack = skynet.unpack,
 	}
