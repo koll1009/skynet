@@ -134,7 +134,7 @@ lintcommand(lua_State *L) {
 	const char * result;
 	const char * parm = NULL;
 	char tmp[64];	// for integer parm
-	if (lua_gettop(L) == 2) {/* 若有第二个参数，则需为int类型， */
+	if (lua_gettop(L) == 2) {/* 若有第二个参数，则需为int类型 */
 		int32_t n = (int32_t)luaL_checkinteger(L,2);
 		sprintf(tmp, "%d", n);
 		parm = tmp;
@@ -178,24 +178,24 @@ get_dest_string(lua_State *L, int index) {
 static int
 lsend(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
-	uint32_t dest = (uint32_t)lua_tointeger(L, 1);
+	uint32_t dest = (uint32_t)lua_tointeger(L, 1);/* 目标skynet_context的handle值或handle name */
 	const char * dest_string = NULL;
-	if (dest == 0) {
+	if (dest == 0) {/* dest==0,表示目标地址为handle name */
 		if (lua_type(L,1) == LUA_TNUMBER) {
 			return luaL_error(L, "Invalid service address 0");
 		}
 		dest_string = get_dest_string(L, 1);
 	}
 
-	int type = luaL_checkinteger(L, 2);
+	int type = luaL_checkinteger(L, 2);/* 消息类型 */
 	int session = 0;
 	if (lua_isnil(L,3)) {
-		type |= PTYPE_TAG_ALLOCSESSION;
+		type |= PTYPE_TAG_ALLOCSESSION;/* session为nil表示推送消息时在堆上分配 */
 	} else {
 		session = luaL_checkinteger(L,3);
 	}
 
-	int mtype = lua_type(L,4);
+	int mtype = lua_type(L,4);/* 参数4的类型，可以是字符串和lightuserdata */
 	switch (mtype) {
 	case LUA_TSTRING: {
 		size_t len = 0;

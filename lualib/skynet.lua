@@ -145,7 +145,7 @@ end
 
 -- suspend is local function
 function suspend(co, result, command, param, size)
-	if not result then
+	if not result then  --协程运行出错
 		local session = session_coroutine_id[co]
 		if session then -- coroutine may fork by others (session is nil)
 			local addr = session_coroutine_address[co]
@@ -159,7 +159,7 @@ function suspend(co, result, command, param, size)
 		error(debug.traceback(co,tostring(command)))
 	end
 	if command == "CALL" then
-		session_id_coroutine[param] = co
+		session_id_coroutine[param] = co --
 	elseif command == "SLEEP" then
 		session_id_coroutine[param] = co
 		sleep_session[co] = param
@@ -256,11 +256,11 @@ end
 
 
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand，返回session对应的字符串
+	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand，调用TIMEOUT命令，插入一条新消息
 	assert(session)
-	local co = co_create(func) --第一次调用co_create返回创建的协程
+	local co = co_create(func)                  --
 	assert(session_id_coroutine[session] == nil)
-	session_id_coroutine[session] = co   --保存到表中
+	session_id_coroutine[session] = co          --保存协程
 end
 
 function skynet.sleep(ti)
@@ -374,7 +374,7 @@ skynet.trash = assert(c.trash)
 
 local function yield_call(service, session)
 	watching_session[session] = service
-	local succ, msg, sz = coroutine_yield("CALL", session)
+	local succ, msg, sz = coroutine_yield("CALL", session) --profile.yield
 	watching_session[session] = nil
 	if not succ then
 		error "call failed"
@@ -382,10 +382,10 @@ local function yield_call(service, session)
 	return msg,sz
 end
 
---
+
 function skynet.call(addr, typename, ...)
 	local p = proto[typename]
-	local session = c.send(addr, p.id , nil , p.pack(...))
+	local session = c.send(addr, p.id , nil , p.pack(...))  --想addr对应的skynet_context发送一条消息，返回消息对应的session
 	if session == nil then
 		error("call to invalid address " .. skynet.address(addr))
 	end
@@ -419,12 +419,14 @@ function skynet.wakeup(co)
 	end
 end
 
+
+--重置proto class的dispatch函数
 function skynet.dispatch(typename, func)
 	local p = proto[typename]
 	if func then
 		local ret = p.dispatch
 		p.dispatch = func
-		return ret
+		return ret   --返回旧的函数
 	else
 		return p and p.dispatch
 	end
@@ -461,7 +463,7 @@ function skynet.fork(func,...)
 	return co
 end
 
---真正的lua消息处理函数
+--原始的lua消息处理函数
 local function raw_dispatch_message(prototype, msg, sz, session, source)
 	-- skynet.PTYPE_RESPONSE = 1, read skynet.h
 	if prototype == 1 then
@@ -472,10 +474,10 @@ local function raw_dispatch_message(prototype, msg, sz, session, source)
 			unknown_response(session, source, msg, sz)
 		else
 			session_id_coroutine[session] = nil
-			suspend(co, coroutine_resume(co, true, msg, sz)) --coroutine_resume=profile.resume
+			suspend(co, coroutine_resume(co, true, msg, sz)) --coroutine_resume=profile.resume,coroutine_resume返回"CALL" session
 		end
 	else
-		local p = proto[prototype]
+		local p = proto[prototype] --对于启动服务使用的type=10
 		if p == nil then
 			if session ~= 0 then
 				c.send(source, skynet.PTYPE_ERROR, session, "")
@@ -524,6 +526,7 @@ function skynet.dispatch_message(...)
 	assert(succ, tostring(err))
 end
 
+--
 function skynet.newservice(name, ...)
 	return skynet.call(".launcher", "lua" , "LAUNCH", "snlua", name, ...)
 end
@@ -564,7 +567,7 @@ do
 
 	REG {
 		name = "lua",
-		id = skynet.PTYPE_LUA,--10
+		id = skynet.PTYPE_LUA, -- 10
 		pack = skynet.pack,
 		unpack = skynet.unpack,
 	}
@@ -614,8 +617,9 @@ local function ret(f, ...)
 	return ...
 end
 
+--初始化模板
 local function init_template(start, ...)
-	init_all()
+	init_all()                      
 	init_func = {}
 	return ret(init_all, start(...)) 
 end
@@ -625,6 +629,7 @@ function skynet.pcall(start, ...)
 end
 
 
+--初始化服务
 function skynet.init_service(start)
 	local ok, err = skynet.pcall(start) --xpcall 
 	if not ok then
@@ -638,7 +643,7 @@ end
 
 
 function skynet.start(start_func)
-	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)，重新设置lua服务的回调函数
+	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)，重置skynet_context的回调函数
 	skynet.timeout(0, function()        --压入一条新消息
 		skynet.init_service(start_func)
 	end)

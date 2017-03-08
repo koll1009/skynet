@@ -141,6 +141,7 @@ skynet.register_protocol {
 	end,
 }
 
+--ÖØÖÃproto.luaµÄdispatchº¯Êı
 skynet.dispatch("lua", function(session, address, cmd , ...)
 	cmd = string.upper(cmd)
 	local f = command[cmd]

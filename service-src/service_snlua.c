@@ -168,7 +168,7 @@ snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数,此时handle_id=ctx->handle */
 
 	// it must be first message
-	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz);
+	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz);/* 向自己的消息队列push一条消息，消息内容为lua服务名 */
 	return 0;
 }
 

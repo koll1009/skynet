@@ -594,6 +594,7 @@ luaseri_unpack(lua_State *L) {
 	return lua_gettop(L) - 1;
 }
 
+/* skynet.core.pack ÐòÁÐ»¯²Ù×÷ */
 int
 luaseri_pack(lua_State *L) {
 	struct block temp;

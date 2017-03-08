@@ -265,7 +265,7 @@ skynet_handle_init(int harbor) {
 	rwlock_init(&s->lock);
 	// reserve 0 for system
 	s->harbor = (uint32_t) (harbor & 0xff) << HANDLE_REMOTE_SHIFT;/* 低24位用于skynet_context的索引，高8位用于remote id */
-	s->handle_index = 1;
+	s->handle_index = 1;/*  */
 	s->name_cap = 2;
 	s->name_count = 0;
 	s->name = skynet_malloc(s->name_cap * sizeof(struct handle_name));

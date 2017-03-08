@@ -42,8 +42,8 @@
 struct skynet_context {
 	void * instance;/* 指向各服务模块的描述符对象，例如snlua模块则指向 */
 	struct skynet_module * mod;/* 服务模块的描述符 */
-	void * cb_ud;
-	skynet_cb cb;
+	void * cb_ud;/* 消息 处理函数参数*/
+	skynet_cb cb;/* 服务的消息处理函数 */
 	struct message_queue *queue;
 	FILE * logfile;
 	char result[32];
@@ -389,7 +389,7 @@ struct command_func {
 };
 
 
-/* TIMEOUT命令 */
+/* TIMEOUT命令，返回session */
 static const char *
 cmd_timeout(struct skynet_context * context, const char * param) {
 	char * session_ptr = NULL;
@@ -739,10 +739,11 @@ skynet_send(struct skynet_context * context, uint32_t source, uint32_t destinati
 	return session;
 }
 
+/* 发送消息，目标skynet_context以handle name标识 */
 int
 skynet_sendname(struct skynet_context * context, uint32_t source, const char * addr , int type, int session, void * data, size_t sz) {
 	if (source == 0) {
-		source = context->handle;
+		source = context->handle;/* 消息发送方handle */
 	}
 	uint32_t des = 0;
 	if (addr[0] == ':')
@@ -752,7 +753,7 @@ skynet_sendname(struct skynet_context * context, uint32_t source, const char * a
 	else if (addr[0] == '.') 
 	{
 		des = skynet_handle_findname(addr + 1);
-		if (des == 0) {
+		if (des == 0) {/* 非法handle name */
 			if (type & PTYPE_TAG_DONTCOPY) {
 				skynet_free(data);
 			}
@@ -773,7 +774,7 @@ skynet_sendname(struct skynet_context * context, uint32_t source, const char * a
 		return session;
 	}
 
-	return skynet_send(context, source, des, type, session, data, sz);
+	return skynet_send(context, source, des, type, session, data, sz);/* 发送消息 */
 }
 
 /* 返回skynet_context的handle值 */
