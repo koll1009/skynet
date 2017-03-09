@@ -1224,7 +1224,7 @@ LUA_API int lua_next (lua_State *L, int idx) {
   t = index2addr(L, idx);
   api_check(L, ttistable(t), "table expected");
   more = luaH_next(L, hvalue(t), L->top - 1);
-  if (more) {/* 成功取出next元素，此时L->top处保存着value值 */
+  if (more) {/* L->top-1保存着next元素的key，L->top处保存着value值 */
     api_incr_top(L);
   }
   else  /* no more elements */

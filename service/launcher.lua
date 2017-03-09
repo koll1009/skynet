@@ -74,10 +74,12 @@ function command.REMOVE(_, handle, kill)
 	return NORET
 end
 
+--启动lua服务
 local function launch_service(service, ...)
-	local param = table.concat({...}, " ")
-	local inst = skynet.launch(service, param)
-	local response = skynet.response()
+	local param = table.concat({...}, " ") 
+	local inst = skynet.launch(service, param) --service为服务名，例如cmaster ，param为参数
+	local response = skynet.response() --再次调用coroutine_resume传入的参数为返回值  
+	                                   --中断协程，调用coroutine_resume返回true、"RESPONSE"、skynet.pack函数	                                    
 	if inst then
 		services[inst] = service .. " " .. param
 		instance[inst] = response
@@ -85,11 +87,12 @@ local function launch_service(service, ...)
 		response(false)
 		return
 	end
-	return inst
+	return inst   --返回新服务的handle值                    
 end
 
+--启动命令
 function command.LAUNCH(_, service, ...)
-	launch_service(service, ...)
+	launch_service(service, ...) --启动lua服务
 	return NORET
 end
 
@@ -126,6 +129,7 @@ end
 
 -- for historical reasons, launcher support text command (for C service)
 
+--注册proto.text协议
 skynet.register_protocol {
 	name = "text",
 	id = skynet.PTYPE_TEXT,
@@ -141,18 +145,18 @@ skynet.register_protocol {
 	end,
 }
 
---重置proto.lua的dispatch函数
+--重置proto.lua的dispatch函数,变参为拆包后的消息数据
 skynet.dispatch("lua", function(session, address, cmd , ...)
 	cmd = string.upper(cmd)
-	local f = command[cmd]
+	local f = command[cmd] --根据命令字符串，指向相应的函数
 	if f then
-		local ret = f(address, ...)
+		local ret = f(address, ...) --执行命令
 		if ret ~= NORET then
-			skynet.ret(skynet.pack(ret))
+			skynet.ret(skynet.pack(ret)) --序列化handle值，返回
 		end
 	else
 		skynet.ret(skynet.pack {"Unknown command"} )
 	end
 end)
 
-skynet.start(function() end)
+skynet.start(function() end)--压入一条空消息，

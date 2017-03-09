@@ -1,6 +1,7 @@
 local skynet = require "skynet"
 local c = require "skynet.core"
 
+--启动lua服务，返回handle值
 function skynet.launch(...)
 	local addr = c.command("LAUNCH", table.concat({...}," ")) --c.command("LAUNCH","snlua launch")，返回新建的服务上下文的handle值字符串
 	if addr then

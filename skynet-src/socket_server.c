@@ -1462,6 +1462,7 @@ _failed_fd:
 	return -1;
 }
 
+/* ·şÎñÆ÷¼àÌı²Ù×÷ */
 static int
 do_listen(const char * host, int port, int backlog) {
 	int family = 0;

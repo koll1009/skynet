@@ -181,6 +181,7 @@ timing_yield(lua_State *L) {
 	return co_yield(L);
 }
 
+/* profile.yieldº¯Êý */
 static int
 lyield(lua_State *L) {
 	lua_pushthread(L);

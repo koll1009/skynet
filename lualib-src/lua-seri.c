@@ -603,7 +603,7 @@ luaseri_pack(lua_State *L) {
 	wb_init(&wb, &temp);
 	pack_from(L,&wb,0);
 	assert(wb.head == &temp);
-	seri(L, &temp, wb.len);
+	seri(L, &temp, wb.len);/* 分配一段buffer，把序列化的数据copy到buffer中，返回buffer和长度 */
 
 	wb_free(&wb);
 

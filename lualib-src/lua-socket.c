@@ -469,9 +469,11 @@ lshutdown(lua_State *L) {
 	return 0;
 }
 
+
+/* socket.listenº¯Êý */
 static int
 llisten(lua_State *L) {
-	const char * host = luaL_checkstring(L,1);
+	const char * host = luaL_checkstring(L,1);/* Ö÷»ú */
 	int port = luaL_checkinteger(L,2);
 	int backlog = luaL_optinteger(L,3,BACKLOG);
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));

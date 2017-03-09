@@ -224,9 +224,9 @@ static int pairsmeta (lua_State *L, const char *method, int iszero,
   return 3;
 }
 
-
+/* next函数 */
 static int luaB_next (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 1, LUA_TTABLE);/* 参数1需为table */
   lua_settop(L, 2);  /* create a 2nd argument if there isn't one */
   if (lua_next(L, 1))
     return 2;
