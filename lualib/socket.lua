@@ -354,12 +354,13 @@ function socket.invalid(id)
 	return socket_pool[id] == nil
 end
 
+--监听函数，主机、端口、监听队列大小
 function socket.listen(host, port, backlog)
-	if port == nil then
-		host, port = string.match(host, "([^:]+):(.+)$")
+	if port == nil then 
+		host, port = string.match(host, "([^:]+):(.+)$") --分离主机和端口号
 		port = tonumber(port)
 	end
-	return driver.listen(host, port, backlog)
+	return driver.listen(host, port, backlog) --调用socketdriver.listen
 end
 
 function socket.lock(id)

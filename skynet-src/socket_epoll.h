@@ -19,7 +19,7 @@ sp_invalid(int efd) {
 /* 创建epoll对象 */
 static int
 sp_create() {
-	return epoll_create(1024);
+	return epoll_create(1024);/* 预估事件队列大小为1024 */
 }
 
 static void
@@ -32,7 +32,7 @@ sp_release(int efd) {
 static int 
 sp_add(int efd, int sock, void *ud) {
 	struct epoll_event ev;
-	ev.events = EPOLLIN;
+	ev.events = EPOLLIN;/* 监控读事件 */
 	ev.data.ptr = ud;
 	if (epoll_ctl(efd, EPOLL_CTL_ADD, sock, &ev) == -1) {
 		return 1;
@@ -61,13 +61,15 @@ sp_wait(int efd, struct event *e, int max) {
 	for (i=0;i<n;i++) {
 		e[i].s = ev[i].data.ptr;
 		unsigned flag = ev[i].events;
-		e[i].write = (flag & EPOLLOUT) != 0;
-		e[i].read = (flag & EPOLLIN) != 0;
+		e[i].write = (flag & EPOLLOUT) != 0;/* 可读 */
+		e[i].read = (flag & EPOLLIN) != 0;  /* 可写 */
 	}
 
 	return n;
 }
 
+
+/* 设置非阻塞操作 */
 static void
 sp_nonblocking(int fd) {
 	int flag = fcntl(fd, F_GETFL, 0);

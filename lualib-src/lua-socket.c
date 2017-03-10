@@ -470,12 +470,12 @@ lshutdown(lua_State *L) {
 }
 
 
-/* socket.listen函数 */
+/* socketdriver.listen函数 */
 static int
 llisten(lua_State *L) {
 	const char * host = luaL_checkstring(L,1);/* 主机 */
-	int port = luaL_checkinteger(L,2);
-	int backlog = luaL_optinteger(L,3,BACKLOG);
+	int port = luaL_checkinteger(L,2);/* 端口 */
+	int backlog = luaL_optinteger(L,3,BACKLOG);/* 监听队列大小 */
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
 	int id = skynet_socket_listen(ctx, host,port,backlog);
 	if (id < 0) {
@@ -694,7 +694,7 @@ luaopen_socketdriver(lua_State *L) {
 		{ NULL, NULL },
 	};
 	luaL_newlib(L,l);
-	luaL_Reg l2[] = {
+	luaL_Reg l2[] = { /* 以下的方法  */
 		{ "connect", lconnect },
 		{ "close", lclose },
 		{ "shutdown", lshutdown },

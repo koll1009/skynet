@@ -87,8 +87,8 @@ struct socket {
 };
 
 struct socket_server {
-	int recvctrl_fd;
-	int sendctrl_fd;
+	int recvctrl_fd; /* pipe读端 */
+	int sendctrl_fd; /* pipe写端 */
 	int checkctrl;
 	poll_fd event_fd;/* event poll fd */
 	int alloc_id;
@@ -96,7 +96,7 @@ struct socket_server {
 	int event_index;
 	struct socket_object_interface soi;
 	struct event ev[MAX_EVENT];
-	struct socket slot[MAX_SOCKET];/* 65536个socket slot */
+	struct socket slot[MAX_SOCKET];/* 65536个socket */
 	char buffer[MAX_INFO];
 	uint8_t udpbuffer[MAX_UDP_PACKAGE];
 	fd_set rfds;
@@ -266,6 +266,7 @@ reserve_id(struct socket_server *ss) {
 	return -1;
 }
 
+/* 初始化write list链表 */
 static inline void
 clear_wb_list(struct wb_list *list) {
 	list->head = NULL;
@@ -273,17 +274,17 @@ clear_wb_list(struct wb_list *list) {
 }
 
 
-
+/* 创建socket server */
 struct socket_server * 
 socket_server_create() {
 	int i;
 	int fd[2];
-	poll_fd efd = sp_create();
+	poll_fd efd = sp_create();/* 创建epoll */
 	if (sp_invalid(efd)) {
 		fprintf(stderr, "socket-server: create event pool failed.\n");
 		return NULL;
 	}
-	if (pipe(fd)) {
+	if (pipe(fd)) { /* 创建管道对象 */
 		sp_release(efd);
 		fprintf(stderr, "socket-server: create socket pair failed.\n");
 		return NULL;
@@ -1428,16 +1429,16 @@ do_bind(const char *host, int port, int protocol, int *family) {
 	}
 	sprintf(portstr, "%d", port);
 	memset( &ai_hints, 0, sizeof( ai_hints ) );
-	ai_hints.ai_family = AF_UNSPEC;
+	ai_hints.ai_family = AF_UNSPEC;/* 地址族 */
 	if (protocol == IPPROTO_TCP) {
-		ai_hints.ai_socktype = SOCK_STREAM;
+		ai_hints.ai_socktype = SOCK_STREAM; /* 套接字类型，流或数据报 */
 	} else {
 		assert(protocol == IPPROTO_UDP);
 		ai_hints.ai_socktype = SOCK_DGRAM;
 	}
-	ai_hints.ai_protocol = protocol;
+	ai_hints.ai_protocol = protocol;/* 设定协议 */
 
-	status = getaddrinfo( host, portstr, &ai_hints, &ai_list );
+	status = getaddrinfo( host, portstr, &ai_hints, &ai_list );/* 0表示执行成功 */
 	if ( status != 0 ) {
 		return -1;
 	}
@@ -1466,20 +1467,21 @@ _failed_fd:
 static int
 do_listen(const char * host, int port, int backlog) {
 	int family = 0;
-	int listen_fd = do_bind(host, port, IPPROTO_TCP, &family);
+	int listen_fd = do_bind(host, port, IPPROTO_TCP, &family);/* 绑定端口 */
 	if (listen_fd < 0) {
 		return -1;
 	}
-	if (listen(listen_fd, backlog) == -1) {
+	if (listen(listen_fd, backlog) == -1) {/* 开始监听 */
 		close(listen_fd);
 		return -1;
 	}
-	return listen_fd;
+	return listen_fd;/* 返回服务端socket */
 }
 
+/* socket server启动监听 */
 int 
 socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * addr, int port, int backlog) {
-	int fd = do_listen(addr, port, backlog);
+	int fd = do_listen(addr, port, backlog);/* 开启监听，返回server sock fd */
 	if (fd < 0) {
 		return -1;
 	}

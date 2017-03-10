@@ -110,7 +110,7 @@ end
 skynet.start(function()
 	local master_addr = skynet.getenv "standalone"
 	skynet.error("master listen socket " .. tostring(master_addr))
-	local fd = socket.listen(master_addr)
+	local fd = socket.listen(master_addr) --¼àÌı
 	socket.start(fd , function(id, addr)
 		skynet.error("connect from " .. addr .. " " .. id)
 		socket.start(id)
