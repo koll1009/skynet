@@ -151,11 +151,11 @@ static int luaB_yieldable (lua_State *L) {
   return 1;
 }
 
-
+/* coroutine.running函数 */
 static int luaB_corunning (lua_State *L) {
   int ismain = lua_pushthread(L);
   lua_pushboolean(L, ismain);
-  return 2;
+  return 2;/* 返回当前的协程、是否主协程 */
 }
 
 

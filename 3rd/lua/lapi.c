@@ -596,6 +596,7 @@ LUA_API void lua_pushlightuserdata (lua_State *L, void *p) {
 }
 
 
+/* 把协程压入栈，如果L为主协程 返回true */
 LUA_API int lua_pushthread (lua_State *L) {
   lua_lock(L);
   setthvalue(L, L->top, L);

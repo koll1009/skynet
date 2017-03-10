@@ -53,6 +53,8 @@ sp_write(int efd, int sock, void *ud, bool enable) {
 	epoll_ctl(efd, EPOLL_CTL_MOD, sock, &ev);
 }
 
+
+/* epoll wait²Ù×÷ */
 static int 
 sp_wait(int efd, struct event *e, int max) {
 	struct epoll_event ev[max];

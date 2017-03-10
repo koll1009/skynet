@@ -144,9 +144,9 @@ local function release_watching(address)
 	end
 end
 
--- suspend is local function
+-- suspend is local function 挂起操作
 function suspend(co, result, command, param, size)
-	if not result then  --协程运行出错
+	if not result then                         --协程运行出错
 		local session = session_coroutine_id[co]
 		if session then -- coroutine may fork by others (session is nil)
 			local addr = session_coroutine_address[co]
@@ -159,9 +159,9 @@ function suspend(co, result, command, param, size)
 		end
 		error(debug.traceback(co,tostring(command)))
 	end
-	if command == "CALL" then
-		session_id_coroutine[param] = co  --重新保存协程
-	elseif command == "SLEEP" then
+	if command == "CALL" then                 --"CALL"命令，重新保存协程到session_id_coroutine中
+		session_id_coroutine[param] = co  
+	elseif command == "SLEEP" then            --"SLEEP"命令，重新保存协程param为session值
 		session_id_coroutine[param] = co
 		sleep_session[co] = param
 	elseif command == "RETURN" then 
@@ -283,8 +283,9 @@ function skynet.yield()
 	return skynet.sleep(0)
 end
 
+
 function skynet.wait(co)
-	local session = c.genid()
+	local session = c.genid() --预分配一个session值
 	local ret, msg = coroutine_yield("SLEEP", session)
 	co = co or coroutine.running()
 	sleep_session[co] = nil

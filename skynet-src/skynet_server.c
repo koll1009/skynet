@@ -715,7 +715,7 @@ skynet_send(struct skynet_context * context, uint32_t source, uint32_t destinati
 		source = context->handle;
 	}
 
-	if (destination == 0) {
+	if (destination == 0) {/* 如果目标为0直接返回session */
 		return session;
 	}
 	if (skynet_harbor_message_isremote(destination)) {/* remote msg */

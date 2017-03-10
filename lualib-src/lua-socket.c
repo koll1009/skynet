@@ -477,12 +477,12 @@ llisten(lua_State *L) {
 	int port = luaL_checkinteger(L,2);/* 端口 */
 	int backlog = luaL_optinteger(L,3,BACKLOG);/* 监听队列大小 */
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
-	int id = skynet_socket_listen(ctx, host,port,backlog);
+	int id = skynet_socket_listen(ctx, host,port,backlog);/* 服务器套接字为socket_server->slot[id] */
 	if (id < 0) {
 		return luaL_error(L, "Listen error");
 	}
 
-	lua_pushinteger(L,id);
+	lua_pushinteger(L,id);/* 返回索引 */
 	return 1;
 }
 
@@ -580,6 +580,8 @@ lbind(lua_State *L) {
 	return 1;
 }
 
+
+/* socketdriver.start函数 */
 static int
 lstart(lua_State *L) {
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));

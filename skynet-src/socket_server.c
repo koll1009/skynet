@@ -31,12 +31,12 @@
 #define SOCKET_TYPE_PACCEPT 7
 #define SOCKET_TYPE_BIND 8
 
-#define MAX_SOCKET (1<<MAX_SOCKET_P) /* 2^16 65526 */
+#define MAX_SOCKET (1<<MAX_SOCKET_P) /* 2^16 65536 */
 
 #define PRIORITY_HIGH 0
 #define PRIORITY_LOW 1
 
-#define HASH_ID(id) (((unsigned)id) % MAX_SOCKET)
+#define HASH_ID(id) (((unsigned)id) % MAX_SOCKET) /* 取低16位 */
 
 #define PROTOCOL_TCP 0
 #define PROTOCOL_UDP 1
@@ -76,16 +76,17 @@ struct socket {
 	struct wb_list high;
 	struct wb_list low;
 	int64_t wb_size;
-	int fd;
-	int id;
-	uint16_t protocol;
-	uint16_t type;
+	int fd; /* socket描述符 */
+	int id; /* socket_server中套接字数组索引 */
+	uint16_t protocol;/* 套接字协议类型 */
+	uint16_t type;/* 套接字类型，初始类型为SOCKET_TYPE_INVALID */
 	union {
 		int size;
 		uint8_t udp_address[UDP_ADDRESS_SIZE];
 	} p;
 };
 
+/*  */
 struct socket_server {
 	int recvctrl_fd; /* pipe读端 */
 	int sendctrl_fd; /* pipe写端 */
@@ -131,6 +132,7 @@ struct request_close {
 	uintptr_t opaque;
 };
 
+/* 监听请求描述符 */
 struct request_listen {
 	int id;
 	int fd;
@@ -180,7 +182,7 @@ struct request_udp {
  */
 
 struct request_package {
-	uint8_t header[8];	// 6 bytes dummy
+	uint8_t header[8];	// 6 bytes dummy 
 	union {
 		char buffer[256];
 		struct request_open open;
@@ -243,20 +245,21 @@ socket_keepalive(int fd) {
 	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepalive , sizeof(keepalive));  
 }
 
+/* 分配socket id */
 static int
 reserve_id(struct socket_server *ss) {
 	int i;
 	for (i=0;i<MAX_SOCKET;i++) {
-		int id = ATOM_INC(&(ss->alloc_id));
+		int id = ATOM_INC(&(ss->alloc_id));/* 递增ss->alloc_id,从0开始 */
 		if (id < 0) {
 			id = ATOM_AND(&(ss->alloc_id), 0x7fffffff);
 		}
-		struct socket *s = &ss->slot[HASH_ID(id)];
+		struct socket *s = &ss->slot[HASH_ID(id)];/* 使用id的低16位做为哈希值,即在slot中的索引值 */
 		if (s->type == SOCKET_TYPE_INVALID) {
-			if (ATOM_CAS(&s->type, SOCKET_TYPE_INVALID, SOCKET_TYPE_RESERVE)) {
+			if (ATOM_CAS(&s->type, SOCKET_TYPE_INVALID, SOCKET_TYPE_RESERVE)) {/* 该slot可用，设置类型为reserve */
 				s->id = id;
 				s->fd = -1;
-				return id;
+				return id; 
 			} else {
 				// retry
 				--i;
@@ -310,9 +313,9 @@ socket_server_create() {
 		clear_wb_list(&s->high);
 		clear_wb_list(&s->low);
 	}
-	ss->alloc_id = 0;
+	ss->alloc_id = 0;/* id从0开始计数 */
 	ss->event_n = 0;
-	ss->event_index = 0;
+	ss->event_index = 0;/* event索引从0开始计数 */
 	memset(&ss->soi, 0, sizeof(ss->soi));
 	FD_ZERO(&ss->rfds);
 	assert(ss->recvctrl_fd < FD_SETSIZE);
@@ -377,6 +380,8 @@ check_wb_list(struct wb_list *s) {
 	assert(s->tail == NULL);
 }
 
+
+/* 设置并返回socket */
 static struct socket *
 new_fd(struct socket_server *ss, int id, int fd, int protocol, uintptr_t opaque, bool add) {
 	struct socket * s = &ss->slot[HASH_ID(id)];
@@ -764,15 +769,17 @@ send_socket(struct socket_server *ss, struct request_send * request, struct sock
 	return -1;
 }
 
+
+/* listen消息处理，-1为成功 */
 static int
 listen_socket(struct socket_server *ss, struct request_listen * request, struct socket_message *result) {
-	int id = request->id;
+	int id = request->id; 
 	int listen_fd = request->fd;
-	struct socket *s = new_fd(ss, id, listen_fd, PROTOCOL_TCP, request->opaque, false);
+	struct socket *s = new_fd(ss, id, listen_fd, PROTOCOL_TCP, request->opaque, false);/*  */
 	if (s == NULL) {
 		goto _failed;
 	}
-	s->type = SOCKET_TYPE_PLISTEN;
+	s->type = SOCKET_TYPE_PLISTEN;/* 套接字类型为监听 */
 	return -1;
 _failed:
 	close(listen_fd);
@@ -980,7 +987,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 		return start_socket(ss,(struct request_start *)buffer, result);
 	case 'B':
 		return bind_socket(ss,(struct request_bind *)buffer, result);
-	case 'L':
+	case 'L': /* 处理listen请求 */
 		return listen_socket(ss,(struct request_listen *)buffer, result);
 	case 'K':
 		return close_socket(ss,(struct request_close *)buffer, result);
@@ -1224,19 +1231,19 @@ int
 socket_server_poll(struct socket_server *ss, struct socket_message * result, int * more) {
 	for (;;) {
 		if (ss->checkctrl) {
-			if (has_cmd(ss)) {/* pipe有数据可读 */
+			if (has_cmd(ss)) { /* pipe有数据可读 */
 				int type = ctrl_cmd(ss, result);
 				if (type != -1) {
 					clear_closed_event(ss, result, type);
 					return type;
 				} else
 					continue;
-			} else {
+			} else {/* 管道无数据，置为0 */
 				ss->checkctrl = 0;
 			}
 		}
 		if (ss->event_index == ss->event_n) {
-			ss->event_n = sp_wait(ss->event_fd, ss->ev, MAX_EVENT);
+			ss->event_n = sp_wait(ss->event_fd, ss->ev, MAX_EVENT);/* 监听事件 */
 			ss->checkctrl = 1;
 			if (more) {
 				*more = 0;
@@ -1247,7 +1254,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 				return -1;
 			}
 		}
-		struct event *e = &ss->ev[ss->event_index++];
+		struct event *e = &ss->ev[ss->event_index++];/* 取事件 */
 		struct socket *s = e->s;
 		if (s == NULL) {
 			// dispatch pipe message at beginning
@@ -1272,9 +1279,12 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 		default:
 			if (e->read) {
 				int type;
-				if (s->protocol == PROTOCOL_TCP) {
+				if (s->protocol == PROTOCOL_TCP) 
+				{
 					type = forward_message_tcp(ss, s, result);
-				} else {
+				} 
+				else 
+				{
 					type = forward_message_udp(ss, s, result);
 					if (type == SOCKET_UDP) {
 						// try read again
@@ -1302,12 +1312,14 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 	}
 }
 
+
+/* 发送请求 */
 static void
 send_request(struct socket_server *ss, struct request_package *request, char type, int len) {
 	request->header[6] = (uint8_t)type;
 	request->header[7] = (uint8_t)len;
 	for (;;) {
-		int n = write(ss->sendctrl_fd, &request->header[6], len+2);
+		int n = write(ss->sendctrl_fd, &request->header[6], len+2);/* 写入pipe写端 */
 		if (n<0) {
 			if (errno != EINTR) {
 				fprintf(stderr, "socket-server : send ctrl command error %s.\n", strerror(errno));
@@ -1478,7 +1490,7 @@ do_listen(const char * host, int port, int backlog) {
 	return listen_fd;/* 返回服务端socket */
 }
 
-/* socket server启动监听 */
+/* socket server启动监听，@opaque为服务的handle值 */
 int 
 socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * addr, int port, int backlog) {
 	int fd = do_listen(addr, port, backlog);/* 开启监听，返回server sock fd */
@@ -1486,15 +1498,15 @@ socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * ad
 		return -1;
 	}
 	struct request_package request;
-	int id = reserve_id(ss);
+	int id = reserve_id(ss);/* 分配socket数组上的地址 */
 	if (id < 0) {
 		close(fd);
 		return id;
 	}
-	request.u.listen.opaque = opaque;
+	request.u.listen.opaque = opaque;/* 服务的handle值 */
 	request.u.listen.id = id;
 	request.u.listen.fd = fd;
-	send_request(ss, &request, 'L', sizeof(request.u.listen));
+	send_request(ss, &request, 'L', sizeof(request.u.listen));/* 发送请求 */
 	return id;
 }
 
@@ -1511,6 +1523,8 @@ socket_server_bind(struct socket_server *ss, uintptr_t opaque, int fd) {
 	return id;
 }
 
+
+/* 启动server socket */
 void 
 socket_server_start(struct socket_server *ss, uintptr_t opaque, int id) {
 	struct request_package request;

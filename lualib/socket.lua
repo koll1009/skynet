@@ -29,7 +29,7 @@ end
 
 local function suspend(s)
 	assert(not s.co)
-	s.co = coroutine.running()
+	s.co = coroutine.running() --取当前协程
 	skynet.wait(s.co)
 	-- wakeup closing corouting every time suspend,
 	-- because socket.close() will wait last socket buffer operation before clear the buffer.
@@ -180,7 +180,7 @@ local function connect(id, func)
 		protocol = "TCP",
 	}
 	assert(not socket_pool[id], "socket is not closed")
-	socket_pool[id] = s
+	socket_pool[id] = s 
 	suspend(s)
 	local err = s.connecting
 	s.connecting = nil
@@ -206,8 +206,9 @@ function socket.stdin()
 	return socket.bind(0)
 end
 
+--
 function socket.start(id, func)
-	driver.start(id)
+	driver.start(id) --socketdriver.start(id)
 	return connect(id, func)
 end
 

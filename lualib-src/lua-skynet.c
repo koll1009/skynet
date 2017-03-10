@@ -149,10 +149,11 @@ lintcommand(lua_State *L) {
 	return 0;
 }
 
+/* skynet.core.genid函数 */
 static int
 lgenid(lua_State *L) {
 	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
-	int session = skynet_send(context, 0, 0, PTYPE_TAG_ALLOCSESSION , 0 , NULL, 0);
+	int session = skynet_send(context, 0, 0, PTYPE_TAG_ALLOCSESSION , 0 , NULL, 0);/* 预分配一个session值，并不发送消息 */
 	lua_pushinteger(L, session);
 	return 1;
 }

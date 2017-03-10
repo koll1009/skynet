@@ -137,7 +137,8 @@ skynet_socket_send_lowpriority(struct skynet_context *ctx, int id, void *buffer,
 	socket_server_send_lowpriority(SOCKET_SERVER, id, buffer, sz);
 }
 
-/*  */
+
+/* 开启监听，返回在socket server中套接字数组的索引 */
 int 
 skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int backlog) {
 	uint32_t source = skynet_context_handle(ctx);/* 取服务的handle */
