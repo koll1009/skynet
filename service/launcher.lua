@@ -78,8 +78,8 @@ end
 local function launch_service(service, ...)
 	local param = table.concat({...}, " ") 
 	local inst = skynet.launch(service, param) --service为服务名，例如cmaster ，param为参数
-	local response = skynet.response() --再次调用coroutine_resume传入的参数为返回值  
-	                                   --中断协程，调用coroutine_resume返回true、"RESPONSE"、skynet.pack函数	                                    
+	local response = skynet.response()         --再次调用coroutine_resume传入的参数为返回值  
+	                                           --中断协程，调用coroutine_resume返回true、"RESPONSE"、skynet.pack函数	                                    
 	if inst then
 		services[inst] = service .. " " .. param
 		instance[inst] = response
@@ -92,7 +92,7 @@ end
 
 --启动命令
 function command.LAUNCH(_, service, ...)
-	launch_service(service, ...) --启动lua服务
+	launch_service(service, ...) --启动lua服务,service为服务名
 	return NORET
 end
 

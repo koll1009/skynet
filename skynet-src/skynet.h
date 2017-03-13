@@ -5,14 +5,14 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
+//消息类型
 #define PTYPE_TEXT 0
 #define PTYPE_RESPONSE 1
 #define PTYPE_MULTICAST 2
 #define PTYPE_CLIENT 3
 #define PTYPE_SYSTEM 4
 #define PTYPE_HARBOR 5
-#define PTYPE_SOCKET 6
+#define PTYPE_SOCKET 6  /* socket消息 */
 // read lualib/skynet.lua examples/simplemonitor.lua
 #define PTYPE_ERROR 7	
 // read lualib/skynet.lua lualib/mqueue.lua lualib/snax.lua

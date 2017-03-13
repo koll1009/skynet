@@ -206,9 +206,9 @@ function socket.stdin()
 	return socket.bind(0)
 end
 
---
+--启动函数，id为server socket的fd
 function socket.start(id, func)
-	driver.start(id) --socketdriver.start(id)
+	driver.start(id) --socketdriver.start(id)，发送启动请求
 	return connect(id, func)
 end
 

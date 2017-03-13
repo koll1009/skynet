@@ -46,7 +46,7 @@ forward_message(int type, bool padding, struct socket_message * result) {
 		}
 	}
 	sm = (struct skynet_socket_message *)skynet_malloc(sz);
-	sm->type = type;
+	sm->type = type; /* socket消息的类型 */
 	sm->id = result->id;
 	sm->ud = result->ud;
 	if (padding) {
@@ -71,7 +71,7 @@ forward_message(int type, bool padding, struct socket_message * result) {
 }
 
 
-
+//
 int 
 skynet_socket_poll() {
 	struct socket_server *ss = SOCKET_SERVER;
@@ -88,7 +88,7 @@ skynet_socket_poll() {
 	case SOCKET_CLOSE:
 		forward_message(SKYNET_SOCKET_TYPE_CLOSE, false, &result);
 		break;
-	case SOCKET_OPEN:
+	case SOCKET_OPEN: /*  */
 		forward_message(SKYNET_SOCKET_TYPE_CONNECT, true, &result);
 		break;
 	case SOCKET_ERROR:

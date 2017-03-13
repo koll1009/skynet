@@ -37,7 +37,7 @@ _cb(struct skynet_context * context, void * ud, int type, int session, uint32_t 
 	int top = lua_gettop(L);
 	if (top == 0) {
 		lua_pushcfunction(L, traceback);/* 压入traceback函数 */
-		lua_rawgetp(L, LUA_REGISTRYINDEX, _cb);/* 压入skynet.dispatchmessage函数 */
+		lua_rawgetp(L, LUA_REGISTRYINDEX, _cb);/* c.callback()里传入的skynet.dispatchmessage函数 */
 	} else {
 		assert(top == 2);
 	}

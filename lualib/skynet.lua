@@ -99,7 +99,7 @@ end
 local coroutine_pool = setmetatable({}, { __mode = "kv" })
 
 
---
+--协程创建函数
 local function co_create(f)
 	local co = table.remove(coroutine_pool)--删除coroutine_pool array的最后一项
 	if co == nil then
@@ -109,12 +109,12 @@ local function co_create(f)
 			while true do
 				f = nil 
 				coroutine_pool[#coroutine_pool+1] = co --末尾插入co
-				f = coroutine_yield "EXIT" -- 返回true,"EXIT"
-				f(coroutine_yield())
+				f = coroutine_yield "EXIT"             -- 返回true,"EXIT"
+				f(coroutine_yield())                   -- 执行二次执行co_create(func)传入的函数
 			end
 		end)
 	else
-		coroutine_resume(co, f)
+		coroutine_resume(co, f)                        --重置执行函数
 	end
 	return co
 end
@@ -164,7 +164,8 @@ function suspend(co, result, command, param, size)
 	elseif command == "SLEEP" then            --"SLEEP"命令，重新保存协程param为session值
 		session_id_coroutine[param] = co
 		sleep_session[co] = param
-	elseif command == "RETURN" then 
+
+	elseif command == "RETURN" then           --"RETURN命令
 		local co_session = session_coroutine_id[co]
 		local co_address = session_coroutine_address[co]
 		if param == nil or session_response[co] then
@@ -232,7 +233,7 @@ function suspend(co, result, command, param, size)
 		session_response[co] = true
 		unresponse[response] = true
 		return suspend(co, coroutine_resume(co, response))--
-	elseif command == "EXIT" then 
+	elseif command == "EXIT" then            
 		-- coroutine exit
 		local address = session_coroutine_address[co]
 		release_watching(address)
@@ -255,13 +256,13 @@ function suspend(co, result, command, param, size)
 	dispatch_error_queue()
 end
 
-
+--超时函数
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand，调用TIMEOUT命令，插入一条新消息
+	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand，调用TIMEOUT命令，当ti为0时插入一条新消息
 	assert(session)
-	local co = co_create(func)                  --
+	local co = co_create(func)                  --创建一个协程
 	assert(session_id_coroutine[session] == nil)
-	session_id_coroutine[session] = co          --保存协程
+	session_id_coroutine[session] = co          --session_id_coroutine表专用于保存未执行完毕的协程
 end
 
 function skynet.sleep(ti)
@@ -641,14 +642,14 @@ function skynet.init_service(start)
 		skynet.send(".launcher","lua", "ERROR")
 		skynet.exit()
 	else
-		skynet.send(".launcher","lua", "LAUNCHOK") --向.launcher服务发送一条消息
+		skynet.send(".launcher","lua", "LAUNCHOK") --向.launcher服务发送一条"启动成功"的消息
 	end
 end
 
 
 function skynet.start(start_func)
 	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)，重置skynet_context的回调函数
-	skynet.timeout(0, function()        --压入一条新消息
+	skynet.timeout(0, function()        --压入一条新消息，并创建一个协程以执行start_func
 		skynet.init_service(start_func)
 	end)
 end

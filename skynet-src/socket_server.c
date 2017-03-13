@@ -239,6 +239,8 @@ write_buffer_free(struct socket_server *ss, struct write_buffer *wb) {
 	FREE(wb);
 }
 
+
+/* 设置sock的SO_KEEPALIVE Option */
 static void
 socket_keepalive(int fd) {
 	int keepalive = 1;
@@ -770,12 +772,12 @@ send_socket(struct socket_server *ss, struct request_send * request, struct sock
 }
 
 
-/* listen消息处理，-1为成功 */
+/* listen请求处理，-1为成功 */
 static int
 listen_socket(struct socket_server *ss, struct request_listen * request, struct socket_message *result) {
 	int id = request->id; 
 	int listen_fd = request->fd;
-	struct socket *s = new_fd(ss, id, listen_fd, PROTOCOL_TCP, request->opaque, false);/*  */
+	struct socket *s = new_fd(ss, id, listen_fd, PROTOCOL_TCP, request->opaque, false);/* false表示不添加到epoll中 */
 	if (s == NULL) {
 		goto _failed;
 	}
@@ -836,10 +838,11 @@ bind_socket(struct socket_server *ss, struct request_bind *request, struct socke
 	return SOCKET_OPEN;
 }
 
+/* socket start请求处理函数 */
 static int
 start_socket(struct socket_server *ss, struct request_start *request, struct socket_message *result) {
 	int id = request->id;
-	result->id = id;
+	result->id = id;/* server sock id */
 	result->opaque = request->opaque;
 	result->ud = 0;
 	result->data = NULL;
@@ -849,7 +852,7 @@ start_socket(struct socket_server *ss, struct request_start *request, struct soc
 		return SOCKET_ERROR;
 	}
 	if (s->type == SOCKET_TYPE_PACCEPT || s->type == SOCKET_TYPE_PLISTEN) {
-		if (sp_add(ss->event_fd, s->fd, s)) {
+		if (sp_add(ss->event_fd, s->fd, s)) {/* 把socket添加到epoll中 */
 			force_close(ss, s, result);
 			result->data = strerror(errno);
 			return SOCKET_ERROR;
@@ -857,7 +860,7 @@ start_socket(struct socket_server *ss, struct request_start *request, struct soc
 		s->type = (s->type == SOCKET_TYPE_PACCEPT) ? SOCKET_TYPE_CONNECTED : SOCKET_TYPE_LISTEN;
 		s->opaque = request->opaque;
 		result->data = "start";
-		return SOCKET_OPEN;
+		return SOCKET_OPEN;  
 	} else if (s->type == SOCKET_TYPE_CONNECTED) {
 		// todo: maybe we should send a message SOCKET_TRANSFER to s->opaque
 		s->opaque = request->opaque;
@@ -983,7 +986,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	block_readpipe(fd, buffer, len);/* 读数据，数据根据类型的不同解释为各种结构 */
 	// ctrl command only exist in local fd, so don't worry about endian.
 	switch (type) {
-	case 'S':
+	case 'S': /* 处理start请求 */
 		return start_socket(ss,(struct request_start *)buffer, result);
 	case 'B':
 		return bind_socket(ss,(struct request_bind *)buffer, result);
@@ -1167,7 +1170,7 @@ static int
 report_accept(struct socket_server *ss, struct socket *s, struct socket_message *result) {
 	union sockaddr_all u;
 	socklen_t len = sizeof(u);
-	int client_fd = accept(s->fd, &u.s, &len);
+	int client_fd = accept(s->fd, &u.s, &len);/* 监听到的客户socket连接请求 */
 	if (client_fd < 0) {
 		if (errno == EMFILE || errno == ENFILE) {
 			result->opaque = s->opaque;
@@ -1179,7 +1182,7 @@ report_accept(struct socket_server *ss, struct socket *s, struct socket_message 
 			return 0;
 		}
 	}
-	int id = reserve_id(ss);
+	int id = reserve_id(ss);/* 在socket数组中分配地址 */
 	if (id < 0) {
 		close(client_fd);
 		return 0;
@@ -1197,6 +1200,7 @@ report_accept(struct socket_server *ss, struct socket *s, struct socket_message 
 	result->ud = id;
 	result->data = NULL;
 
+	/* client sock的ip地址和端口 */
 	void * sin_addr = (u.s.sa_family == AF_INET) ? (void*)&u.v4.sin_addr : (void *)&u.v6.sin6_addr;
 	int sin_port = ntohs((u.s.sa_family == AF_INET) ? u.v4.sin_port : u.v6.sin6_port);
 	char tmp[INET6_ADDRSTRLEN];
@@ -1232,7 +1236,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 	for (;;) {
 		if (ss->checkctrl) {
 			if (has_cmd(ss)) { /* pipe有数据可读 */
-				int type = ctrl_cmd(ss, result);
+				int type = ctrl_cmd(ss, result);/* 处理管道事件 */
 				if (type != -1) {
 					clear_closed_event(ss, result, type);
 					return type;
@@ -1256,23 +1260,26 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 		}
 		struct event *e = &ss->ev[ss->event_index++];/* 取事件 */
 		struct socket *s = e->s;
-		if (s == NULL) {
+		if (s == NULL) {/* 表示此时为管道事件 */
 			// dispatch pipe message at beginning
 			continue;
 		}
-		switch (s->type) {
+		switch (s->type) 
+		{
 		case SOCKET_TYPE_CONNECTING:
 			return report_connect(ss, s, result);
-		case SOCKET_TYPE_LISTEN: {
+		case SOCKET_TYPE_LISTEN:/* server socket,处理accept操作 */
+			{
 			int ok = report_accept(ss, s, result);
-			if (ok > 0) {
+			if (ok > 0)
+			{
 				return SOCKET_ACCEPT;
 			} if (ok < 0 ) {
 				return SOCKET_ERROR;
 			}
 			// when ok == 0, retry
 			break;
-		}
+		    }
 		case SOCKET_TYPE_INVALID:
 			fprintf(stderr, "socket-server: invalid socket\n");
 			break;
@@ -1462,12 +1469,12 @@ do_bind(const char *host, int port, int protocol, int *family) {
 	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&reuse, sizeof(int))==-1) {
 		goto _failed;
 	}
-	status = bind(fd, (struct sockaddr *)ai_list->ai_addr, ai_list->ai_addrlen);
+	status = bind(fd, (struct sockaddr *)ai_list->ai_addr, ai_list->ai_addrlen);/* 绑定端口 */
 	if (status != 0)
 		goto _failed;
 
 	freeaddrinfo( ai_list );
-	return fd;
+	return fd; /* 返回server sock的文件描述符 */
 _failed:
 	close(fd);
 _failed_fd:
@@ -1487,7 +1494,7 @@ do_listen(const char * host, int port, int backlog) {
 		close(listen_fd);
 		return -1;
 	}
-	return listen_fd;/* 返回服务端socket */
+	return listen_fd;/* 返回server socket */
 }
 
 /* socket server启动监听，@opaque为服务的handle值 */
@@ -1530,7 +1537,7 @@ socket_server_start(struct socket_server *ss, uintptr_t opaque, int id) {
 	struct request_package request;
 	request.u.start.id = id;
 	request.u.start.opaque = opaque;
-	send_request(ss, &request, 'S', sizeof(request.u.start));
+	send_request(ss, &request, 'S', sizeof(request.u.start));/* 发送start请求 */
 }
 
 void

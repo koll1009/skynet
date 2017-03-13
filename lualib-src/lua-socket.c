@@ -470,12 +470,12 @@ lshutdown(lua_State *L) {
 }
 
 
-/* socketdriver.listen函数 */
+/* socketdriver.listen函数,监听 */
 static int
 llisten(lua_State *L) {
-	const char * host = luaL_checkstring(L,1);/* 主机 */
-	int port = luaL_checkinteger(L,2);/* 端口 */
-	int backlog = luaL_optinteger(L,3,BACKLOG);/* 监听队列大小 */
+	const char * host = luaL_checkstring(L,1);/* 1:主机 */
+	int port = luaL_checkinteger(L,2);        /* 2:端口 */
+	int backlog = luaL_optinteger(L,3,BACKLOG);/*3: 监听队列大小 */
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
 	int id = skynet_socket_listen(ctx, host,port,backlog);/* 服务器套接字为socket_server->slot[id] */
 	if (id < 0) {
@@ -581,7 +581,7 @@ lbind(lua_State *L) {
 }
 
 
-/* socketdriver.start函数 */
+/* socketdriver.start函数，arg1为server sock fd */
 static int
 lstart(lua_State *L) {
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
