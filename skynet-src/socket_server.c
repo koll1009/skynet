@@ -1170,7 +1170,7 @@ static int
 report_accept(struct socket_server *ss, struct socket *s, struct socket_message *result) {
 	union sockaddr_all u;
 	socklen_t len = sizeof(u);
-	int client_fd = accept(s->fd, &u.s, &len);/* 监听到的客户socket连接请求 */
+	int client_fd = accept(s->fd, &u.s, &len);/* 监听客户socket连接请求 */
 	if (client_fd < 0) {
 		if (errno == EMFILE || errno == ENFILE) {
 			result->opaque = s->opaque;
@@ -1197,14 +1197,14 @@ report_accept(struct socket_server *ss, struct socket *s, struct socket_message 
 	ns->type = SOCKET_TYPE_PACCEPT;
 	result->opaque = s->opaque;
 	result->id = s->id;
-	result->ud = id;
+	result->ud = id;/*  */
 	result->data = NULL;
 
 	/* client sock的ip地址和端口 */
 	void * sin_addr = (u.s.sa_family == AF_INET) ? (void*)&u.v4.sin_addr : (void *)&u.v6.sin6_addr;
 	int sin_port = ntohs((u.s.sa_family == AF_INET) ? u.v4.sin_port : u.v6.sin6_port);
 	char tmp[INET6_ADDRSTRLEN];
-	if (inet_ntop(u.s.sa_family, sin_addr, tmp, sizeof(tmp))) {
+	if (inet_ntop(u.s.sa_family, sin_addr, tmp, sizeof(tmp))) {/* 把ip地址转换为点分制，即192.168.0.1格式 */
 		snprintf(ss->buffer, sizeof(ss->buffer), "%s:%d", tmp, sin_port);
 		result->data = ss->buffer;
 	}
@@ -1466,7 +1466,7 @@ do_bind(const char *host, int port, int protocol, int *family) {
 	if (fd < 0) {
 		goto _failed_fd;
 	}
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&reuse, sizeof(int))==-1) {
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&reuse, sizeof(int))==-1) {/* 允许地址复用 */
 		goto _failed;
 	}
 	status = bind(fd, (struct sockaddr *)ai_list->ai_addr, ai_list->ai_addrlen);/* 绑定端口 */

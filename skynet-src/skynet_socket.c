@@ -34,7 +34,7 @@ static void
 forward_message(int type, bool padding, struct socket_message * result) {
 	struct skynet_socket_message *sm;
 	size_t sz = sizeof(*sm);
-	if (padding) {
+	if (padding) { /* true表示有额外数据 */
 		if (result->data) {
 			size_t msg_sz = strlen(result->data);
 			if (msg_sz > 128) {
@@ -51,7 +51,7 @@ forward_message(int type, bool padding, struct socket_message * result) {
 	sm->ud = result->ud;
 	if (padding) {
 		sm->buffer = NULL;
-		memcpy(sm+1, result->data, sz - sizeof(*sm));
+		memcpy(sm+1, result->data, sz - sizeof(*sm)); /* copy额外消息数据 */
 	} else {
 		sm->buffer = result->data;
 	}
@@ -62,7 +62,7 @@ forward_message(int type, bool padding, struct socket_message * result) {
 	message.data = sm;
 	message.sz = sz | ((size_t)PTYPE_SOCKET << MESSAGE_TYPE_SHIFT);
 	
-	if (skynet_context_push((uint32_t)result->opaque, &message)) {
+	if (skynet_context_push((uint32_t)result->opaque, &message)) {/* 发消息通知 */
 		// todo: report somewhere to close socket
 		// don't call skynet_socket_close here (It will block mainloop)
 		skynet_free(sm->buffer);
@@ -94,7 +94,7 @@ skynet_socket_poll() {
 	case SOCKET_ERROR:
 		forward_message(SKYNET_SOCKET_TYPE_ERROR, true, &result);
 		break;
-	case SOCKET_ACCEPT:
+	case SOCKET_ACCEPT:/* 表示服务端接受一个连接 */
 		forward_message(SKYNET_SOCKET_TYPE_ACCEPT, true, &result);
 		break;
 	case SOCKET_UDP:
