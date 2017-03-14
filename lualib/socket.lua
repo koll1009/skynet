@@ -74,7 +74,7 @@ socket_message[1] = function(id, size, data)
 	end
 end
 
--- SKYNET_SOCKET_TYPE_CONNECT = 2
+-- SKYNET_SOCKET_TYPE_CONNECT = 2,
 socket_message[2] = function(id, _ , addr)
 	local s = socket_pool[id]
 	if s == nil then
@@ -155,6 +155,7 @@ socket_message[7] = function(id, size)
 	end
 end
 
+--添加proto.socket及proto[6]
 skynet.register_protocol {
 	name = "socket",
 	id = skynet.PTYPE_SOCKET,	-- PTYPE_SOCKET = 6
@@ -164,6 +165,7 @@ skynet.register_protocol {
 	end
 }
 
+--id为server socket的fd
 local function connect(id, func)
 	local newbuffer
 	if func == nil then
@@ -180,7 +182,7 @@ local function connect(id, func)
 		protocol = "TCP",
 	}
 	assert(not socket_pool[id], "socket is not closed")
-	socket_pool[id] = s 
+	socket_pool[id] = s  --保存
 	suspend(s)
 	local err = s.connecting
 	s.connecting = nil
@@ -208,7 +210,7 @@ end
 
 --启动函数，id为server socket的fd
 function socket.start(id, func)
-	driver.start(id) --socketdriver.start(id)，发送启动请求
+	driver.start(id)      --socketdriver.start(id)，发送启动请求
 	return connect(id, func)
 end
 

@@ -1270,7 +1270,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 			return report_connect(ss, s, result);
 		case SOCKET_TYPE_LISTEN:/* server socket,处理accept操作 */
 			{
-			int ok = report_accept(ss, s, result);
+			int ok = report_accept(ss, s, result);/* 取客户端socket信息 */
 			if (ok > 0)
 			{
 				return SOCKET_ACCEPT;
