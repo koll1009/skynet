@@ -368,7 +368,7 @@ lstr2p(lua_State *L) {
 
 // for skynet socket
 
-/*
+/* socketdriver.unpack函数
 	lightuserdata msg
 	integer size
 
@@ -376,11 +376,11 @@ lstr2p(lua_State *L) {
 */
 static int
 lunpack(lua_State *L) {
-	struct skynet_socket_message *message = lua_touserdata(L,1);
+	struct skynet_socket_message *message = lua_touserdata(L,1);/* 数据为skynet_socket_message类型 */
 	int size = luaL_checkinteger(L,2);
 
-	lua_pushinteger(L, message->type);
-	lua_pushinteger(L, message->id);
+	lua_pushinteger(L, message->type);/* socket消息类型 */
+	lua_pushinteger(L, message->id);  /*  */
 	lua_pushinteger(L, message->ud);
 	if (message->buffer == NULL) {
 		lua_pushlstring(L, (char *)(message+1),size - sizeof(*message));

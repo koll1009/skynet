@@ -114,7 +114,7 @@ local function co_create(f)
 			end
 		end)
 	else
-		coroutine_resume(co, f)                        --重置执行函数
+		coroutine_resume(co, f)                        --重置执行函数f
 	end
 	return co
 end
@@ -233,7 +233,7 @@ function suspend(co, result, command, param, size)
 		session_response[co] = true
 		unresponse[response] = true
 		return suspend(co, coroutine_resume(co, response))--
-	elseif command == "EXIT" then            
+	elseif command == "EXIT" then             --EXIT命令            
 		-- coroutine exit
 		local address = session_coroutine_address[co]
 		release_watching(address)
@@ -284,10 +284,10 @@ function skynet.yield()
 	return skynet.sleep(0)
 end
 
-
+--协程co执行等待
 function skynet.wait(co)
-	local session = c.genid() --预分配一个session值
-	local ret, msg = coroutine_yield("SLEEP", session)
+	local session = c.genid()  --预分配一个session值
+	local ret, msg = coroutine_yield("SLEEP", session) --让出执行
 	co = co or coroutine.running()
 	sleep_session[co] = nil
 	session_id_coroutine[session] = nil

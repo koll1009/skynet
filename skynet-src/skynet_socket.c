@@ -88,7 +88,7 @@ skynet_socket_poll() {
 	case SOCKET_CLOSE:
 		forward_message(SKYNET_SOCKET_TYPE_CLOSE, false, &result);
 		break;
-	case SOCKET_OPEN: /*  */
+	case SOCKET_OPEN: /* 向cmaster发送SKYNET_SOCKET_TYPE_CONNECT消息，数据为 */
 		forward_message(SKYNET_SOCKET_TYPE_CONNECT, true, &result);
 		break;
 	case SOCKET_ERROR:
