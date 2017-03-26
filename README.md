@@ -1,4 +1,4 @@
-## Build koll
+## Build test
 
 Install autoconf first for jemalloc
 
