@@ -82,13 +82,13 @@ skynet_socket_poll() {
 	case SOCKET_CLOSE:
 		forward_message(SKYNET_SOCKET_TYPE_CLOSE, false, &result);
 		break;
-	case SOCKET_OPEN:
+	case SOCKET_OPEN://向发送start请求、open请求的服务回复消息
 		forward_message(SKYNET_SOCKET_TYPE_CONNECT, true, &result);
 		break;
 	case SOCKET_ERROR:
 		forward_message(SKYNET_SOCKET_TYPE_ERROR, false, &result);
 		break;
-	case SOCKET_ACCEPT:
+	case SOCKET_ACCEPT://监听到客户端连接，向创建server sock的服务发送消息
 		forward_message(SKYNET_SOCKET_TYPE_ACCEPT, true, &result);
 		break;
 	default:
@@ -101,6 +101,7 @@ skynet_socket_poll() {
 	return 1;
 }
 
+//skynet socket数据发送函数
 int
 skynet_socket_send(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	int64_t wsz = socket_server_send(SOCKET_SERVER, id, buffer, sz);
@@ -121,9 +122,10 @@ skynet_socket_send_lowpriority(struct skynet_context *ctx, int id, void *buffer,
 	socket_server_send_lowpriority(SOCKET_SERVER, id, buffer, sz);
 }
 
+//skynet socket监听操作
 int 
 skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int backlog) {
-	uint32_t source = skynet_context_handle(ctx);
+	uint32_t source = skynet_context_handle(ctx);//服务的handle号，用以标识socket的从属服务
 	return socket_server_listen(SOCKET_SERVER, source, host, port, backlog);
 }
 
@@ -133,6 +135,7 @@ skynet_socket_connect(struct skynet_context *ctx, const char *host, int port) {
 	return socket_server_connect(SOCKET_SERVER, source, host, port);
 }
 
+//skynet socket阻塞型连接
 int 
 skynet_socket_block_connect(struct skynet_context *ctx, const char *host, int port) {
 	uint32_t source = skynet_context_handle(ctx);
@@ -145,12 +148,14 @@ skynet_socket_bind(struct skynet_context *ctx, int fd) {
 	return socket_server_bind(SOCKET_SERVER, source, fd);
 }
 
+//关闭skynet socket
 void 
 skynet_socket_close(struct skynet_context *ctx, int id) {
 	uint32_t source = skynet_context_handle(ctx);
-	socket_server_close(SOCKET_SERVER, source, id);
+	socket_server_close(SOCKET_SERVER, source, id);//发送close请求
 }
 
+//启动skynet socket
 void 
 skynet_socket_start(struct skynet_context *ctx, int id) {
 	uint32_t source = skynet_context_handle(ctx);

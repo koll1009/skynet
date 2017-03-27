@@ -25,11 +25,12 @@ sp_release(int efd) {
 	close(efd);
 }
 
+//把sock fd添加到epoll中
 static int 
 sp_add(int efd, int sock, void *ud) {
 	struct epoll_event ev;
-	ev.events = EPOLLIN;
-	ev.data.ptr = ud;
+	ev.events = EPOLLIN;//监控可读事件
+	ev.data.ptr = ud;//对应的skynet socket对象
 	if (epoll_ctl(efd, EPOLL_CTL_ADD, sock, &ev) == -1) {
 		return 1;
 	}

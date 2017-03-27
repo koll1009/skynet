@@ -14,9 +14,9 @@ struct message {
 };
 
 struct databuffer {
-	int header;
+	int header;//数据大小
 	int offset;
-	int size;
+	int size;//已接收的数据
 	struct message * head;
 	struct message * tail;
 };
@@ -45,6 +45,7 @@ messagepool_free(struct messagepool *pool) {
 	pool->freelist = NULL;
 }
 
+//已完成读取的message归还
 static inline void
 _return_message(struct databuffer *db, struct messagepool *mp) {
 	struct message *m = db->head;
@@ -54,13 +55,14 @@ _return_message(struct databuffer *db, struct messagepool *mp) {
 	} else {
 		db->head = m->next;
 	}
-	skynet_free(m->buffer);
+	skynet_free(m->buffer);//释放数据，把message压入到freelist
 	m->buffer = NULL;
 	m->size = 0;
 	m->next = mp->freelist;
 	mp->freelist = m;
 }
 
+//从databuffer中读取@sz个字节存储到@buffer中
 static void
 databuffer_read(struct databuffer *db, struct messagepool *mp, void * buffer, int sz) {
 	assert(db->size >= sz);
@@ -76,7 +78,7 @@ databuffer_read(struct databuffer *db, struct messagepool *mp, void * buffer, in
 		if (bsz == sz) {
 			memcpy(buffer, current->buffer + db->offset, sz);
 			db->offset = 0;
-			_return_message(db, mp);
+			_return_message(db, mp);//归还message
 			return;
 		} else {
 			memcpy(buffer, current->buffer + db->offset, bsz);
@@ -88,6 +90,7 @@ databuffer_read(struct databuffer *db, struct messagepool *mp, void * buffer, in
 	}
 }
 
+//把一个新的message压入到databuffer中
 static void
 databuffer_push(struct databuffer *db, struct messagepool *mp, void *data, int sz) {
 	struct message * m;
@@ -112,7 +115,7 @@ databuffer_push(struct databuffer *db, struct messagepool *mp, void *data, int s
 	m->buffer = data;
 	m->size = sz;
 	m->next = NULL;
-	db->size += sz;
+	db->size += sz;//已接收的数据
 	if (db->head == NULL) {
 		assert(db->tail == NULL);
 		db->head = db->tail = m;
@@ -122,6 +125,7 @@ databuffer_push(struct databuffer *db, struct messagepool *mp, void *data, int s
 	}
 }
 
+//读取头字节
 static int
 databuffer_readheader(struct databuffer *db, struct messagepool *mp, int header_size) {
 	if (db->header == 0) {
@@ -138,9 +142,9 @@ databuffer_readheader(struct databuffer *db, struct messagepool *mp, int header_
 			db->header = plen[0] << 24 | plen[1] << 16 | plen[2] << 8 | plen[3];
 		}
 	}
-	if (db->size < db->header)
+	if (db->size < db->header)//数据未接收完，返回-1
 		return -1;
-	return db->header;
+	return db->header;//数据读取完后，返回大小
 }
 
 static inline void

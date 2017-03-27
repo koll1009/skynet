@@ -18,12 +18,13 @@ struct hashid {
 	struct hashid_node **hash;
 };
 
+//初始化hashid
 static void
 hashid_init(struct hashid *hi, int max) {
 	int i;
 	int hashcap;
 	hashcap = 16;
-	while (hashcap < max) {
+	while (hashcap < max) {//保证hashcap为不小于max的最小2的幂次方数，
 		hashcap *= 2;
 	}
 	hi->hashmod = hashcap - 1;
@@ -34,7 +35,7 @@ hashid_init(struct hashid *hi, int max) {
 		hi->id[i].id = -1;
 		hi->id[i].next = NULL;
 	}
-	hi->hash = skynet_malloc(hashcap * sizeof(struct hashid_node *));
+	hi->hash = skynet_malloc(hashcap * sizeof(struct hashid_node *));//用作哈希表
 	memset(hi->hash, 0, hashcap * sizeof(struct hashid_node *));
 }
 
@@ -112,6 +113,7 @@ hashid_insert(struct hashid * hi, int id) {
 	return c - hi->id;
 }
 
+//hashid是否已满
 static inline int
 hashid_full(struct hashid *hi) {
 	return hi->count == hi->cap;

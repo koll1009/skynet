@@ -196,6 +196,7 @@ _hash_delete(struct hashmap *hash) {
 
 ///////////////
 
+//创建harbor服务上下文
 struct harbor *
 harbor_create(void) {
 	struct harbor * h = skynet_malloc(sizeof(*h));
@@ -232,9 +233,10 @@ harbor_release(struct harbor *h) {
 	skynet_free(h);
 }
 
+//socket 连接
 static int
 _connect_to(struct harbor *h, const char *ipaddress, bool blocking) {
-	char * port = strchr(ipaddress,':');
+	char * port = strchr(ipaddress,':');//分离ip地址 端口号
 	if (port==NULL) {
 		return -1;
 	}
@@ -286,10 +288,11 @@ _message_to_header(const uint32_t *message, struct remote_message_header *header
 	header->session = from_bigendian(message[2]);
 }
 
+//发送数据包
 static void
 _send_package(struct skynet_context *ctx, int fd, const void * buffer, size_t sz) {
-	uint8_t * sendbuf = skynet_malloc(sz+4);
-	to_bigendian(sendbuf, sz);
+	uint8_t * sendbuf = skynet_malloc(sz+4);//分配数据内存
+	to_bigendian(sendbuf, sz);//前四个字节为数据大小，后跟数据内容
 	memcpy(sendbuf+4, buffer, sz);
 
 	if (skynet_socket_send(ctx, fd, sendbuf, sz+4)) {
@@ -365,6 +368,7 @@ _update_remote_name(struct harbor *h, const char name[GLOBALNAME_LENGTH], uint32
 	}
 }
 
+//向master服务发送请求
 static void
 _request_master(struct harbor *h, const char name[GLOBALNAME_LENGTH], size_t i, uint32_t handle) {
 	uint8_t buffer[4+i];
@@ -578,6 +582,8 @@ _launch_gate(struct skynet_context * ctx, const char * local_addr) {
 	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, "start", 5);
 }
 
+
+//初始化harbor服务
 int
 harbor_init(struct harbor *h, struct skynet_context *ctx, const char * args) {
 	h->ctx = ctx;
@@ -585,19 +591,19 @@ harbor_init(struct harbor *h, struct skynet_context *ctx, const char * args) {
 	char master_addr[sz];
 	char local_addr[sz];
 	int harbor_id = 0;
-	sscanf(args,"%s %s %d",master_addr, local_addr, &harbor_id);
+	sscanf(args,"%s %s %d",master_addr, local_addr, &harbor_id);//master地址，本地地址、harbor id
 	h->master_addr = skynet_strdup(master_addr);
-	h->id = harbor_id;
-	h->master_fd = _connect_to(h, master_addr, true);
+	h->id = harbor_id;//harbor id
+	h->master_fd = _connect_to(h, master_addr, true);//连接master服务
 	if (h->master_fd == -1) {
 		fprintf(stderr, "Harbor: Connect to master failed\n");
 		exit(1);
 	}
 	h->local_addr = skynet_strdup(local_addr);
 
-	_launch_gate(ctx, local_addr);
+	_launch_gate(ctx, local_addr);//启动一个gate服务监听地址local_addr
 	skynet_callback(ctx, h, _mainloop);
-	_request_master(h, local_addr, strlen(local_addr), harbor_id);
+	_request_master(h, local_addr, strlen(local_addr), harbor_id);//向master服务发送请求，内容为harbor关联的gate服务的ip地址
 
 	return 0;
 }

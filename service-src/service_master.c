@@ -24,12 +24,13 @@ struct namemap {
 
 struct master {
 	struct skynet_context *ctx;
-	int remote_fd[REMOTE_MAX];
+	int remote_fd[REMOTE_MAX];//连接各harbor服务的skynet socket id
 	bool connected[REMOTE_MAX];
-	char * remote_addr[REMOTE_MAX];
+	char * remote_addr[REMOTE_MAX];//保存各harbor服务的ip地址
 	struct namemap map;
 };
 
+//创建master服务上下文
 struct master *
 master_create() {
 	struct master *m = skynet_malloc(sizeof(*m));
@@ -66,10 +67,11 @@ master_release(struct master * m) {
 	skynet_free(m);
 }
 
+//搜索name
 static struct name *
 _search_name(struct master *m, char name[GLOBALNAME_LENGTH]) {
 	uint32_t *ptr = (uint32_t *) name;
-	uint32_t h = ptr[0] ^ ptr[1] ^ ptr[2] ^ ptr[3];
+	uint32_t h = ptr[0] ^ ptr[1] ^ ptr[2] ^ ptr[3];//求hash值
 	struct name * node = m->map.node[h % HASH_SIZE];
 	while (node) {
 		if (node->hash == h && strncmp(node->key, name, GLOBALNAME_LENGTH) == 0) {
@@ -80,6 +82,7 @@ _search_name(struct master *m, char name[GLOBALNAME_LENGTH]) {
 	return NULL;
 }
 
+//新插入一个name
 static struct name *
 _insert_name(struct master *m, char name[GLOBALNAME_LENGTH]) {
 	uint32_t *ptr = (uint32_t *)name;
@@ -94,6 +97,7 @@ _insert_name(struct master *m, char name[GLOBALNAME_LENGTH]) {
 	return node;
 }
 
+//copy name
 static void
 _copy_name(char *name, const char * buffer, size_t sz) {
 	if (sz < GLOBALNAME_LENGTH) {
@@ -104,6 +108,7 @@ _copy_name(char *name, const char * buffer, size_t sz) {
 	}
 }
 
+//连接harbor服务器，id为index
 static void
 _connect_to(struct master *m, int id) {
 	assert(m->connected[id] == false);
@@ -147,6 +152,7 @@ _send_to(struct master *m, int id, const void * buf, int sz, uint32_t handle) {
 	}
 }
 
+//广播
 static void
 _broadcast(struct master *m, const char *name, size_t sz, uint32_t handle) {
 	int i;
@@ -169,6 +175,7 @@ _request_name(struct master *m, const char * buffer, size_t sz) {
 	_broadcast(m, name, GLOBALNAME_LENGTH, n->value);
 }
 
+//更新name
 static void
 _update_name(struct master *m, uint32_t handle, const char * buffer, size_t sz) {
 	char name[GLOBALNAME_LENGTH];
@@ -191,9 +198,10 @@ close_harbor(struct master *m, int harbor_id) {
 	}
 }
 
+//更新地址
 static void
 _update_address(struct master *m, int harbor_id, const char * buffer, size_t sz) {
-	if (m->remote_fd[harbor_id] >= 0) {
+	if (m->remote_fd[harbor_id] >= 0) {//该harbor已启动，先关闭
 		close_harbor(m, harbor_id);
 	}
 	skynet_free(m->remote_addr[harbor_id]);
@@ -201,7 +209,7 @@ _update_address(struct master *m, int harbor_id, const char * buffer, size_t sz)
 	memcpy(addr, buffer, sz);
 	addr[sz] = '\0';
 	m->remote_addr[harbor_id] = addr;
-	_connect_to(m, harbor_id);
+	_connect_to(m, harbor_id);//连接该harbor服务器
 }
 
 static int
@@ -251,16 +259,15 @@ dispatch_socket(struct master *m, const struct skynet_socket_message *msg, int s
 }
 
 
-/*
+/*  master服务的消息处理函数
 	update global name to master
 
 	4 bytes (handle) (handle == 0 for request)
 	n bytes string (name)
  */
-
 static int
 _mainloop(struct skynet_context * context, void * ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
-	if (type == PTYPE_SOCKET) {
+	if (type == PTYPE_SOCKET) {//处理socket类型消息
 		dispatch_socket(ud, msg, (int)sz);
 		return 0;
 	}
@@ -268,6 +275,8 @@ _mainloop(struct skynet_context * context, void * ud, int type, int session, uin
 		skynet_error(context, "None harbor message recv from %x (type = %d)", source, type);
 		return 0;
 	}
+
+	//处理harbor类消息，数据前4个字节为服务的handle
 	assert(sz >= 4);
 	struct master *m = ud;
 	const uint8_t *handlen = msg;
@@ -278,20 +287,21 @@ _mainloop(struct skynet_context * context, void * ud, int type, int session, uin
 
 	if (handle == 0) {
 		_request_name(m , name, sz);
-	} else if (handle < REMOTE_MAX) {
+	} else if (handle < REMOTE_MAX) {//1~255 对应的各服务器的harbor服务
 		_update_address(m , handle, name, sz);
-	} else {
+	} else {//更新name
 		_update_name(m , handle, name, sz);
 	}
 
 	return 0;
 }
 
+//初始化master服务
 int
 master_init(struct master *m, struct skynet_context *ctx, const char * args) {
 	char tmp[strlen(args) + 32];
 	sprintf(tmp,"gate L ! %s %d %d 0",args,PTYPE_HARBOR,REMOTE_MAX);
-	const char * gate_addr = skynet_command(ctx, "LAUNCH", tmp);
+	const char * gate_addr = skynet_command(ctx, "LAUNCH", tmp);//启动gate服务，监听@args指向的ip地址
 	if (gate_addr == NULL) {
 		skynet_error(ctx, "Master : launch gate failed");
 		return 1;
@@ -303,10 +313,10 @@ master_init(struct master *m, struct skynet_context *ctx, const char * args) {
 	}
 	const char * self_addr = skynet_command(ctx, "REG", NULL);
 	int n = sprintf(tmp,"broker %s",self_addr);
-	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, tmp, n);
-	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, "start", 5);
+	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, tmp, n);//master服务设置为gate的broker服务
+	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, "start", 5);//gate服务开始
 
-	skynet_callback(ctx, m, _mainloop);
+	skynet_callback(ctx, m, _mainloop);//设置master服务的消息处理函数
 
 	m->ctx = ctx;
 	return 0;
