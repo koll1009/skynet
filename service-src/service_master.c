@@ -136,18 +136,19 @@ to_bigendian(uint8_t *buffer, uint32_t n) {
 	buffer[3] = n & 0xff;
 }
 
+//发送数据，id为harbor的索引
 static void
 _send_to(struct master *m, int id, const void * buf, int sz, uint32_t handle) {
 	uint8_t * buffer= (uint8_t *)skynet_malloc(4 + sz + 12);
-	to_bigendian(buffer, sz+12);
-	memcpy(buffer+4, buf, sz);
-	to_bigendian(buffer+4+sz, 0);
-	to_bigendian(buffer+4+sz+4, handle);
-	to_bigendian(buffer+4+sz+8, 0);
+	to_bigendian(buffer, sz+12);//前四个字节为长度
+	memcpy(buffer+4, buf, sz);//后跟data
+	to_bigendian(buffer+4+sz, 0);//后跟四个字节的0
+	to_bigendian(buffer+4+sz+4, handle);//后跟4个字节的handle
+	to_bigendian(buffer+4+sz+8, 0);//后跟4个字节的0
 
 	sz += 4 + 12;
 
-	if (skynet_socket_send(m->ctx, m->remote_fd[id], buffer, sz)) {
+	if (skynet_socket_send(m->ctx, m->remote_fd[id], buffer, sz)) {//发送
 		skynet_error(m->ctx, "Harbor %d : send error", id);
 	}
 }
@@ -188,6 +189,7 @@ _update_name(struct master *m, uint32_t handle, const char * buffer, size_t sz) 
 	_broadcast(m,name,GLOBALNAME_LENGTH, handle);
 }
 
+//关闭某harbor服务
 static void
 close_harbor(struct master *m, int harbor_id) {
 	if (m->connected[harbor_id]) {
@@ -198,7 +200,7 @@ close_harbor(struct master *m, int harbor_id) {
 	}
 }
 
-//更新地址
+//更新地址，把harbor的ip保存并连接
 static void
 _update_address(struct master *m, int harbor_id, const char * buffer, size_t sz) {
 	if (m->remote_fd[harbor_id] >= 0) {//该harbor已启动，先关闭
@@ -222,6 +224,7 @@ socket_id(struct master *m, int id) {
 	return 0;
 }
 
+//连接成功后返回的消息的处理
 static void
 on_connected(struct master *m, int id) {
 	_broadcast(m, m->remote_addr[id], strlen(m->remote_addr[id]), id);
@@ -238,6 +241,7 @@ on_connected(struct master *m, int id) {
 	}
 }
 
+//master服务socket类型消息的处理函数
 static void
 dispatch_socket(struct master *m, const struct skynet_socket_message *msg, int sz) {
 	int id = socket_id(m, msg->id);

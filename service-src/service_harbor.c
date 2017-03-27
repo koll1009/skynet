@@ -460,6 +460,7 @@ harbor_id(struct harbor *h, int fd) {
 	return 0;
 }
 
+//
 static void
 close_harbor(struct harbor *h, int fd) {
 	int id = harbor_id(h,fd);
@@ -480,6 +481,7 @@ open_harbor(struct harbor *h, int fd) {
 	h->connected[id] = true;
 }
 
+//harbor服务的消息处理函数
 static int
 _mainloop(struct skynet_context * context, void * ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
 	struct harbor * h = ud;
@@ -562,11 +564,12 @@ _mainloop(struct skynet_context * context, void * ud, int type, int session, uin
 	}
 }
 
+//启动gate服务
 static void
 _launch_gate(struct skynet_context * ctx, const char * local_addr) {
 	char tmp[128];
 	sprintf(tmp,"gate L ! %s %d %d 0",local_addr, PTYPE_HARBOR, REMOTE_MAX);
-	const char * gate_addr = skynet_command(ctx, "LAUNCH", tmp);
+	const char * gate_addr = skynet_command(ctx, "LAUNCH", tmp);//调用LAUNCH命令启动
 	if (gate_addr == NULL) {
 		fprintf(stderr, "Harbor : launch gate failed\n");
 		exit(1);
@@ -578,8 +581,8 @@ _launch_gate(struct skynet_context * ctx, const char * local_addr) {
 	}
 	const char * self_addr = skynet_command(ctx, "REG", NULL);
 	int n = sprintf(tmp,"broker %s",self_addr);
-	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, tmp, n);
-	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, "start", 5);
+	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, tmp, n);//发送消息设置gate服务的broker服务
+	skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, "start", 5);//开始gate服务
 }
 
 
