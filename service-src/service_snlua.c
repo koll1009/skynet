@@ -186,10 +186,10 @@ _init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	lua_State *L = l->L;
 	l->ctx = ctx;
 	lua_gc(L, LUA_GCSTOP, 0);
-	luaL_openlibs(L);
+	luaL_openlibs(L);//加载lua libs
 	lua_pushlightuserdata(L, l);
-	lua_setfield(L, LUA_REGISTRYINDEX, "skynet_lua");
-	luaL_requiref(L, "skynet.codecache", codecache , 0);
+	lua_setfield(L, LUA_REGISTRYINDEX, "skynet_lua");//把"skynet_lua":snlua服务上下文插入注册表中
+	luaL_requiref(L, "skynet.codecache", codecache , 0);//加载skynet.codecache库，放到loaded表中
 	lua_pop(L,1);
 	lua_gc(L, LUA_GCRESTART, 0);
 
@@ -202,7 +202,7 @@ _init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	assert(traceback_index == 1);
 
 	const char * filename = parm;
-	int r = _load(L, &parm);
+	int r = _load(L, &parm);//加载lua文件
 	if (r != 0) {
 		if (r<0) {
 			skynet_error(ctx, "lua parser [%s] load error", filename);
@@ -232,6 +232,7 @@ _init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	return 1;
 }
 
+//snlua服务第一条消息的处理函数
 static int
 _launch(struct skynet_context * context, void *ud, int type, int session, uint32_t source , const void * msg, size_t sz) {
 	assert(type == 0 && session == 0);
@@ -250,19 +251,21 @@ _launch(struct skynet_context * context, void *ud, int type, int session, uint32
 	return 0;
 }
 
+//初始化snlua服务
 int
 snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	int sz = strlen(args);
 	char * tmp = skynet_malloc(sz+1);
 	memcpy(tmp, args, sz+1);
-	skynet_callback(ctx, l , _launch);
+	skynet_callback(ctx, l , _launch);//设置消息处理
 	const char * self = skynet_command(ctx, "REG", NULL);
 	uint32_t handle_id = strtoul(self+1, NULL, 16);
 	// it must be first message
-	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz+1);
+	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz+1);//向自己发一条消息用以启动lua服务
 	return 0;
 }
 
+//创建snlua服务上下文
 struct snlua *
 snlua_create(void) {
 	struct snlua * l = skynet_malloc(sizeof(*l));

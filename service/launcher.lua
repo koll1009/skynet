@@ -98,6 +98,7 @@ end
 
 local instance = {}
 
+--ÐÞ¸Ä
 skynet.dispatch("text" , function(session, address , cmd)
 	if cmd == "" then
 		-- init notice
@@ -124,7 +125,7 @@ skynet.dispatch("text" , function(session, address , cmd)
 		else
 			skynet.ret("")
 		end
-	end
+	end 
 end)
 
 skynet.dispatch("lua", function(session, address, cmd , ...)

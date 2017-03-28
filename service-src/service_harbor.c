@@ -281,6 +281,7 @@ from_bigendian(uint32_t n) {
 	return u.bytes[0] << 24 | u.bytes[1] << 16 | u.bytes[2] << 8 | u.bytes[3];
 }
 
+//消息数据的最后12个字节转换为remote_message_header数据
 static inline void
 _message_to_header(const uint32_t *message, struct remote_message_header *header) {
 	header->source = from_bigendian(message[0]);
@@ -300,22 +301,25 @@ _send_package(struct skynet_context *ctx, int fd, const void * buffer, size_t sz
 	}
 }
 
+//向其他harbor服务器发送消息
 static void
 _send_remote(struct skynet_context * ctx, int fd, const char * buffer, size_t sz, struct remote_message_header * cookie) {
 	uint32_t sz_header = sz+sizeof(*cookie);
 	uint8_t * sendbuf = skynet_malloc(sz_header+4);
 	to_bigendian(sendbuf, sz_header);
-	memcpy(sendbuf+4, buffer, sz);
+	memcpy(sendbuf+4, buffer, sz);//前四个字节为长度，后跟数据
 	_header_to_message(cookie, sendbuf+4+sz);
 
-	if (skynet_socket_send(ctx, fd, sendbuf, sz_header+4)) {
+	if (skynet_socket_send(ctx, fd, sendbuf, sz_header+4)) {//写到目标socket中
 		skynet_error(ctx, "Remote send to %d error", fd);
 	}
 }
 
+
+//更新编号为@harbor_id的服务器对应的ip地址
 static void
 _update_remote_address(struct harbor *h, int harbor_id, const char * ipaddr) {
-	if (harbor_id == h->id) {
+	if (harbor_id == h->id) {//本harbor服务器不做处理
 		return;
 	}
 	assert(harbor_id > 0  && harbor_id< REMOTE_MAX);
@@ -325,7 +329,7 @@ _update_remote_address(struct harbor *h, int harbor_id, const char * ipaddr) {
 		skynet_free(h->remote_addr[harbor_id]);
 		h->remote_addr[harbor_id] = NULL;
 	}
-	h->remote_fd[harbor_id] = _connect_to(h, ipaddr, false);
+	h->remote_fd[harbor_id] = _connect_to(h, ipaddr, false);//连接该harbor服务器
 	h->connected[harbor_id] = false;
 }
 
@@ -388,7 +392,7 @@ _request_master(struct harbor *h, const char name[GLOBALNAME_LENGTH], size_t i, 
 
 static int
 _remote_send_handle(struct harbor *h, uint32_t source, uint32_t destination, int type, int session, const char * msg, size_t sz) {
-	int harbor_id = destination >> HANDLE_REMOTE_SHIFT;
+	int harbor_id = destination >> HANDLE_REMOTE_SHIFT;//目标harbor id
 	assert(harbor_id != 0);
 	struct skynet_context * context = h->ctx;
 	if (harbor_id == h->id) {
@@ -397,7 +401,7 @@ _remote_send_handle(struct harbor *h, uint32_t source, uint32_t destination, int
 		return 1;
 	}
 
-	int fd = h->remote_fd[harbor_id];
+	int fd = h->remote_fd[harbor_id];//目标harbor的skynet socket id
 	if (fd >= 0 && h->connected[harbor_id]) {
 		struct remote_message_header cookie;
 		cookie.source = source;
@@ -472,6 +476,7 @@ close_harbor(struct harbor *h, int fd) {
 	h->connected[id] = false;
 }
 
+//连接某harbor服务器成功
 static void
 open_harbor(struct harbor *h, int fd) {
 	int id = harbor_id(h,fd);
@@ -500,7 +505,7 @@ _mainloop(struct skynet_context * context, void * ud, int type, int session, uin
 		case SKYNET_SOCKET_TYPE_CLOSE:
 			close_harbor(h, message->id);
 			break;
-		case SKYNET_SOCKET_TYPE_CONNECT:
+		case SKYNET_SOCKET_TYPE_CONNECT://连接成功
 			open_harbor(h, message->id);
 			break;
 		}
@@ -519,7 +524,7 @@ _mainloop(struct skynet_context * context, void * ud, int type, int session, uin
 				char ip [sz - 11];
 				memcpy(ip, msg, sz-12);
 				ip[sz-11] = '\0';
-				_update_remote_address(h, header.destination, ip);
+				_update_remote_address(h, header.destination, ip);//更新远程服务器地址
 			} else {
 				// update global name
 				if (sz - 12 > GLOBALNAME_LENGTH) {

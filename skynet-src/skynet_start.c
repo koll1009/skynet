@@ -213,9 +213,9 @@ skynet_start(struct skynet_config * config) {
 		return;
 	}
 
-	ctx = skynet_context_new("snlua", "launcher");
+	ctx = skynet_context_new("snlua", "launcher");//Æô¶¯launcher·şÎñ
 	if (ctx) {
-		skynet_command(ctx, "REG", ".launcher");
+		skynet_command(ctx, "REG", ".launcher");//
 		ctx = skynet_context_new("snlua", config->start);
 	}
 

@@ -143,7 +143,7 @@ _send_to(struct master *m, int id, const void * buf, int sz, uint32_t handle) {
 	to_bigendian(buffer, sz+12);//前四个字节为长度
 	memcpy(buffer+4, buf, sz);//后跟data
 	to_bigendian(buffer+4+sz, 0);//后跟四个字节的0
-	to_bigendian(buffer+4+sz+4, handle);//后跟4个字节的handle
+	to_bigendian(buffer+4+sz+4, handle);//后跟4个字节的remote socket id
 	to_bigendian(buffer+4+sz+8, 0);//后跟4个字节的0
 
 	sz += 4 + 12;
@@ -227,8 +227,8 @@ socket_id(struct master *m, int id) {
 //连接成功后返回的消息的处理
 static void
 on_connected(struct master *m, int id) {
-	_broadcast(m, m->remote_addr[id], strlen(m->remote_addr[id]), id);
-	m->connected[id] = true;
+	_broadcast(m, m->remote_addr[id], strlen(m->remote_addr[id]), id);//把该harbor的信息通知给其他的harbor服务器
+	m->connected[id] = true;//标记为true
 	int i;
 	for (i=1;i<REMOTE_MAX;i++) {
 		if (i == id)
@@ -237,14 +237,14 @@ on_connected(struct master *m, int id) {
 		if (addr == NULL || m->connected[i] == false) {
 			continue;
 		}
-		_send_to(m, id , addr, strlen(addr), i);
+		_send_to(m, id , addr, strlen(addr), i);//同步别的harbor服务器的信息到刚连接的harbor
 	}
 }
 
 //master服务socket类型消息的处理函数
 static void
 dispatch_socket(struct master *m, const struct skynet_socket_message *msg, int sz) {
-	int id = socket_id(m, msg->id);
+	int id = socket_id(m, msg->id);//找出socket在remote数组中的索引
 	switch(msg->type) {
 	case SKYNET_SOCKET_TYPE_CONNECT:
 		assert(id);

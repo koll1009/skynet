@@ -280,7 +280,7 @@ skynet.unpack = assert(c.unpack)
 skynet.tostring = assert(c.tostring)
 
 local function yield_call(service, session)
-	watching_session[session] = service
+	watching_session[session] = service --指示，当前服务的第session个消息在被service处理中
 	local succ, msg, sz = coroutine_yield("CALL", session)
 	watching_session[session] = nil
 	assert(succ, "Capture an error")

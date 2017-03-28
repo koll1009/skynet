@@ -13,7 +13,7 @@
 struct socket_server;
 
 struct socket_message {
-	int id;
+	int id; //执行操作的socket的id
 	uintptr_t opaque;
 	int ud;	// for accept, ud is listen id ; for data, ud is size of data 
 	char * data;

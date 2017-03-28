@@ -478,6 +478,7 @@ skynet_command(struct skynet_context * context, const char * cmd , const char * 
 	return NULL;
 }
 
+//消息参数处理
 static void
 _filter_args(struct skynet_context * context, int type, int *session, void ** data, size_t * sz) {
 	int needcopy = !(type & PTYPE_TAG_DONTCOPY);
@@ -486,34 +487,35 @@ _filter_args(struct skynet_context * context, int type, int *session, void ** da
 
 	if (allocsession) {
 		assert(*session == 0);
-		*session = skynet_context_newsession(context);
+		*session = skynet_context_newsession(context);//分配新session
 	}
 
 	if (needcopy && *data) {
-		char * msg = skynet_malloc(*sz+1);
+		char * msg = skynet_malloc(*sz+1);//分配消息数据空间
 		memcpy(msg, *data, *sz);
 		msg[*sz] = '\0';
 		*data = msg;
 	}
 
 	assert((*sz & HANDLE_MASK) == *sz);
-	*sz |= type << HANDLE_REMOTE_SHIFT;
+	*sz |= type << HANDLE_REMOTE_SHIFT;//数据大小字段 高八位为消息类型 低24位为大小
 }
 
+//消息发送
 int
 skynet_send(struct skynet_context * context, uint32_t source, uint32_t destination , int type, int session, void * data, size_t sz) {
 	_filter_args(context, type, &session, (void **)&data, &sz);
 
 	if (source == 0) {
-		source = context->handle;
+		source = context->handle;//发送方handle
 	}
 
 	if (destination == 0) {
 		return session;
 	}
-	if (skynet_harbor_message_isremote(destination)) {
+	if (skynet_harbor_message_isremote(destination)) {//向其他harbor服务器发送消息
 		struct remote_message * rmsg = skynet_malloc(sizeof(*rmsg));
-		rmsg->destination.handle = destination;
+		rmsg->destination.handle = destination;//harbor id
 		rmsg->message = data;
 		rmsg->sz = sz;
 		skynet_harbor_send(rmsg, source, session);
@@ -580,6 +582,7 @@ skynet_callback(struct skynet_context * context, void *ud, skynet_cb cb) {
 	context->cb_ud = ud;
 }
 
+//向服务发送消息
 void
 skynet_context_send(struct skynet_context * ctx, void * msg, size_t sz, uint32_t source, int type, int session) {
 	struct skynet_message smsg;
