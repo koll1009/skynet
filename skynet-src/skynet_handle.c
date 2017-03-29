@@ -197,7 +197,7 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 		int mid = (begin+end)/2;
 		struct handle_name *n = &s->name[mid];
 		int c = strcmp(n->name, name);
-		if (c==0) {
+		if (c==0) {//该服务名已被占用
 			return NULL;
 		}
 		if (c<0) {
@@ -213,11 +213,12 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	return result;
 }
 
+//服务命名
 const char * 
 skynet_handle_namehandle(uint32_t handle, const char *name) {
 	rwlock_wlock(&H->lock);
 
-	const char * ret = _insert_name(H, name, handle);
+	const char * ret = _insert_name(H, name, handle);//
 
 	rwlock_wunlock(&H->lock);
 

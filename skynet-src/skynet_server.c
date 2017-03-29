@@ -319,7 +319,7 @@ skynet_command(struct skynet_context * context, const char * cmd , const char * 
 			sprintf(context->result, ":%x", context->handle);
 			return context->result;
 		} else if (param[0] == '.') {
-			return skynet_handle_namehandle(context->handle, param + 1);
+			return skynet_handle_namehandle(context->handle, param + 1);//给服务命名
 		} else {
 			assert(context->handle!=0);
 			struct remote_name *rname = skynet_malloc(sizeof(*rname));

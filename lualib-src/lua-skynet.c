@@ -24,6 +24,7 @@ _cb(struct skynet_context * context, void * ud, int type, int session, uint32_t 
 		lua_pushvalue(L,2);
 	}
 
+	//消息类型、数据、数据大小、session、source
 	lua_pushinteger(L, type);
 	lua_pushlightuserdata(L, (void *)msg);
 	lua_pushinteger(L,sz);

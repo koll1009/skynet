@@ -36,5 +36,5 @@ local function monitor(session, watcher, command, service)
 end
 
 skynet.start(function()
-	skynet.dispatch("lua", monitor)
+	skynet.dispatch("lua", monitor) --设置lua类消息的处理函数
 end)

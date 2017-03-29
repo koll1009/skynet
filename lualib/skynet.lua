@@ -196,9 +196,10 @@ function skynet.yield()
 	return skynet.sleep("0")
 end
 
+
 function skynet.wait()
-	local session = c.genid()
-	coroutine_yield("SLEEP", session)
+	local session = c.genid() --新建一个session
+	coroutine_yield("SLEEP", session) --中断协程，返回SLEEP、session
 	local co = coroutine.running()
 	sleep_session[co] = nil
 	session_id_coroutine[session] = nil
@@ -281,12 +282,13 @@ skynet.tostring = assert(c.tostring)
 
 local function yield_call(service, session)
 	watching_session[session] = service --指示，当前服务的第session个消息在被service处理中
-	local succ, msg, sz = coroutine_yield("CALL", session)
+	local succ, msg, sz = coroutine_yield("CALL", session) 
 	watching_session[session] = nil
 	assert(succ, "Capture an error")
 	return msg,sz
 end
 
+--向服务(addr)发一条消息，等消息返回
 function skynet.call(addr, typename, ...)
 	local p = proto[typename]
 	if watching_service[addr] == false then
@@ -364,6 +366,7 @@ local fork_queue = {}
 
 local tunpack = table.unpack
 
+--
 function skynet.fork(func,...)
 	local args = { ... }
 	local co = co_create(function()
@@ -429,10 +432,11 @@ function skynet.newservice(name, ...)
 	end
 end
 
+
 function skynet.uniqueservice(global, ...)
 	local handle
 	if global == true then
-		handle = skynet.call("SERVICE", "lua", "LAUNCH", ...)
+		handle = skynet.call("SERVICE", "lua", "LAUNCH", ...) --向service_mgr发消息
 	else
 		handle = skynet.call(".service", "lua", "LAUNCH", global, ...)
 	end
@@ -634,6 +638,7 @@ function skynet.abort()
 	c.command("ABORT")
 end
 
+--@agr1:服务名 
 function skynet.monitor(service, query)
 	local monitor
 	if query then
