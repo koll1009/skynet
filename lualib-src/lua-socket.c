@@ -332,7 +332,7 @@ lstr2p(lua_State *L) {
 
 // for skynet socket
 
-/*
+/*  消息拆包
 	lightuserdata msg
 	integer size
 
@@ -389,6 +389,7 @@ lclose(lua_State *L) {
 	return 0;
 }
 
+//socketdriver.listen
 static int
 llisten(lua_State *L) {
 	const char * host = luaL_checkstring(L,1);
@@ -441,10 +442,12 @@ lsendlow(lua_State *L) {
 	return 0;
 }
 
+
+//socketdriver.bind函数
 static int
 lbind(lua_State *L) {
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
-	int fd = luaL_checkinteger(L, 1);
+	int fd = luaL_checkinteger(L, 1); //参数1为绑定的fd
 	int id = skynet_socket_bind(ctx,fd);
 	lua_pushinteger(L,id);
 	return 1;

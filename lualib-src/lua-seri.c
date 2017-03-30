@@ -611,6 +611,7 @@ _luaseri_unpack(lua_State *L) {
 	return lua_gettop(L);
 }
 
+//skynet.core.packº¯Êý
 int
 _luaseri_pack(lua_State *L) {
 	struct write_block wb;

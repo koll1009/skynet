@@ -32,6 +32,7 @@ end
 function SOCKET.data(fd, msg)
 end
 
+--向lua gate服务发送 "open conf"
 function CMD.start(conf)
 	skynet.call(gate, "lua", "open" , conf)
 end

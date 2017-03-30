@@ -106,20 +106,22 @@ end
 local coroutine_pool = {}
 local coroutine_yield = coroutine.yield
 
+
+--协程创建函数
 local function co_create(f)
 	local co = table.remove(coroutine_pool)
-	if co == nil then
-		co = coroutine.create(function(...)
+	if co == nil then                                  --无空闲协程
+		co = coroutine.create(function(...)            --新建协程，执行函数f
 			f(...)
 			while true do
 				f = nil
-				coroutine_pool[#coroutine_pool+1] = co
-				f = coroutine_yield "EXIT"
-				f(coroutine_yield())
+				coroutine_pool[#coroutine_pool+1] = co --保存空闲的协程对象用以服用
+				f = coroutine_yield "EXIT"             --返回EXIT命令，并等待新的执行函数传入
+				f(coroutine_yield())                   --执行函数f，通过coroutine.resume传入函数实参
 			end
 		end)
 	else
-		coroutine.resume(co, f)
+		coroutine.resume(co, f)                        --重置空闲协程的执行函数
 	end
 	return co
 end
@@ -161,7 +163,7 @@ function suspend(co, result, command, param, size)
 		end
 		c.send(co_address, skynet.PTYPE_RESPONSE, co_session, param, size)
 		return suspend(co, coroutine.resume(co))
-	elseif command == "EXIT" then
+	elseif command == "EXIT" then   --EXIT命令，表示协程执行完毕
 		-- coroutine exit
 		session_coroutine_id[co] = nil
 		session_coroutine_address[co] = nil
@@ -172,8 +174,9 @@ function suspend(co, result, command, param, size)
 	dispatch_error_queue()
 end
 
+
 function skynet.timeout(ti, func)
-	local session = c.command("TIMEOUT",tostring(ti))
+	local session = c.command("TIMEOUT",tostring(ti)) --执行skynet命令，TIMEOUT
 	assert(session)
 	session = tonumber(session)
 	local co = co_create(func)
@@ -369,12 +372,14 @@ local tunpack = table.unpack
 --
 function skynet.fork(func,...)
 	local args = { ... }
-	local co = co_create(function()
+	--新建协程
+	local co = co_create(function()   
 		func(tunpack(args))
 	end)
-	table.insert(fork_queue, co)
+	table.insert(fork_queue, co) --保存协程
 end
 
+--消息处理
 local function raw_dispatch_message(prototype, msg, sz, session, source, ...)
 	-- skynet.PTYPE_RESPONSE = 1, read skynet.h
 	if prototype == 1 then
@@ -401,6 +406,7 @@ local function raw_dispatch_message(prototype, msg, sz, session, source, ...)
 	end
 end
 
+--消息处理函数
 local function dispatch_message(...)
 	local succ, err = pcall(raw_dispatch_message,...)
 	while true do

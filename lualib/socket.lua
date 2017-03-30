@@ -60,7 +60,7 @@ socket_message[1] = function(id, size, data)
 	end
 end
 
--- SKYNET_SOCKET_TYPE_CONNECT = 2
+-- SKYNET_SOCKET_TYPE_CONNECT = 2 OPEN命令返回
 socket_message[2] = function(id, _ , addr)
 	local s = socket_pool[id]
 	if s == nil then
@@ -109,7 +109,7 @@ skynet.register_protocol {
 	name = "socket",
 	id = skynet.PTYPE_SOCKET,	-- PTYPE_SOCKET = 6
 	unpack = driver.unpack,
-	dispatch = function (_, _, t, n1, n2, data)
+	dispatch = function (_, _, t, n1, n2, data) --session、source、skynet_socket_type、id、ud、data
 		socket_message[t](n1,n2,data)
 	end
 }
@@ -127,8 +127,8 @@ local function connect(id, func)
 		co = false,
 		callback = func,
 	}
-	socket_pool[id] = s
-	suspend(s)
+	socket_pool[id] = s --保存socket
+	suspend(s)          --设置s.co，并挂起
 	if s.connected then
 		return id
 	end
@@ -139,13 +139,15 @@ function socket.open(addr, port)
 	return connect(id)
 end
 
+--绑定
 function socket.bind(os_fd)
 	local id = driver.bind(os_fd)
 	return connect(id)
 end
 
+--标准输入
 function socket.stdin()
-	return socket.bind(1)
+	return socket.bind(1) --绑定fd
 end
 
 function socket.start(id, func)

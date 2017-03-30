@@ -12,13 +12,14 @@ local CMD = setmetatable({}, { __gc = function() netpack.clear(queue) end })
 local connection = {}	-- fd -> connection : { fd , client, agent , ip, mode }
 local forwarding = {}	-- agent -> connection
 
+--启动一个端口监听，conf里有地址、监听队列大小等信息
 function CMD.open( source , conf )
 	assert(not socket)
-	local address = conf.address or "0.0.0.0"
-	local port = assert(conf.port)
-	maxclient = conf.maxclient or 1024
-	watchdog = conf.watchdog or source
-	socket = socketdriver.listen(address, port)
+	local address = conf.address or "0.0.0.0" --ip地址
+	local port = assert(conf.port)            --端口
+	maxclient = conf.maxclient or 1024        --监听队列大小
+	watchdog = conf.watchdog or source        --watchdog服务
+	socket = socketdriver.listen(address, port) --发送listen请求
 	socketdriver.start(socket)
 end
 
@@ -95,6 +96,7 @@ function MSG.more()
 	end
 end
 
+
 function MSG.open(fd, msg)
 	if client_number >= maxclient then
 		socketdriver.close(fd)
@@ -148,7 +150,7 @@ skynet.register_protocol {
 }
 
 skynet.start(function()
-	skynet.dispatch("lua", function (_, address, cmd, ...)
+	skynet.dispatch("lua", function (_, address, cmd, ...) 
 		local f = assert(CMD[cmd])
 		skynet.ret(skynet.pack(f(address, ...)))
 	end)

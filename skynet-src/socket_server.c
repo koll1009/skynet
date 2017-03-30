@@ -601,6 +601,7 @@ close_socket(struct socket_server *ss, struct request_close *request, struct soc
 	return -1;
 }
 
+//bind请求处理函数
 static int
 bind_socket(struct socket_server *ss, struct request_bind *request, struct socket_message *result) {
 	int id = request->id;
@@ -692,7 +693,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	switch (type) {
 	case 'S'://start 请求
 		return start_socket(ss,(struct request_start *)buffer, result);
-	case 'B':
+	case 'B'://bind 请求
 		return bind_socket(ss,(struct request_bind *)buffer, result);
 	case 'L'://listen 请求
 		return listen_socket(ss,(struct request_listen *)buffer, result);
@@ -1053,14 +1054,15 @@ socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * ad
 	return id;
 }
 
+//绑定请求
 int
 socket_server_bind(struct socket_server *ss, uintptr_t opaque, int fd) {
 	struct request_package request;
-	int id = reserve_id(ss);
+	int id = reserve_id(ss);//分配skynet socket id
 	request.u.bind.opaque = opaque;
 	request.u.bind.id = id;
 	request.u.bind.fd = fd;
-	send_request(ss, &request, 'B', sizeof(request.u.bind));
+	send_request(ss, &request, 'B', sizeof(request.u.bind));//发送绑定请求
 	return id;
 }
 

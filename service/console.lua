@@ -2,10 +2,10 @@ local skynet = require "skynet"
 local socket = require "socket"
 
 local function console_main_loop()
-	local stdin = socket.stdin()
+	local stdin = socket.stdin()  --
 	socket.lock(stdin)
 	while true do
-		local cmdline = socket.readline(stdin, "\n")
+		local cmdline = socket.readline(stdin, "\n") --动态启动服务
 		if cmdline ~= "" then
 			local handle = skynet.newservice(cmdline)
 			if handle == nil then
