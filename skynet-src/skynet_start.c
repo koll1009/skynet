@@ -271,10 +271,10 @@ skynet_start(struct skynet_config * config) {
 	}
 	skynet_harbor_init(config->harbor);/* 初始化 */
 	skynet_handle_init(config->harbor);/* 初始化skynet_context存储器 */
-	skynet_mq_init();
+	skynet_mq_init();/* 初始化全局消息队列 */
 	skynet_module_init(config->module_path);/* 初始化skynet_module存储器 */
-	skynet_timer_init();
-	skynet_socket_init();
+	skynet_timer_init();/* 初始化定时器 */
+	skynet_socket_init();/* 初始化socket server */
 
 	struct skynet_context *ctx = skynet_context_new(config->logservice, config->logger);
 	if (ctx == NULL) {

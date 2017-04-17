@@ -40,7 +40,7 @@
 #endif
 
 struct skynet_context {
-	void * instance;/* 指向各服务模块的描述符对象，例如snlua模块则指向 */
+	void * instance;/* 指向各服务模块的描述符对象 */
 	struct skynet_module * mod;/* 服务模块的描述符 */
 	void * cb_ud;/* 消息 处理函数参数*/
 	skynet_cb cb;/* 服务的消息处理函数 */

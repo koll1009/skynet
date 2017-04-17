@@ -189,7 +189,7 @@ timer_update(struct timer *T) {
 	SPIN_UNLOCK(T);
 }
 
-/* 创建定时器描述符 */
+/* 创建定时器 */
 static struct timer *
 timer_create_timer() {
 	struct timer *r=(struct timer *)skynet_malloc(sizeof(struct timer));
@@ -305,7 +305,7 @@ skynet_now(void) {
 	return TI->current;
 }
 
-/* 初始化定时器描述符 */
+/* 初始化定时器 */
 void 
 skynet_timer_init(void) {
 	TI = timer_create_timer();

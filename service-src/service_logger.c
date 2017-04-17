@@ -68,7 +68,7 @@ logger_init(struct logger * inst, struct skynet_context *ctx, const char * parm)
 	}
 	if (inst->handle) {
 		skynet_callback(ctx, inst, logger_cb);
-		skynet_command(ctx, "REG", ".logger");
+		skynet_command(ctx, "REG", ".logger");//注册服务名为.logger
 		return 0;
 	}
 	return 1;
