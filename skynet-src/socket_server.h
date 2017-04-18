@@ -13,9 +13,10 @@
 
 struct socket_server;
 
+/* socket消息 */
 struct socket_message {
 	int id;
-	uintptr_t opaque;
+	uintptr_t opaque;/* 请求发起者的skynet_context的handle */
 	int ud;	// for accept, ud is new connection id ; for data, ud is size of data 
 	char * data;
 };
