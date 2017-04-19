@@ -191,12 +191,12 @@ lsend(lua_State *L) {
 	int type = luaL_checkinteger(L, 2);/* 消息类型 */
 	int session = 0;
 	if (lua_isnil(L,3)) {
-		type |= PTYPE_TAG_ALLOCSESSION;/* session为nil表示推送消息时在堆上分配 */
+		type |= PTYPE_TAG_ALLOCSESSION;/* session为nil表示推送消息时在新分配 */
 	} else {
 		session = luaL_checkinteger(L,3);
 	}
 
-	int mtype = lua_type(L,4);/* 参数4的类型，可以是字符串和lightuserdata */
+	int mtype = lua_type(L,4);/* 消息数据的类型，可以是字符串和lightuserdata */
 	switch (mtype) {
 	case LUA_TSTRING: {
 		size_t len = 0;

@@ -70,13 +70,13 @@ struct wb_list {
 	struct write_buffer * tail;
 };
 
-/* 套接字描述符 */
+/* 套接字描述符，用于管理每个套接字 */
 struct socket {
-	uintptr_t opaque;
+	uintptr_t opaque;/* 所属服务 */
 	struct wb_list high;
 	struct wb_list low;
 	int64_t wb_size;
-	int fd; /* socket描述符 */
+	int fd; /* 实际socket描述符 */
 	int id; /* socket_server中套接字数组索引 */
 	uint16_t protocol;/* 套接字协议类型 */
 	uint16_t type;/* 套接字类型，初始类型为SOCKET_TYPE_INVALID */
@@ -103,8 +103,9 @@ struct socket_server {
 	fd_set rfds;
 };
 
+/* open请求描述符 */
 struct request_open {
-	int id;
+	int id;//
 	int port;
 	uintptr_t opaque;
 	char host[1];
@@ -440,7 +441,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		}
 		socket_keepalive(sock);
 		sp_nonblocking(sock);
-		status = connect( sock, ai_ptr->ai_addr, ai_ptr->ai_addrlen);
+		status = connect( sock, ai_ptr->ai_addr, ai_ptr->ai_addrlen);//使用非阻塞连接，
 		if ( status != 0 && errno != EINPROGRESS) {
 			close(sock);
 			sock = -1;
@@ -461,7 +462,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		goto _failed;
 	}
 
-	if(status == 0) {
+	if(status == 0) {//连接成功
 		ns->type = SOCKET_TYPE_CONNECTED;
 		struct sockaddr * addr = ai_ptr->ai_addr;
 		void * sin_addr = (ai_ptr->ai_family == AF_INET) ? (void*)&((struct sockaddr_in *)addr)->sin_addr : (void*)&((struct sockaddr_in6 *)addr)->sin6_addr;
@@ -470,7 +471,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		}
 		freeaddrinfo( ai_list );
 		return SOCKET_OPEN;
-	} else {
+	} else {//连接还在继续执行
 		ns->type = SOCKET_TYPE_CONNECTING;
 		sp_write(ss->event_fd, ns->fd, ns, true);
 	}
@@ -973,7 +974,7 @@ set_udp_address(struct socket_server *ss, struct request_setudp *request, struct
 	return -1;
 }
 
-// return type
+// 处理管道命令return type
 static int
 ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	int fd = ss->recvctrl_fd;
@@ -994,7 +995,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 		return listen_socket(ss,(struct request_listen *)buffer, result);
 	case 'K':
 		return close_socket(ss,(struct request_close *)buffer, result);
-	case 'O':
+	case 'O'://处理open命令
 		return open_socket(ss, (struct request_open *)buffer, result);
 	case 'X':
 		result->opaque = 0;
@@ -1131,6 +1132,7 @@ forward_message_udp(struct socket_server *ss, struct socket *s, struct socket_me
 	return SOCKET_UDP;
 }
 
+//非阻塞连接成功
 static int
 report_connect(struct socket_server *ss, struct socket *s, struct socket_message *result) {
 	int error;
@@ -1235,8 +1237,8 @@ int
 socket_server_poll(struct socket_server *ss, struct socket_message * result, int * more) {
 	for (;;) {
 		if (ss->checkctrl) {
-			if (has_cmd(ss)) { /* pipe有数据可读 */
-				int type = ctrl_cmd(ss, result);/* 处理管道事件 */
+			if (has_cmd(ss)) { /* pipe有数据可读,说明有待处理的管道命令 */
+				int type = ctrl_cmd(ss, result);/* 处理管道命令 */
 				if (type != -1) {
 					clear_closed_event(ss, result, type);
 					return type;
@@ -1266,11 +1268,12 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 		}
 		switch (s->type) 
 		{
-		case SOCKET_TYPE_CONNECTING:
+		case SOCKET_TYPE_CONNECTING:/* client socket,非阻塞连接成功 */
 			return report_connect(ss, s, result);
+
 		case SOCKET_TYPE_LISTEN:/* server socket,处理accept操作 */
 			{
-			int ok = report_accept(ss, s, result);/* 取客户端socket信息 */
+			int ok = report_accept(ss, s, result);
 			if (ok > 0)
 			{
 				return SOCKET_ACCEPT;

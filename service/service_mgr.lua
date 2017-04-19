@@ -5,27 +5,29 @@ local snax = require "snax"
 local cmd = {}
 local service = {}
 
+--执行
 local function request(name, func, ...)
-	local ok, handle = pcall(func, ...)
+	local ok, handle = pcall(func, ...) --执行函数func，handle为func的返回值
 	local s = service[name]
 	assert(type(s) == "table")
 	if ok then
-		service[name] = handle
+		service[name] = handle --保存name-handle键值对
 	else
 		service[name] = tostring(handle)
 	end
 
-	for _,v in ipairs(s) do
+	for _,v in ipairs(s) do   --wakeup handle
 		skynet.wakeup(v)
 	end
 
-	if ok then
+	if ok then  --返回handle值
 		return handle
 	else
 		error(tostring(handle))
 	end
 end
 
+--等待函数执行
 local function waitfor(name , func, ...)
 	local s = service[name]
 	if type(s) == "number" then
@@ -42,12 +44,12 @@ local function waitfor(name , func, ...)
 
 	assert(type(s) == "table")
 
-	if not s.launch and func then
+	if not s.launch and func then  --请求执行
 		s.launch = true
 		return request(name, func, ...)
 	end
 
-	table.insert(s, co)
+	table.insert(s, co) --上面请求执行过程中，又遇到同样请求，执行等待
 	skynet.wait()
 	s = service[name]
 	if type(s) == "string" then
@@ -58,10 +60,10 @@ local function waitfor(name , func, ...)
 end
 
 local function read_name(service_name)
-	if string.byte(service_name) == 64 then -- '@'
+	if string.byte(service_name) == 64 then -- '@' 首字符为'@'
 		return string.sub(service_name , 2)
 	else
-		return service_name
+		return service_name 
 	end
 end
 

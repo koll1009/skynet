@@ -13,9 +13,10 @@
 
 static struct socket_server * SOCKET_SERVER = NULL;
 
+/* 初始化skynet socket */
 void 
 skynet_socket_init() {
-	SOCKET_SERVER = socket_server_create();
+	SOCKET_SERVER = socket_server_create();/* 创建一个socket_server用于集中处理所有的skynet socket对象 */
 }
 
 void
@@ -88,7 +89,7 @@ skynet_socket_poll() {
 	case SOCKET_CLOSE:
 		forward_message(SKYNET_SOCKET_TYPE_CLOSE, false, &result);
 		break;
-	case SOCKET_OPEN: /* 向cmaster发送SKYNET_SOCKET_TYPE_CONNECT消息，数据为 */
+	case SOCKET_OPEN: /* server sock:返回消息表示已开始监听；client sock:表示已就位读数据 */
 		forward_message(SKYNET_SOCKET_TYPE_CONNECT, true, &result);
 		break;
 	case SOCKET_ERROR:

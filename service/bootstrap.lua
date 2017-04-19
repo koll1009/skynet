@@ -9,8 +9,8 @@ skynet.start(function()
 
 	local standalone = skynet.getenv "standalone" --取ip:port
 
-	local launcher = assert(skynet.launch("snlua","launcher"))       --该上下文用于启动launch服务，并返回上下文的handle字符串
-	skynet.name(".launcher", launcher)                               --insert handleName
+	local launcher = assert(skynet.launch("snlua","launcher"))       --启动launch服务
+	skynet.name(".launcher", launcher)                               --launch服务命名为".launcher"
 
 	local harbor_id = tonumber(skynet.getenv "harbor" or 0)          --取环境变量中的harbor值,默认为0
 	if harbor_id == 0 then
@@ -31,7 +31,7 @@ skynet.start(function()
 			end
 		end
 
-		local ok, slave = pcall(skynet.newservice, "cslave")
+		local ok, slave = pcall(skynet.newservice, "cslave") 
 		if not ok then
 			skynet.abort()
 		end

@@ -59,7 +59,7 @@ static int str_len (lua_State *L) {
 }
 
 
-/* translate a relative string position: negative means back from end */
+/* 相对位置translate a relative string position: negative means back from end */
 static lua_Integer posrelat (lua_Integer pos, size_t len) {
   if (pos >= 0) 
 	  return pos;
@@ -147,12 +147,12 @@ static int str_rep (lua_State *L) {
   return 1;
 }
 
-
+//string.byte函数
 static int str_byte (lua_State *L) {
   size_t l;
-  const char *s = luaL_checklstring(L, 1, &l);
-  lua_Integer posi = posrelat(luaL_optinteger(L, 2, 1), l);
-  lua_Integer pose = posrelat(luaL_optinteger(L, 3, posi), l);
+  const char *s = luaL_checklstring(L, 1, &l);//字符串
+  lua_Integer posi = posrelat(luaL_optinteger(L, 2, 1), l);//起始位置
+  lua_Integer pose = posrelat(luaL_optinteger(L, 3, posi), l);//结束位置
   int n, i;
   if (posi < 1) posi = 1;
   if (pose > (lua_Integer)l) pose = l;

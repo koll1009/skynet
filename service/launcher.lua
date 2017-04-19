@@ -81,7 +81,7 @@ local function launch_service(service, ...)
 	local response = skynet.response()         --再次调用coroutine_resume传入的参数为返回值  
 	                                           --中断协程，调用coroutine_resume返回true、"RESPONSE"、skynet.pack函数	                                    
 	if inst then
-		services[inst] = service .. " " .. param
+		services[inst] = service .. " " .. param  --保存启动的服务信息
 		instance[inst] = response
 	else
 		response(false)

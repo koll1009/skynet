@@ -258,7 +258,7 @@ end
 
 --超时函数
 function skynet.timeout(ti, func)
-	local session = c.intcommand("TIMEOUT",ti)  --skynet.core.intcommand，调用TIMEOUT命令，当ti为0时插入一条新消息
+	local session = c.intcommand("TIMEOUT",ti)  --调用TIMEOUT命令，当ti为0时插入一条新消息
 	assert(session)
 	local co = co_create(func)                  --创建一个协程
 	assert(session_id_coroutine[session] == nil)
@@ -284,9 +284,9 @@ function skynet.yield()
 	return skynet.sleep(0)
 end
 
---协程co执行等待
+--协程cou挂起
 function skynet.wait(co)
-	local session = c.genid()  --预分配一个session值
+	local session = c.genid()  --分配一个session值
 	local ret, msg = coroutine_yield("SLEEP", session) --让出执行
 	co = co or coroutine.running()
 	sleep_session[co] = nil
@@ -358,6 +358,7 @@ function skynet.setenv(key, value)
 	c.command("SETENV",key .. " " ..value)
 end
 
+--
 function skynet.send(addr, typename, ...)
 	local p = proto[typename]
 	return c.send(addr, p.id, 0 , p.pack(...))
@@ -375,8 +376,9 @@ skynet.unpack = assert(c.unpack)
 skynet.tostring = assert(c.tostring)
 skynet.trash = assert(c.trash)
 
+--协程挂起
 local function yield_call(service, session)
-	watching_session[session] = service  --session为消息编号，service为服务名或handle
+	watching_session[session] = service  --编号为session的消息，发送到了service，并等待service的响应
 	local succ, msg, sz = coroutine_yield("CALL", session) --profile.yield，中断协程，返回true、"CALL"、session
 	watching_session[session] = nil
 	if not succ then
@@ -385,7 +387,7 @@ local function yield_call(service, session)
 	return msg,sz
 end
 
-
+--向服务发送消息，并执行等待，消息类型为typename
 function skynet.call(addr, typename, ...)
 	local p = proto[typename]
 	local session = c.send(addr, p.id , nil , p.pack(...))  --想addr对应的skynet_context发送一条消息，返回消息对应的session
@@ -407,7 +409,7 @@ function skynet.ret(msg, sz)
 	return coroutine_yield("RETURN", msg, sz)
 end
 
---中断协程，返回true、"RESPONSE"、pack函数
+--挂起协程，返回true、"RESPONSE"、pack函数
 function skynet.response(pack)
 	pack = pack or skynet.pack
 	return coroutine_yield("RESPONSE", pack)
@@ -502,7 +504,7 @@ local function raw_dispatch_message(prototype, msg, sz, session, source)
 			local co = co_create(f)
 			session_coroutine_id[co] = session
 			session_coroutine_address[co] = source
-			suspend(co, coroutine_resume(co, session,source, p.unpack(msg,sz))) --suspend(co,true,"RESPONSE",skynet.pack)
+			suspend(co, coroutine_resume(co, session,source, p.unpack(msg,sz))) --把消息拆包，传递给具体的消息处理协程
 		else
 			unknown_request(session, source, msg, sz, proto[prototype].name)
 		end
@@ -634,7 +636,7 @@ function skynet.pcall(start, ...)
 end
 
 
---初始化服务
+--初始化服务，服务启动成功后，向.launch服务发送提醒
 function skynet.init_service(start)
 	local ok, err = skynet.pcall(start) --调用init_template(start) 
 	if not ok then
@@ -646,7 +648,7 @@ function skynet.init_service(start)
 	end
 end
 
-
+--启动服务，发送一条空消息驱动
 function skynet.start(start_func)
 	c.callback(skynet.dispatch_message) --skynet.core.callback(skynet.dispatch_message)，重置skynet_context的回调函数
 	skynet.timeout(0, function()        --压入一条新消息，并创建一个协程以执行start_func

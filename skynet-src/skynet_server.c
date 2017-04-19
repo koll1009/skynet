@@ -432,13 +432,13 @@ cmd_query(struct skynet_context * context, const char * param) {
 	return NULL;
 }
 
-/* NAME命令 */
+/* NAME命令，给服务命名，服务名要求以字符'.'做为首字符 */
 static const char *
 cmd_name(struct skynet_context * context, const char * param) {
 	int size = strlen(param);
 	char name[size+1];
 	char handle[size+1];
-	sscanf(param,"%s %s",name,handle);/* 参数由name+' '+handle组成 */
+	sscanf(param,"%s %s",name,handle);/* 参数由name+空格+":handle"组成 */
 	if (handle[0] != ':') {
 		return NULL;
 	}
@@ -484,7 +484,7 @@ cmd_kill(struct skynet_context * context, const char * param) {
 }
 
 
-/* LAUNCH命令 */
+/* LAUNCH命令,param由snlua+lua服务名组成 */
 static const char *
 cmd_launch(struct skynet_context * context, const char * param) {
 	size_t sz = strlen(param);
@@ -493,12 +493,12 @@ cmd_launch(struct skynet_context * context, const char * param) {
 	char * args = tmp;
 	char * mod = strsep(&args, " \t\r\n");
 	args = strsep(&args, "\r\n");
-	struct skynet_context * inst = skynet_context_new(mod,args);/*  */
+	struct skynet_context * inst = skynet_context_new(mod,args);/* 启动服务 */
 	if (inst == NULL) {
 		return NULL;
 	} else {
 		id_to_hex(context->result, inst->handle);
-		return context->result;/* 返回handle值 */
+		return context->result;/* 返回:+handle值16进制字符串 */
 	}
 }
 

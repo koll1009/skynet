@@ -3,7 +3,8 @@ local c = require "skynet.core"
 
 --启动lua服务，返回handle值
 function skynet.launch(...)
-	local addr = c.command("LAUNCH", table.concat({...}," ")) --c.command("LAUNCH","snlua launch")，返回新建的服务上下文的handle值字符串
+    --c.command("LAUNCH","snlua lua服务名")，返回:+handle值字符串
+	local addr = c.command("LAUNCH", table.concat({...}," ")) 
 	if addr then
 		return tonumber("0x" .. string.sub(addr , 2))
 	end
@@ -44,7 +45,7 @@ function skynet.register(name)
 	end
 end
 
---name
+--给服务命名
 function skynet.name(name, handle)
 	if not globalname(name, handle) then
 		c.command("NAME", name .. " " .. skynet.address(handle)) --
