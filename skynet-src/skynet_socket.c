@@ -170,6 +170,7 @@ skynet_socket_shutdown(struct skynet_context *ctx, int id) {
 	socket_server_shutdown(SOCKET_SERVER, source, id);
 }
 
+/*  */
 void 
 skynet_socket_start(struct skynet_context *ctx, int id) {
 	uint32_t source = skynet_context_handle(ctx);

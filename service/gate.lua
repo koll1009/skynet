@@ -14,7 +14,7 @@ skynet.register_protocol {
 local handler = {}
 
 function handler.open(source, conf)
-	watchdog = conf.watchdog or source
+	watchdog = conf.watchdog or source --设置gate服务对应的watchdog服务
 end
 
 function handler.message(fd, msg, sz)

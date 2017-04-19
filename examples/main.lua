@@ -4,7 +4,7 @@ local sprotoloader = require "sprotoloader"
 local max_client = 64
 
 skynet.start(function()
-	skynet.error("Server start")
+	skynet.error("Server start") --–¥»’÷æServer Start
 	skynet.uniqueservice("protoloader")
 	if not skynet.getenv "daemon" then
 		local console = skynet.newservice("console")

@@ -33,12 +33,12 @@ function gateserver.start(handler)
 
 	function CMD.open( source, conf )
 		assert(not socket)
-		local address = conf.address or "0.0.0.0"
-		local port = assert(conf.port)
-		maxclient = conf.maxclient or 1024
+		local address = conf.address or "0.0.0.0" --ip地址
+		local port = assert(conf.port)            --端口号
+		maxclient = conf.maxclient or 1024        --最大客户端数
 		nodelay = conf.nodelay
 		skynet.error(string.format("Listen on %s:%d", address, port))
-		socket = socketdriver.listen(address, port)
+		socket = socketdriver.listen(address, port) --开启监听
 		socketdriver.start(socket)
 		if handler.open then
 			return handler.open(source, conf)
@@ -143,7 +143,7 @@ function gateserver.start(handler)
 	}
 
 	skynet.start(function()
-		skynet.dispatch("lua", function (_, address, cmd, ...)
+		skynet.dispatch("lua", function (_, address, cmd, ...) --重置lua类型消息的处理函数
 			local f = CMD[cmd]
 			if f then
 				skynet.ret(skynet.pack(f(address, ...)))
