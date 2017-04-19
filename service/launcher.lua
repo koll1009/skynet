@@ -77,7 +77,7 @@ end
 --启动lua服务
 local function launch_service(service, ...)
 	local param = table.concat({...}, " ") 
-	local inst = skynet.launch(service, param) --service为服务名，例如cmaster ，param为参数
+	local inst = skynet.launch(service, param) --service为服务名通常为snlua，例如cmaster ，param为参数
 	local response = skynet.response()         --再次调用coroutine_resume传入的参数为返回值  
 	                                           --中断协程，调用coroutine_resume返回true、"RESPONSE"、skynet.pack函数	                                    
 	if inst then
@@ -159,4 +159,4 @@ skynet.dispatch("lua", function(session, address, cmd , ...)
 	end
 end)
 
-skynet.start(function() end)--压入一条空消息，
+skynet.start(function() end)
