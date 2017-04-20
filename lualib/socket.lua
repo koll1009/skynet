@@ -165,7 +165,7 @@ skynet.register_protocol {
 	end
 }
 
---id为server socket的fd
+--id为skynet sock id
 local function connect(id, func)
 	local newbuffer
 	if func == nil then
@@ -182,8 +182,8 @@ local function connect(id, func)
 		protocol = "TCP",
 	}
 	assert(not socket_pool[id], "socket is not closed")
-	socket_pool[id] = s  --保存
-	suspend(s)
+	socket_pool[id] = s  --保存sock的相关信息
+	suspend(s)           --
 	local err = s.connecting
 	s.connecting = nil
 	if s.connected then
@@ -208,7 +208,7 @@ function socket.stdin()
 	return socket.bind(0)
 end
 
---启动函数，id为server socket的fd
+--启动函数
 function socket.start(id, func)
 	driver.start(id)      --socketdriver.start(id)，发送启动请求
 	return connect(id, func)

@@ -68,7 +68,7 @@ skynet.register_protocol {
 }
 
 function CMD.start(conf)
-	local fd = conf.client
+	local fd = conf.client --
 	local gate = conf.gate
 	WATCHDOG = conf.watchdog
 	-- slot 1,2 set at main.lua

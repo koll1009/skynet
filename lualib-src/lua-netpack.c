@@ -334,10 +334,10 @@ pushstring(lua_State *L, const char * msg, int size) {
  */
 static int
 lfilter(lua_State *L) {
-	struct skynet_socket_message *message = lua_touserdata(L,2);
-	int size = luaL_checkinteger(L,3);
+	struct skynet_socket_message *message = lua_touserdata(L,2); //socket消息的data
+	int size = luaL_checkinteger(L,3);//数据长度
 	char * buffer = message->buffer;
-	if (buffer == NULL) {
+	if (buffer == NULL) { //说明msg data跟在skynet_socket_message结构后面
 		buffer = (char *)(message+1);
 		size -= sizeof(*message);
 	} else {
@@ -360,11 +360,11 @@ lfilter(lua_State *L) {
 		lua_pushvalue(L, lua_upvalueindex(TYPE_CLOSE));
 		lua_pushinteger(L, message->id);
 		return 3;
-	case SKYNET_SOCKET_TYPE_ACCEPT:
+	case SKYNET_SOCKET_TYPE_ACCEPT: //监听到连接
 		lua_pushvalue(L, lua_upvalueindex(TYPE_OPEN));
 		// ignore listen id (message->id);
-		lua_pushinteger(L, message->ud);
-		pushstring(L, buffer, size);
+		lua_pushinteger(L, message->ud);//client sock id
+		pushstring(L, buffer, size);//msg
 		return 4;
 	case SKYNET_SOCKET_TYPE_ERROR:
 		// no more data in fd (message->id)

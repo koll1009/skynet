@@ -28,13 +28,14 @@ function handler.message(fd, msg, sz)
 	end
 end
 
+--处理连接
 function handler.connect(fd, addr)
 	local c = {
 		fd = fd,
 		ip = addr,
 	}
 	connection[fd] = c
-	skynet.send(watchdog, "lua", "socket", "open", fd, addr)
+	skynet.send(watchdog, "lua", "socket", "open", fd, addr) --反馈给watchdog服务
 end
 
 local function unforward(c)

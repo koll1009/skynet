@@ -60,6 +60,7 @@ static lua_Integer lua_tointegerx(lua_State *L, int idx, int *isnum) {
 
 #endif
 
+/* sproto.core.newproto */
 static int
 lnewproto(lua_State *L) {
 	struct sproto * sp;
@@ -581,6 +582,8 @@ lsaveproto(lua_State *L) {
 	return 0;
 }
 
+
+//sproto.core.loadproto(index)º¯Êý
 static int
 lloadproto(lua_State *L) {
 	int index = luaL_optinteger(L, 1, 0);

@@ -78,8 +78,9 @@ function gateserver.start(handler)
 
 	MSG.more = dispatch_queue
 
-	function MSG.open(fd, msg)
-		if client_number >= maxclient then
+	--处理客户端连接消息
+	function MSG.open(fd, msg) 
+		if client_number >= maxclient then --客户端连接超上限
 			socketdriver.close(fd)
 			return
 		end
@@ -131,10 +132,10 @@ function gateserver.start(handler)
 	skynet.register_protocol {
 		name = "socket",
 		id = skynet.PTYPE_SOCKET,	-- PTYPE_SOCKET = 6
-		unpack = function ( msg, sz )
+		unpack = function ( msg, sz ) --socket消息拆包函数
 			return netpack.filter( queue, msg, sz)
 		end,
-		dispatch = function (_, _, q, type, ...)
+		dispatch = function (_, _, q, type, ...) --socket消息的处理函数
 			queue = q
 			if type then
 				MSG[type](...)

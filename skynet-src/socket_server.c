@@ -1167,7 +1167,7 @@ report_connect(struct socket_server *ss, struct socket *s, struct socket_message
 	}
 }
 
-// return 0 when failed, or -1 when file limit
+// 监听到客户端连接return 0 when failed, or -1 when file limit
 static int
 report_accept(struct socket_server *ss, struct socket *s, struct socket_message *result) {
 	union sockaddr_all u;

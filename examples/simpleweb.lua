@@ -59,15 +59,16 @@ end)
 
 else
 
+--调用require "socket"时，会调用skynet.register_protocol设置socket消息的处理函数
 skynet.start(function()
 	local agent = {}
 	for i= 1, 20 do
 		agent[i] = skynet.newservice(SERVICE_NAME, "agent")
 	end
 	local balance = 1
-	local id = socket.listen("0.0.0.0", 8001)
-	skynet.error("Listen web port 8001")
-	socket.start(id , function(id, addr)
+	local id = socket.listen("0.0.0.0", 8001) --监听
+	skynet.error("Listen web port 8001")      --日志记录
+	socket.start(id , function(id, addr)      --函数用以处理接收到的连接
 		skynet.error(string.format("%s connected, pass it to agent :%08x", addr, agent[balance]))
 		skynet.send(agent[balance], "lua", id)
 		balance = balance + 1
