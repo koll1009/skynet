@@ -70,7 +70,7 @@ skynet.start(function()
 	skynet.error("Listen web port 8001")      --日志记录
 	socket.start(id , function(id, addr)      --函数用以处理接收到的连接
 		skynet.error(string.format("%s connected, pass it to agent :%08x", addr, agent[balance]))
-		skynet.send(agent[balance], "lua", id)
+		skynet.send(agent[balance], "lua", id)--转发到agent服务
 		balance = balance + 1
 		if balance > #agent then
 			balance = 1

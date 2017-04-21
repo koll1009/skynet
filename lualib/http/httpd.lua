@@ -6,6 +6,7 @@ local type = type
 
 local httpd = {}
 
+--×´Ì¬Âë
 local http_status_msg = {
 	[100] = "Continue",
 	[101] = "Switching Protocols",
@@ -49,6 +50,7 @@ local http_status_msg = {
 	[505] = "HTTP Version not supported",
 }
 
+--readbytesÎª
 local function readall(readbytes, bodylimit)
 	local tmpline = {}
 	local body = internal.recvheader(readbytes, tmpline, "")
@@ -56,7 +58,7 @@ local function readall(readbytes, bodylimit)
 		return 413	-- Request Entity Too Large
 	end
 	local request = assert(tmpline[1])
-	local method, url, httpver = request:match "^(%a+)%s+(.-)%s+HTTP/([%d%.]+)$"
+	local method, url, httpver = request:match "^(%a+)%s+(.-)%s+HTTP/([%d%.]+)$" -
 	assert(method and url and httpver)
 	httpver = assert(tonumber(httpver))
 	if httpver < 1.0 or httpver > 1.1 then
@@ -101,7 +103,7 @@ local function readall(readbytes, bodylimit)
 end
 
 function httpd.read_request(...)
-	local ok, code, url, method, header, body = pcall(readall, ...)
+	local ok, code, url, method, header, body = pcall(readall, ...) --µ÷ÓÃreadall(readfunc,szlimit)
 	if ok then
 		return code, url, method, header, body
 	else

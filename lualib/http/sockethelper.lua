@@ -45,7 +45,7 @@ function sockethelper.readfunc(fd, pre)
 	if pre then
 		return preread(fd, pre)
 	end
-	return function (sz)
+	return function (sz) --·µ»Ø¶Áº¯Êý
 		local ret = readbytes(fd, sz)
 		if ret then
 			return ret

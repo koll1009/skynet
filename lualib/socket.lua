@@ -74,7 +74,7 @@ socket_message[1] = function(id, size, data)
 	end
 end
 
--- SKYNET_SOCKET_TYPE_CONNECT = 2,
+-- SKYNET_SOCKET_TYPE_CONNECT = 2, server/client sockµ÷ÓÃsocket.startºó
 socket_message[2] = function(id, _ , addr)
 	local s = socket_pool[id]
 	if s == nil then

@@ -25,6 +25,7 @@ struct buffer_node {
 	struct buffer_node *next;
 };
 
+//socket缓冲区
 struct socket_buffer {
 	int size;
 	int offset;
@@ -65,9 +66,10 @@ lnewpool(lua_State *L, int sz) {
 	return 1;
 }
 
+//socketdriver.newbuffer函数
 static int
 lnewbuffer(lua_State *L) {
-	struct socket_buffer * sb = lua_newuserdata(L, sizeof(*sb));	
+	struct socket_buffer * sb = lua_newuserdata(L, sizeof(*sb));//新建一个userdata
 	sb->size = 0;
 	sb->offset = 0;
 	sb->head = NULL;
@@ -76,7 +78,7 @@ lnewbuffer(lua_State *L) {
 	return 1;
 }
 
-/*
+/* socketdriver.push函数 四个参数依次是socket_buffer bufferpool data size
 	userdata send_buffer
 	table pool
 	lightuserdata msg
@@ -99,13 +101,13 @@ lpushbuffer(lua_State *L) {
 	if (sb == NULL) {
 		return luaL_error(L, "need buffer object at param 1");
 	}
-	char * msg = lua_touserdata(L,3);
+	char * msg = lua_touserdata(L,3);//arg3为消息数据
 	if (msg == NULL) {
 		return luaL_error(L, "need message block at param 3");
 	}
 	int pool_index = 2;
-	luaL_checktype(L,pool_index,LUA_TTABLE);
-	int sz = luaL_checkinteger(L,4);
+	luaL_checktype(L,pool_index,LUA_TTABLE); //arg2为一个table buffer pool
+	int sz = luaL_checkinteger(L,4);//arg4为消息数据大小
 	lua_rawgeti(L,pool_index,1);
 	struct buffer_node * free_node = lua_touserdata(L,-1);	// sb poolt msg size free_node
 	lua_pop(L,1);
@@ -368,7 +370,7 @@ lstr2p(lua_State *L) {
 
 // for skynet socket
 
-/* socketdriver.unpack函数
+/* socketdriver.unpack 函数
 	lightuserdata msg
 	integer size
 

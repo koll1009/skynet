@@ -1027,7 +1027,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	return -1;
 }
 
-// return -1 (ignore) when error
+// ¶ÁÈ¡Êý¾Ý return -1 (ignore) when error
 static int
 forward_message_tcp(struct socket_server *ss, struct socket *s, struct socket_message * result) {
 	int sz = s->p.size;
