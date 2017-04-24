@@ -225,7 +225,7 @@ lheader(lua_State *L) {
 	return 1;
 }
 
-/*
+/* socketdriver.pop(socket_buffer,buffer_pool,sz)
 	userdata send_buffer
 	table pool
 	integer sz 

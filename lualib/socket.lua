@@ -82,7 +82,7 @@ socket_message[2] = function(id, _ , addr)
 	end
 	-- log remote addr
 	s.connected = true
-	wakeup(s)
+	wakeup(s) --唤醒协程
 end
 
 -- SKYNET_SOCKET_TYPE_CLOSE = 3
@@ -260,6 +260,7 @@ function socket.close(id)
 	socket_pool[id] = nil
 end
 
+--从socket读数据
 function socket.read(id, sz)
 	local s = socket_pool[id]
 	assert(s)

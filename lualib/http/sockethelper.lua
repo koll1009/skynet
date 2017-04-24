@@ -41,6 +41,7 @@ local function preread(fd, str)
 	end
 end
 
+--fdÎªacceptµÄclient sockµÄid
 function sockethelper.readfunc(fd, pre)
 	if pre then
 		return preread(fd, pre)
