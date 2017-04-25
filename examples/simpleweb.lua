@@ -18,13 +18,13 @@ local function response(id, ...)
 	end
 end
 
-skynet.start(function()
+skynet.start(function() --重置lua消息处理函数
 	skynet.dispatch("lua", function (_,_,id)
 		socket.start(id)
 		-- limit request body size to 8192 (you can pass nil to unlimit)
 		local code, url, method, header, body = httpd.read_request(sockethelper.readfunc(id), 8192)
 		if code then
-			if code ~= 200 then
+			if code ~= 200 then  --错误返回对应的http status code
 				response(id, code)
 			else
 				local tmp = {}
@@ -63,12 +63,13 @@ else
 skynet.start(function()
 	local agent = {}
 	for i= 1, 20 do
-		agent[i] = skynet.newservice(SERVICE_NAME, "agent")
+	    --SERVICE_NAME在loader.lua中定义的全局变量，值为本lua服务名
+		agent[i] = skynet.newservice(SERVICE_NAME, "agent") --启动20个代理服务
 	end
 	local balance = 1
-	local id = socket.listen("0.0.0.0", 8001) --监听
+	local id = socket.listen("0.0.0.0", 8001) --监听端口
 	skynet.error("Listen web port 8001")      --日志记录
-	socket.start(id , function(id, addr)      --函数用以处理接收到的连接
+	socket.start(id , function(id, addr)      --开始接收连接，并用func处理接收到的连接
 		skynet.error(string.format("%s connected, pass it to agent :%08x", addr, agent[balance]))
 		skynet.send(agent[balance], "lua", id)--转发到agent服务
 		balance = balance + 1

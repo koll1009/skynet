@@ -249,7 +249,7 @@ lpopbuffer(lua_State *L) {
 	return 2;
 }
 
-/*
+/* socketdriver.clearº¯Êý
 	userdata send_buffer
 	table pool
  */

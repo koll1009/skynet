@@ -50,7 +50,7 @@ local http_status_msg = {
 	[505] = "HTTP Version not supported",
 }
 
---readbytes：read func   bodylimit：size limit
+--readbytes为
 local function readall(readbytes, bodylimit)
 	local tmpline = {}
 	local body = internal.recvheader(readbytes, tmpline, "")
@@ -58,13 +58,13 @@ local function readall(readbytes, bodylimit)
 		return 413	-- Request Entity Too Large
 	end
 	local request = assert(tmpline[1])
-	local method, url, httpver = request:match "^(%a+)%s+(.-)%s+HTTP/([%d%.]+)$" -
+	local method, url, httpver = request:match "^(%a+)%s+(.-)%s+HTTP/([%d%.]+)$" 
 	assert(method and url and httpver)
 	httpver = assert(tonumber(httpver))
 	if httpver < 1.0 or httpver > 1.1 then
 		return 505	-- HTTP Version not supported
 	end
-	local header = internal.parseheader(tmpline,2,{})
+	local header = internal.parseheader(tmpline,2,{}) --转换http header
 	if not header then
 		return 400	-- Bad request
 	end
@@ -102,7 +102,6 @@ local function readall(readbytes, bodylimit)
 	return 200, url, method, header, body
 end
 
---arg1：read func arg2：size limit
 function httpd.read_request(...)
 	local ok, code, url, method, header, body = pcall(readall, ...) --调用readall(readfunc,szlimit)
 	if ok then

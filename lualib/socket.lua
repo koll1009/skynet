@@ -183,7 +183,8 @@ local function connect(id, func)
 	}
 	assert(not socket_pool[id], "socket is not closed")
 	socket_pool[id] = s  --保存sock的相关信息
-	suspend(s)           --
+	suspend(s)         
+	--此时，s已处于连接状态
 	local err = s.connecting
 	s.connecting = nil
 	if s.connected then
@@ -210,8 +211,8 @@ end
 
 --启动函数
 function socket.start(id, func)
-	driver.start(id)      --socketdriver.start(id)，发送启动请求
-	return connect(id, func)
+	driver.start(id)         --socketdriver.start(id)，发送启动请求
+	return connect(id, func) --
 end
 
 local function close_fd(id, func)
@@ -271,6 +272,7 @@ function socket.read(id, sz)
 			return ret
 		end
 
+		--运行到此处说明还未接收到数据，需要等待数据传输
 		if not s.connected then
 			return false, ret
 		end

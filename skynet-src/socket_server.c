@@ -53,11 +53,12 @@
 #define AGAIN_WOULDBLOCK EAGAIN
 #endif
 
+//发送缓冲描述符
 struct write_buffer {
 	struct write_buffer * next;
-	void *buffer;
-	char *ptr;
-	int sz;
+	void *buffer;//发送数据的首地址
+	char *ptr;//待发送数据的首地址
+	int sz;//待发送数据的大小
 	bool userobject;
 	uint8_t udp_address[UDP_ADDRESS_SIZE];
 };
@@ -492,16 +493,16 @@ send_list_tcp(struct socket_server *ss, struct socket *s, struct wb_list *list, 
 			int sz = write(s->fd, tmp->ptr, tmp->sz);
 			if (sz < 0) {
 				switch(errno) {
-				case EINTR:
+				case EINTR: //出现了中断错误，需要重新发送
 					continue;
-				case AGAIN_WOULDBLOCK:
+				case AGAIN_WOULDBLOCK://eagain ewouldblock 表示内核发送缓冲区已满
 					return -1;
 				}
 				force_close(ss,s, result);
 				return SOCKET_CLOSE;
 			}
 			s->wb_size -= sz;
-			if (sz != tmp->sz) {
+			if (sz != tmp->sz) {//当前的write_buffer数据未全部发送
 				tmp->ptr += sz;
 				tmp->sz -= sz;
 				return -1;
@@ -509,7 +510,7 @@ send_list_tcp(struct socket_server *ss, struct socket *s, struct wb_list *list, 
 			break;
 		}
 		list->head = tmp->next;
-		write_buffer_free(ss,tmp);
+		write_buffer_free(ss,tmp);//释放write_buffer以及数据
 	}
 	list->tail = NULL;
 
@@ -610,7 +611,7 @@ raise_uncomplete(struct socket * s) {
 	high->head = high->tail = tmp;
 }
 
-/*
+/*  
 	Each socket has two write buffer list, high priority and low priority.
 
 	1. send high list as far as possible.
@@ -677,6 +678,7 @@ append_sendbuffer_udp(struct socket_server *ss, struct socket *s, int priority, 
 	s->wb_size += buf->sz;
 }
 
+//把未发送完毕的数据添加到发送缓冲区
 static inline void
 append_sendbuffer(struct socket_server *ss, struct socket *s, struct request_send * request, int n) {
 	struct write_buffer *buf = append_sendbuffer_(ss, &s->high, request, SIZEOF_TCPBUFFER, n);
@@ -694,7 +696,7 @@ send_buffer_empty(struct socket *s) {
 	return (s->high.head == NULL && s->low.head == NULL);
 }
 
-/*
+/* SEND请求处理
 	When send a package , we can assign the priority : PRIORITY_HIGH or PRIORITY_LOW
 
 	If socket buffer is empty, write to fd directly.
@@ -706,10 +708,10 @@ send_socket(struct socket_server *ss, struct request_send * request, struct sock
 	int id = request->id;
 	struct socket * s = &ss->slot[HASH_ID(id)];
 	struct send_object so;
-	send_object_init(ss, &so, request->buffer, request->sz);
-	if (s->type == SOCKET_TYPE_INVALID || s->id != id 
+	send_object_init(ss, &so, request->buffer, request->sz);//初始化send对象
+	if (s->type == SOCKET_TYPE_INVALID || s->id != id  
 		|| s->type == SOCKET_TYPE_HALFCLOSE
-		|| s->type == SOCKET_TYPE_PACCEPT) {
+		|| s->type == SOCKET_TYPE_PACCEPT) {//非法发送
 		so.free_func(request->buffer);
 		return -1;
 	}
@@ -720,21 +722,21 @@ send_socket(struct socket_server *ss, struct request_send * request, struct sock
 	}
 	if (send_buffer_empty(s) && s->type == SOCKET_TYPE_CONNECTED) {
 		if (s->protocol == PROTOCOL_TCP) {
-			int n = write(s->fd, so.buffer, so.sz);
+			int n = write(s->fd, so.buffer, so.sz);//第一次发送
 			if (n<0) {
 				switch(errno) {
 				case EINTR:
-				case AGAIN_WOULDBLOCK:
+				case AGAIN_WOULDBLOCK: //此时要求重新发送
 					n = 0;
 					break;
-				default:
+				default: //发送错误
 					fprintf(stderr, "socket-server: write to %d (fd=%d) error :%s.\n",id,s->fd,strerror(errno));
 					force_close(ss,s,result);
 					so.free_func(request->buffer);
 					return SOCKET_CLOSE;
 				}
 			}
-			if (n == so.sz) {
+			if (n == so.sz) {//全部发送完毕，释放发送数据
 				so.free_func(request->buffer);
 				return -1;
 			}
@@ -754,7 +756,7 @@ send_socket(struct socket_server *ss, struct request_send * request, struct sock
 				return -1;
 			}
 		}
-		sp_write(ss->event_fd, s->fd, s, true);
+		sp_write(ss->event_fd, s->fd, s, true); //开启写事件
 	} else {
 		if (s->protocol == PROTOCOL_TCP) {
 			if (priority == PRIORITY_LOW) {
@@ -1049,7 +1051,7 @@ forward_message_tcp(struct socket_server *ss, struct socket *s, struct socket_me
 		}
 		return -1;
 	}
-	if (n==0) {
+	if (n==0) {//socket close，会检测到read event,返回0 size
 		FREE(buffer);
 		force_close(ss, s, result);
 		return SOCKET_CLOSE;

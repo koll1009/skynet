@@ -5,9 +5,22 @@ local M = {}
 
 local LIMIT = 8192
 
+--[[chunked编码方式
+  16进制的数据长度
+  \r\n
+  数据内容
+  \r\n
+  16进制的数据长度
+  \r\n
+  数据内容
+  \r\n
+  0
+  \r\n
+  \r\n
+]]
 local function chunksize(readbytes, body)
 	while true do
-		local f,e = body:find("\r\n",1,true)
+		local f,e = body:find("\r\n",1,true) 
 		if f then
 			return tonumber(body:sub(1,f-1),16), body:sub(e+1)
 		end
@@ -34,6 +47,7 @@ local function readcrln(readbytes, body)
 	end
 end
 
+--接收http head
 function M.recvheader(readbytes, lines, header)
 	if #header >= 2 then
 		if header:find "^\r\n" then
@@ -46,12 +60,12 @@ function M.recvheader(readbytes, lines, header)
 		result = header:sub(e+4)
 	else
 		while true do
-			local bytes = readbytes()
+			local bytes = readbytes() --读取http数据
 			header = header .. bytes
-			if #header > LIMIT then
+			if #header > LIMIT then   --超过数据大小限制
 				return
 			end
-			e = header:find("\r\n\r\n", -#bytes-3, true)
+			e = header:find("\r\n\r\n", -#bytes-3, true) 
 			if e then
 				result = header:sub(e+4)
 				break
@@ -65,9 +79,9 @@ function M.recvheader(readbytes, lines, header)
 		if v == "" then
 			break
 		end
-		table.insert(lines, v)
+		table.insert(lines, v) --把请求头全部保存到lines里
 	end
-	return result
+	return result              --result为请求body
 end
 
 function M.parseheader(lines, from, header)
@@ -106,11 +120,11 @@ function M.recvchunkedbody(readbytes, bodylimit, header, body)
 
 	while true do
 		local sz
-		sz , body = chunksize(readbytes, body)
+		sz , body = chunksize(readbytes, body) --sz为chunk的数据长度
 		if not sz then
 			return
 		end
-		if sz == 0 then
+		if sz == 0 then                        --数据接收完毕
 			break
 		end
 		size = size + sz
