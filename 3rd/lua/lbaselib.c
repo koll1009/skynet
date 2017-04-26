@@ -207,7 +207,7 @@ static int luaB_type (lua_State *L) {
   return 1;
 }
 
-
+//返回迭代器方法、table、初始值
 static int pairsmeta (lua_State *L, const char *method, int iszero,
                       lua_CFunction iter) {
   if (luaL_getmetafield(L, 1, method) == LUA_TNIL) {  /* no metamethod? */
@@ -236,7 +236,7 @@ static int luaB_next (lua_State *L) {
   }
 }
 
-
+//pairs函数
 static int luaB_pairs (lua_State *L) {
   return pairsmeta(L, "__pairs", 0, luaB_next);
 }

@@ -53,6 +53,7 @@ struct read_block {
 	int ptr;
 };
 
+//新建一个block对象
 inline static struct block *
 blk_alloc(void) {
 	struct block *b = skynet_malloc(sizeof(struct block));
@@ -125,18 +126,21 @@ rb_read(struct read_block *rb, int sz) {
 	return rb->buffer + ptr;
 }
 
+//序列化nil类型
 static inline void
 wb_nil(struct write_block *wb) {
 	uint8_t n = TYPE_NIL;
 	wb_push(wb, &n, 1);
 }
 
+//序列化bool类型
 static inline void
 wb_boolean(struct write_block *wb, int boolean) {
 	uint8_t n = COMBINE_TYPE(TYPE_BOOLEAN , boolean ? 1 : 0);
 	wb_push(wb, &n, 1);
 }
 
+//序列化整型
 static inline void
 wb_integer(struct write_block *wb, lua_Integer v) {
 	int type = TYPE_NUMBER;
@@ -178,6 +182,7 @@ wb_real(struct write_block *wb, double v) {
 	wb_push(wb, &v, sizeof(v));
 }
 
+//序列化LIGHTUSERDATA
 static inline void
 wb_pointer(struct write_block *wb, void *v) {
 	uint8_t n = TYPE_USERDATA;
@@ -254,29 +259,31 @@ wb_table_hash(lua_State *L, struct write_block * wb, int index, int depth, int a
 	wb_nil(wb);
 }
 
+//
 static void
 wb_table_metapairs(lua_State *L, struct write_block *wb, int index, int depth) {
 	uint8_t n = COMBINE_TYPE(TYPE_TABLE, 0);
 	wb_push(wb, &n, 1);
 	lua_pushvalue(L, index);
-	lua_call(L, 1, 3);
+	lua_call(L, 1, 3);//返回迭代器函数、table、初始化值
 	for(;;) {
 		lua_pushvalue(L, -2);
 		lua_pushvalue(L, -2);
 		lua_copy(L, -5, -3);
-		lua_call(L, 2, 2);
+		lua_call(L, 2, 2);//调用迭代器函数iter(table,key),返回next key-value，key位于初始化值的索引处
 		int type = lua_type(L, -2);
-		if (type == LUA_TNIL) {
+		if (type == LUA_TNIL) {//type为nil说明迭代到了尾部
 			lua_pop(L, 4);
 			break;
 		}
-		pack_one(L, wb, -2, depth);
-		pack_one(L, wb, -1, depth);
+		pack_one(L, wb, -2, depth);//序列化key
+		pack_one(L, wb, -1, depth);//序列化value
 		lua_pop(L, 1);
 	}
-	wb_nil(wb);
+	wb_nil(wb);//尾部插入一个0
 }
 
+//序列化table
 static void
 wb_table(lua_State *L, struct write_block *wb, int index, int depth) {
 	luaL_checkstack(L, LUA_MINSTACK, NULL);
@@ -291,6 +298,7 @@ wb_table(lua_State *L, struct write_block *wb, int index, int depth) {
 	}
 }
 
+//不同lua类型的序列化
 static void
 pack_one(lua_State *L, struct write_block *b, int index, int depth) {
 	if (depth > MAX_DEPTH) {
@@ -337,9 +345,10 @@ pack_one(lua_State *L, struct write_block *b, int index, int depth) {
 	}
 }
 
+//
 static void
 pack_from(lua_State *L, struct write_block *b, int from) {
-	int n = lua_gettop(L) - from;
+	int n = lua_gettop(L) - from;//参数个数
 	int i;
 	for (i=1;i<=n;i++) {
 		pack_one(L, b , from + i, 0);
@@ -429,11 +438,12 @@ get_buffer(lua_State *L, struct read_block *rb, int len) {
 
 static void unpack_one(lua_State *L, struct read_block *rb);
 
+//反序列化table
 static void
 unpack_table(lua_State *L, struct read_block *rb, int array_size) {
 	if (array_size == MAX_COOKIE-1) {
 		uint8_t type;
-		uint8_t *t = rb_read(rb, sizeof(type));
+		uint8_t *t = rb_read(rb, sizeof(type));//读一个字节
 		if (t==NULL) {
 			invalid_stream(L,rb);
 		}
@@ -444,8 +454,8 @@ unpack_table(lua_State *L, struct read_block *rb, int array_size) {
 		}
 		array_size = get_integer(L,rb,cookie);
 	}
-	luaL_checkstack(L,LUA_MINSTACK,NULL);
-	lua_createtable(L,array_size,0);
+	luaL_checkstack(L,LUA_MINSTACK,NULL);//新建一个table
+	lua_createtable(L,array_size,0);//分配array 容量
 	int i;
 	for (i=1;i<=array_size;i++) {
 		unpack_one(L,rb);
@@ -603,7 +613,7 @@ luaseri_pack(lua_State *L) {
 	wb_init(&wb, &temp);
 	pack_from(L,&wb,0);
 	assert(wb.head == &temp);
-	seri(L, &temp, wb.len);/* 分配一段buffer，把序列化的数据copy到buffer中，返回buffer和长度 */
+	seri(L, &temp, wb.len);/* 分配一段buffer，把序列化的数据copy到buffer中，返回buffer地址和长度 */
 
 	wb_free(&wb);
 

@@ -175,7 +175,7 @@ LUA_API int lua_absindex (lua_State *L, int idx) {
 }
 
 
-/* 函数后压入栈的数量 */
+/* 函数参数数量 */
 LUA_API int lua_gettop (lua_State *L) {
   return cast_int(L->top - (L->ci->func + 1));
 }
