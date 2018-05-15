@@ -17,6 +17,7 @@ struct handle_name {
 	uint32_t handle;/* skynet_context->handle */
 };
 
+/* actor上下文管理器 */
 struct handle_storage {
 	struct rwlock lock;
 
@@ -32,7 +33,7 @@ struct handle_storage {
 
 static struct handle_storage *H = NULL;
 
-/* 把skynet_context存储到handle_storage里，索引为handle值 */
+/* 把skynet_context存储到handle_storage里管理，索引为handle值 */
 uint32_t
 skynet_handle_register(struct skynet_context *ctx) {
 	struct handle_storage *s = H;
@@ -58,10 +59,12 @@ skynet_handle_register(struct skynet_context *ctx) {
 			}
 		}
 		assert((s->slot_size*2 - 1) <= HANDLE_MASK);
+
+		/* 运行到此处说明skynet_context数组的空间不足，要进行两倍扩展 */
 		struct skynet_context ** new_slot = skynet_malloc(s->slot_size * 2 * sizeof(struct skynet_context *));
 		memset(new_slot, 0, s->slot_size * 2 * sizeof(struct skynet_context *));
 		for (i=0;i<s->slot_size;i++) {
-			/* 此时slot[0]会被映射到new_slot[old_slot_size]处，其余保持不变 */
+			/* 此时slot[0]会被映射到new_slot[old_slot_size]处，其余保持不变;如果有发生delete操作，情况会稍微有变化 */
 			int hash = skynet_context_handle(s->slot[i]) & (s->slot_size * 2 - 1);
 			assert(new_slot[hash] == NULL);
 			new_slot[hash] = s->slot[i];
@@ -72,6 +75,7 @@ skynet_handle_register(struct skynet_context *ctx) {
 	}
 }
 
+/* skynet_context从管理器中删除操作 */
 int
 skynet_handle_retire(uint32_t handle) {
 	int ret = 0;
@@ -79,19 +83,19 @@ skynet_handle_retire(uint32_t handle) {
 
 	rwlock_wlock(&s->lock);
 
-	uint32_t hash = handle & (s->slot_size-1);
-	struct skynet_context * ctx = s->slot[hash];
+	uint32_t hash = handle & (s->slot_size-1);//计算索引
+	struct skynet_context * ctx = s->slot[hash];//取值
 
 	if (ctx != NULL && skynet_context_handle(ctx) == handle) {
-		s->slot[hash] = NULL;
+		s->slot[hash] = NULL;//reset
 		ret = 1;
 		int i;
 		int j=0, n=s->name_count;
 		for (i=0; i<n; ++i) {
-			if (s->name[i].handle == handle) {
+			if (s->name[i].handle == handle) {//把服务名中索引一致的释放掉
 				skynet_free(s->name[i].name);
 				continue;
-			} else if (i!=j) {
+			} else if (i!=j) {//后续元素前移
 				s->name[j] = s->name[i];
 			}
 			++j;
@@ -264,11 +268,11 @@ skynet_handle_init(int harbor) {
 
 	rwlock_init(&s->lock);
 	// reserve 0 for system
-	s->harbor = (uint32_t) (harbor & 0xff) << HANDLE_REMOTE_SHIFT;/* 低24位用于skynet_context的索引，高8位用于remote id */
-	s->handle_index = 1;/*  */
+	s->harbor = (uint32_t) (harbor & 0xff) << HANDLE_REMOTE_SHIFT;/* 低24位用于skynet_context的索引，高8位用作remote id */
+	s->handle_index = 1;/* handle数组的初始化索引 */
 	s->name_cap = 2;
 	s->name_count = 0;
-	s->name = skynet_malloc(s->name_cap * sizeof(struct handle_name));
+	s->name = skynet_malloc(s->name_cap * sizeof(struct handle_name));//handle_name数组
 
 	H = s;
 

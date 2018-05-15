@@ -19,7 +19,7 @@
 typedef void (*timer_execute_func)(void *ud,void *arg);
 
 #define TIME_NEAR_SHIFT 8
-#define TIME_NEAR (1 << TIME_NEAR_SHIFT)/* 1<<8 */
+#define TIME_NEAR (1 << TIME_NEAR_SHIFT)/* 1<<8，256 */
 #define TIME_LEVEL_SHIFT 6
 #define TIME_LEVEL (1 << TIME_LEVEL_SHIFT)/* 1<<6 */
 #define TIME_NEAR_MASK (TIME_NEAR-1) /* 0xff */
@@ -40,14 +40,15 @@ struct link_list {
 	struct timer_node *tail;
 };
 
+/* 定时器结构体 */
 struct timer {
 	struct link_list near[TIME_NEAR];
 	struct link_list t[4][TIME_LEVEL];
 	struct spinlock lock;
 	uint32_t time;
-	uint32_t starttime;/* 开始的时间，以second为单位 */
-	uint64_t current;  /* 当前时间，以0.01s为单位，startime+current为系统的实时时间 */
-	uint64_t current_point;/* 系统启动的时间，以0.01s为单位 */
+	uint32_t starttime;/* 系统开始的绝对时间，以second为单位 */
+	uint64_t current;  /* 以0.01s为单位，startime+current为系统的绝对时间 */
+	uint64_t current_point;/* 当前系统的相对时间，以0.01s为单位，表示计算机已运行的时间 */
 };
 
 static struct timer * TI = NULL;
@@ -264,7 +265,7 @@ gettime() {
 	uint64_t t;
 #if !defined(__APPLE__)
 	struct timespec ti;
-	clock_gettime(CLOCK_MONOTONIC, &ti);
+	clock_gettime(CLOCK_MONOTONIC, &ti);//获取系统的相对时间，并且转换成10ms的单位值
 	t = (uint64_t)ti.tv_sec * 100;
 	t += ti.tv_nsec / 10000000;
 #else
@@ -310,7 +311,7 @@ void
 skynet_timer_init(void) {
 	TI = timer_create_timer();
 	uint32_t current = 0;
-	systime(&TI->starttime, &current);
+	systime(&TI->starttime, &current);//取当前系统的绝对时间，@current为当前
 	TI->current = current;
 	TI->current_point = gettime();/* 系统启动的时间，以0.01s计数 */
 }

@@ -28,7 +28,7 @@ sp_release(int efd) {
 }
 
 
-/* 添加事件 */
+/* 添加事件，@ud为各事件的 */
 static int 
 sp_add(int efd, int sock, void *ud) {
 	struct epoll_event ev;

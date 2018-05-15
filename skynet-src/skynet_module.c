@@ -29,7 +29,7 @@ _try_open(struct modules *m, const char * name) {
 	size_t path_size = strlen(path);
 	size_t name_size = strlen(name);
 
-	int sz = path_size + name_size;
+	int sz = path_size + name_size;//库的完整
 	//search path
 	void * dl = NULL;
 	char tmp[sz];
@@ -38,24 +38,24 @@ _try_open(struct modules *m, const char * name) {
 		memset(tmp,0,sz);
 		while (*path == ';') /* 跳过开头的字符';' */
 			path++;
-		if (*path == '\0')
+		if (*path == '\0')//结尾
 			break;
-		l = strchr(path, ';');
+		l = strchr(path, ';');//搜索分割字符';'
 		if (l == NULL) 
-			l = path + strlen(path);
-		int len = l - path;
+			l = path + strlen(path);//l指向动态库路径尾部
+		int len = l - path;//路径长度
 		int i;
-		for (i=0;path[i]!='?' && i < len ;i++) {
+		for (i=0;path[i]!='?' && i < len ;i++) {//把字符'?'前的路径copy到tmp临时路径中
 			tmp[i] = path[i];
 		}
-		memcpy(tmp+i,name,name_size);
-		if (path[i] == '?') {
+		memcpy(tmp+i,name,name_size);//复制库名
+		if (path[i] == '?') {//复制字符‘？’后的路径，一般未库的后缀信息
 			strncpy(tmp+i+name_size,path+i+1,len - i - 1);
 		} else {
 			fprintf(stderr,"Invalid C service path\n");
 			exit(1);
 		}
-		dl = dlopen(tmp, RTLD_NOW | RTLD_GLOBAL);
+		dl = dlopen(tmp, RTLD_NOW | RTLD_GLOBAL);//加载库，并且立即进行符号解析，并且允许后置动态库的引用
 		path = l;
 	}while(dl == NULL);
 
@@ -63,7 +63,7 @@ _try_open(struct modules *m, const char * name) {
 		fprintf(stderr, "try open %s failed : %s\n",name,dlerror());
 	}
 
-	return dl;
+	return dl;//返回动态库的地址
 }
 
 /* 查找skynet_module是否已载入modules M */
@@ -109,8 +109,8 @@ skynet_module_query(const char * name) {
 
 	if (result == NULL && M->count < MAX_MODULE_TYPE) {
 		int index = M->count;
-		void * dl = _try_open(M,name);
-		if (dl) {
+		void * dl = _try_open(M,name);//加载动态库
+		if (dl) {//在全局module管理表中管理该动态库的信息，包括name、hanndle、create\init\release\sigal四个动态函数
 			M->m[index].name = name;
 			M->m[index].module = dl;
 
@@ -150,6 +150,7 @@ skynet_module_instance_create(struct skynet_module *m) {
 	}
 }
 
+/* 调用模块的init函数，@inst为各actor的实际上下文结构，@parm为初始化参数 */
 int
 skynet_module_instance_init(struct skynet_module *m, void * inst, struct skynet_context *ctx, const char * parm) {
 	return m->init(inst, ctx, parm);

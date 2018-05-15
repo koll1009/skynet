@@ -77,7 +77,7 @@ skynet_globalmq_pop() {
 	return mq;
 }
 
-/* 创建message queue,默认大小为64，FIFO */
+/* 创建actor的message queue,默认大小为64，FIFO */
 struct message_queue * 
 skynet_mq_create(uint32_t handle) {
 	struct message_queue *q = skynet_malloc(sizeof(*q));

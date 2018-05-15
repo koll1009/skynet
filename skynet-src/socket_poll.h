@@ -5,10 +5,11 @@
 
 typedef int poll_fd;
 
+/* 把epoll里的事件封装成该结构体 */
 struct event {
-	void * s;
-	bool read;
-	bool write;
+	void * s;//事件源
+	bool read;//可读
+	bool write;//可写
 };
 
 static bool sp_invalid(poll_fd fd);

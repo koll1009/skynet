@@ -87,7 +87,7 @@ struct socket {
 	} p;
 };
 
-/*  */
+/* socket管理器结构体 */
 struct socket_server {
 	int recvctrl_fd; /* pipe读端 */
 	int sendctrl_fd; /* pipe写端 */
@@ -98,7 +98,7 @@ struct socket_server {
 	int event_index;
 	struct socket_object_interface soi;
 	struct event ev[MAX_EVENT];
-	struct socket slot[MAX_SOCKET];/* 65536个socket */
+	struct socket slot[MAX_SOCKET];/* 65536个socket数组，用以管理所有的socket */
 	char buffer[MAX_INFO];
 	uint8_t udpbuffer[MAX_UDP_PACKAGE];
 	fd_set rfds;
@@ -296,7 +296,7 @@ socket_server_create() {
 		fprintf(stderr, "socket-server: create socket pair failed.\n");
 		return NULL;
 	}
-	if (sp_add(efd, fd[0], NULL)) {/* 把pipe读端添加到epoll里 */
+	if (sp_add(efd, fd[0], NULL)) {/* 把pipe读端添加到epoll里，当往pipe里写数据时，epoll池里会有相应的事件对象 */
 		// add recvctrl_fd to event poll
 		fprintf(stderr, "socket-server: can't add server fd to event pool.\n");
 		close(fd[0]);

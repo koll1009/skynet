@@ -245,7 +245,7 @@ bootstrap(struct skynet_context * logger, const char * cmdline) {
 	int sz = strlen(cmdline);
 	char name[sz+1];
 	char args[sz+1];
-	sscanf(cmdline, "%s %s", name, args);/* cmdline="snlua bootstrap" => name=snlua args=bootstrap */
+	sscanf(cmdline, "%s %s", name, args);/* cmdline="snlua bootstrap" => name=snlua args=bootstrap，snlua标识是lua脚本开发的服务，bootstrap为服务名 */
 	struct skynet_context *ctx = skynet_context_new(name, args);
 	if (ctx == NULL) {
 		skynet_error(NULL, "Bootstrap error : %s\n", cmdline);
@@ -254,7 +254,7 @@ bootstrap(struct skynet_context * logger, const char * cmdline) {
 	}
 }
 
-
+/* 启动skynet */
 void 
 skynet_start(struct skynet_config * config) {
 	// register SIGHUP for log file reopen
@@ -276,7 +276,7 @@ skynet_start(struct skynet_config * config) {
 	skynet_timer_init();/* 初始化定时器 */
 	skynet_socket_init();/* 初始化socket server */
 
-	struct skynet_context *ctx = skynet_context_new(config->logservice, config->logger);
+	struct skynet_context *ctx = skynet_context_new(config->logservice, config->logger);//创建logger actor
 	if (ctx == NULL) {
 		fprintf(stderr, "Can't launch %s service\n", config->logservice);
 		exit(1);

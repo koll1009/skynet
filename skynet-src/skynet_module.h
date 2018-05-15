@@ -12,7 +12,7 @@ typedef void (*skynet_dl_signal)(void * inst, int signal);
 struct skynet_module {
 	const char * name;/* 库名 */
 	void * module;/* 库的句柄(句柄在linux下叫?) */
-	skynet_dl_create create;/* 一下四个为库里函数 */
+	skynet_dl_create create;/* 四个函数接口 */
 	skynet_dl_init init;
 	skynet_dl_release release;
 	skynet_dl_signal signal;

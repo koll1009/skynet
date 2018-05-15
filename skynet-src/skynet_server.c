@@ -39,6 +39,7 @@
 
 #endif
 
+/* 各actor的上下文 */
 struct skynet_context {
 	void * instance;/* 指向各服务模块的描述符对象 */
 	struct skynet_module * mod;/* 服务模块的描述符 */
@@ -57,7 +58,7 @@ struct skynet_context {
 };
 
 struct skynet_node {
-	int total;
+	int total;//actor计数
 	int init;
 	uint32_t monitor_exit;
 	pthread_key_t handle_key;
@@ -117,7 +118,7 @@ drop_message(struct skynet_message *msg, void *ud) {
 }
 
 
- 
+ /* 创建新的actor */
 struct skynet_context * 
 skynet_context_new(const char * name, const char *param) {
 	struct skynet_module * mod = skynet_module_query(name);/* 查询模块，没有则创建; */
@@ -125,14 +126,14 @@ skynet_context_new(const char * name, const char *param) {
 	if (mod == NULL)
 		return NULL;
 
-	void *inst = skynet_module_instance_create(mod);/* 调用module.create函数,返回各服务使用的上下文 */
+	void *inst = skynet_module_instance_create(mod);/* 调用module.create函数,返回各actor使用的上下文 */
 	if (inst == NULL)
 		return NULL;
 	struct skynet_context * ctx = skynet_malloc(sizeof(*ctx));/* 创建skynet_context */
 	CHECKCALLING_INIT(ctx)
 
-	ctx->mod = mod;
-	ctx->instance = inst;
+	ctx->mod = mod;//模块信息
+	ctx->instance = inst;//instance是抽象指针，指向具体的actor对象描述符
 	ctx->ref = 2;
 	ctx->cb = NULL;
 	ctx->cb_ud = NULL;
@@ -150,7 +151,7 @@ skynet_context_new(const char * name, const char *param) {
 	context_inc();/*  */
 
 	CHECKCALLING_BEGIN(ctx)
-	int r = skynet_module_instance_init(mod, inst, ctx, param);/* 调用module->init函数 */
+	int r = skynet_module_instance_init(mod, inst, ctx, param);/* 调用module->init函数，一般init函数里会设置actor的消息处理函数 */
 	CHECKCALLING_END(ctx)
 	if (r == 0) {
 		struct skynet_context * ret = skynet_context_release(ctx);
@@ -211,6 +212,7 @@ delete_context(struct skynet_context *ctx) {
 	context_dec();
 }
 
+/* actor释放 */
 struct skynet_context * 
 skynet_context_release(struct skynet_context *ctx) {
 	if (ATOM_DEC(&ctx->ref) == 0) {
@@ -777,14 +779,14 @@ skynet_sendname(struct skynet_context * context, uint32_t source, const char * a
 	return skynet_send(context, source, des, type, session, data, sz);/* 发送消息 */
 }
 
-/* 返回skynet_context的handle值 */
+/* 返回skynet_context的handle 索引值 */
 uint32_t 
 skynet_context_handle(struct skynet_context *ctx) {
 	return ctx->handle;
 }
 
 
-/* 设置skynet_context的回调函数 */
+/* 设置actor服务的回调函数 */
 void 
 skynet_callback(struct skynet_context * context, void *ud, skynet_cb cb) {
 	context->cb = cb;

@@ -5,13 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 
+/* logger服务的上下文结构体 */
 struct logger {
-	FILE * handle;
-	char * filename;
-	int close;
+	FILE * handle;//文件描述符
+	char * filename;//文件名
+	int close;//标志位，需要手动close
 };
 
-/* 创建logger描述符 */
+/* 创建logger服务的上下文 */
 struct logger *
 logger_create(void) {
 	struct logger * inst = skynet_malloc(sizeof(*inst));
@@ -31,6 +32,7 @@ logger_release(struct logger * inst) {
 	skynet_free(inst);
 }
 
+/* logger服务的消息处理函数 */
 static int
 logger_cb(struct skynet_context * context, void *ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
 	struct logger * inst = ud;
@@ -52,7 +54,7 @@ logger_cb(struct skynet_context * context, void *ud, int type, int session, uint
 }
 
 
-/*  */
+/* logger module的init操作，@param为文件名 */
 int
 logger_init(struct logger * inst, struct skynet_context *ctx, const char * parm) {
 	if (parm) {
@@ -64,9 +66,9 @@ logger_init(struct logger * inst, struct skynet_context *ctx, const char * parm)
 		strcpy(inst->filename, parm);
 		inst->close = 1;
 	} else {
-		inst->handle = stdout;
+		inst->handle = stdout;//如果没有设置logger服务的文件名，则默认使用标准输出
 	}
-	if (inst->handle) {
+	if (inst->handle) {//设置logger服务的消息处理函数
 		skynet_callback(ctx, inst, logger_cb);
 		skynet_command(ctx, "REG", ".logger");//注册服务名为.logger
 		return 0;
