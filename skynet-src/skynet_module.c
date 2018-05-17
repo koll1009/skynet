@@ -176,7 +176,7 @@ void
 skynet_module_init(const char *path) {
 	struct modules *m = skynet_malloc(sizeof(*m));
 	m->count = 0;
-	m->path = skynet_strdup(path);/* cpath,c库的路径，默认为./cservice/?.so，？指代具体库文件名 */
+	m->path = skynet_strdup(path);/* 用c开发的服务库的路径，默认为./cservice/?.so，？指代具体库文件名 */
 
 	SPIN_INIT(m)
 

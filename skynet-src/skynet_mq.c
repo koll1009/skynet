@@ -22,13 +22,13 @@
 struct message_queue {
 	struct spinlock lock;
 	uint32_t handle;/* 服务的handle值 */
-	int cap;
-	int head;
-	int tail;
+	int cap;//消息队列容量
+	int head;//头指针
+	int tail;//尾指针
 	int release;
-	int in_global;
-	int overload;/* 消息过载 */
-	int overload_threshold;/* 消息队列大小的极限值 */
+	int in_global;//是否在全局消息表中，和队列中是否有消息相关
+	int overload;/* 消息过载标志 */
+	int overload_threshold;/* 消息过载判断阈值 */
 	struct skynet_message *queue;/* 存储消息 */
 	struct message_queue *next;
 };
@@ -210,7 +210,7 @@ skynet_mq_push(struct message_queue *q, struct skynet_message *message) {
 		expand_queue(q);
 	}
 
-	if (q->in_global == 0) {
+	if (q->in_global == 0) {//
 		q->in_global = MQ_IN_GLOBAL;
 		skynet_globalmq_push(q);/* 第一次压入消息后，把消息队列链入全局消息队列 */
 	}

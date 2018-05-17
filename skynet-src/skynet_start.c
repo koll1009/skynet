@@ -101,12 +101,12 @@ thread_monitor(void *p) {
 	skynet_initthread(THREAD_MONITOR);
 	for (;;) {
 		CHECK_ABORT
-		for (i=0;i<n;i++) {
+		for (i=0;i<n;i++) {//m->count对应工作线程的数量，依次执行每个工作线程的监视器操作
 			skynet_monitor_check(m->m[i]);
 		}
 		for (i=0;i<5;i++) {
 			CHECK_ABORT
-			sleep(1);
+			sleep(1);//睡5s，时间够长，才能判断endless loop
 		}
 	}
 
@@ -134,7 +134,7 @@ thread_timer(void *p) {
 	struct monitor * m = p;
 	skynet_initthread(THREAD_TIMER);
 	for (;;) {
-		skynet_updatetime();
+		skynet_updatetime();//执行定时器事件操作
 		CHECK_ABORT
 		wakeup(m,m->count-1);
 		usleep(2500);
@@ -164,7 +164,7 @@ thread_worker(void *p) {
 	skynet_initthread(THREAD_WORKER);
 	struct message_queue * q = NULL;
 	while (!m->quit) {
-		q = skynet_context_message_dispatch(sm, q, weight);
+		q = skynet_context_message_dispatch(sm, q, weight);//执行消息处理
 		if (q == NULL) {/* 说明global msg queue 为空 */
 			if (pthread_mutex_lock(&m->mutex) == 0) {
 				++ m->sleep;
@@ -282,7 +282,7 @@ skynet_start(struct skynet_config * config) {
 		exit(1);
 	}
 
-	bootstrap(ctx, config->bootstrap);/* 引导程序 */
+	//bootstrap(ctx, config->bootstrap);/* 引导程序 */
 
 	start(config->thread);/* 开启线程 */
 

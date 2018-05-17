@@ -145,7 +145,7 @@ skynet_context_new(const char * name, const char *param) {
 	// Should set to 0 first to avoid skynet_handle_retireall get an uninitialized handle
 	ctx->handle = 0;	
 	ctx->handle = skynet_handle_register(ctx);/* skynet_context存储于handle_storage集中管理 */
-	struct message_queue * queue = ctx->queue = skynet_mq_create(ctx->handle);/* 创建msg queue */
+	struct message_queue * queue = ctx->queue = skynet_mq_create(ctx->handle);/* 创建message queue */
 
 	// init function maybe use ctx->handle, so it must init at last
 	context_inc();/*  */
@@ -236,6 +236,7 @@ skynet_context_push(uint32_t handle, struct skynet_message *message) {
 	return 0;
 }
 
+/* 目标服务陷于死循环，进行标识 */
 void 
 skynet_context_endless(uint32_t handle) {
 	struct skynet_context * ctx = skynet_handle_grab(handle);
@@ -322,7 +323,7 @@ skynet_context_message_dispatch(struct skynet_monitor *sm, struct message_queue 
 			skynet_error(ctx, "May overload, message queue length = %d", overload);
 		}
 
-		skynet_monitor_trigger(sm, msg.source , handle);
+		skynet_monitor_trigger(sm, msg.source , handle);//执行多线程的监视操作
 
 		if (ctx->cb == NULL) {
 			skynet_free(msg.data);
@@ -403,7 +404,7 @@ cmd_timeout(struct skynet_context * context, const char * param) {
 }
 
 
-/* 注册命令 */
+/* "REG"-注册命令 */
 static const char *
 cmd_reg(struct skynet_context * context, const char * param) {
 	if (param == NULL || param[0] == '\0')/* 把handle以16进制格式存于result，并返回 */
@@ -411,7 +412,7 @@ cmd_reg(struct skynet_context * context, const char * param) {
 		sprintf(context->result, ":%x", context->handle);
 		return context->result;
 	} 
-	else if (param[0] == '.') 
+	else if (param[0] == '.') //如果首字符为字符'.'，则注册一个服务名，对应的服务为context
 	{
 		return skynet_handle_namehandle(context->handle, param + 1);
 	} 

@@ -165,7 +165,7 @@ snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	memcpy(tmp, args, sz);
 	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb回调函数，并把snlua指针设置为相应的参数 */
 	const char * self = skynet_command(ctx, "REG", NULL);/* self指向ctx的result数组，result里保存有handle值 */
-	uint32_t handle_id = strtoul(self+1, NULL, 16);/* 字符串的字符为16进制数,此时handle_id=ctx->handle */
+	uint32_t handle_id = strtoul(self+1, NULL, 16);/* self+1是为了跳过首字符，其为16进制标记字符X;字符串的字符为16进制数,此时handle_id=ctx->handle */
 
 	// it must be first message
 	skynet_send(ctx, 0, handle_id, PTYPE_TAG_DONTCOPY,0, tmp, sz);/* 向自己的消息队列push一条消息，消息内容为lua服务名 */
@@ -202,7 +202,7 @@ snlua_create(void) {
 	memset(l,0,sizeof(*l));
 	l->mem_report = MEMORY_WARNING_REPORT;
 	l->mem_limit = 0;
-	l->L = lua_newstate(lalloc, l);/* 单独使用一个虚拟机 */
+	l->L = lua_newstate(lalloc, l);/* 单独使用一个虚拟机，虚拟机使用的内存分配函数为lalloc */
 	return l;
 }
 

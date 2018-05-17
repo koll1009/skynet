@@ -21,7 +21,7 @@ struct connection {
 };
 
 
-/*  */
+/* gate服务的上下文 */
 struct gate {
 	struct skynet_context *ctx;
 	int listen_id;
@@ -36,6 +36,7 @@ struct gate {
 	struct messagepool mp;
 };
 
+/* gate服务的create函数 */
 struct gate *
 gate_create(void) {
 	struct gate * g = skynet_malloc(sizeof(*g));

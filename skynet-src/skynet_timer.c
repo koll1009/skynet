@@ -25,19 +25,22 @@ typedef void (*timer_execute_func)(void *ud,void *arg);
 #define TIME_NEAR_MASK (TIME_NEAR-1) /* 0xff */
 #define TIME_LEVEL_MASK (TIME_LEVEL-1)/* 0x3f */
 
+//定时器事件描述符
 struct timer_event {
-	uint32_t handle;
-	int session;
+	uint32_t handle;//定时器事件对应的服务handle
+	int session;//消息session
 };
 
+/* 时间节点，包含当前时间节点代表的事件的超时事件和指向下一个节点的指针 */
 struct timer_node {
 	struct timer_node *next;
 	uint32_t expire;
 };
 
+/* 时间结点链表 */
 struct link_list {
-	struct timer_node head;
-	struct timer_node *tail;
+	struct timer_node head;//头时间节点
+	struct timer_node *tail;//尾时间节点指针
 };
 
 /* 定时器结构体 */
@@ -46,7 +49,7 @@ struct timer {
 	struct link_list t[4][TIME_LEVEL];
 	struct spinlock lock;
 	uint32_t time;
-	uint32_t starttime;/* 系统开始的绝对时间，以second为单位 */
+	uint32_t starttime;/* 系统开始运行时的绝对时间，以second为单位 */
 	uint64_t current;  /* 以0.01s为单位，startime+current为系统的绝对时间 */
 	uint64_t current_point;/* 当前系统的相对时间，以0.01s为单位，表示计算机已运行的时间 */
 };
@@ -57,7 +60,7 @@ static struct timer * TI = NULL;
 static inline struct timer_node *
 link_clear(struct link_list *list) {
 	struct timer_node * ret = list->head.next;
-	list->head.next = 0;
+	list->head.next = 0;//清空时间节点链表的意思就是把头节点外的节点断开，并且尾节点指针指向头节点
 	list->tail = &(list->head);
 
 	return ret;
@@ -72,7 +75,7 @@ link(struct link_list *list,struct timer_node *node) {
 }
 
 
-/* 增加一个定时器事件结点 */
+/* 把定时器节点@node添加到当前的定时器管理器中 */
 static void
 add_node(struct timer *T,struct timer_node *node) {
 	uint32_t time=node->expire;
@@ -100,7 +103,7 @@ add_node(struct timer *T,struct timer_node *node) {
  */
 static void
 timer_add(struct timer *T,void *arg,size_t sz,int time) {
-	struct timer_node *node = (struct timer_node *)skynet_malloc(sizeof(*node)+sz);
+	struct timer_node *node = (struct timer_node *)skynet_malloc(sizeof(*node)+sz);//每个定时器事节点后面跟定时器事件
 	memcpy(node+1,arg,sz);
 
 	SPIN_LOCK(T);
@@ -121,6 +124,7 @@ move_list(struct timer *T, int level, int idx) {
 	}
 }
 
+/* 定时器节点的降阶移动 */
 static void
 timer_shift(struct timer *T) {
 	int mask = TIME_NEAR;
@@ -131,12 +135,13 @@ timer_shift(struct timer *T) {
 		uint32_t time = ct >> TIME_NEAR_SHIFT;
 		int i=0;
 
-		while ((ct & (mask-1))==0) {
+		while ((ct & (mask-1))==0) {//每ct满256进行一次移位
 			int idx=time & TIME_LEVEL_MASK;
 			if (idx!=0) {
 				move_list(T, i, idx);
 				break;				
 			}
+			//idx==0，代表更高级的降阶
 			mask <<= TIME_LEVEL_SHIFT;
 			time >>= TIME_LEVEL_SHIFT;
 			++i;
@@ -144,6 +149,7 @@ timer_shift(struct timer *T) {
 	}
 }
 
+/* 向当前时间节点对应的服务handle发一条以消息，代表当前定时器时间到期 */
 static inline void
 dispatch_list(struct timer_node *current) {
 	do {
@@ -193,11 +199,12 @@ timer_update(struct timer *T) {
 /* 创建定时器 */
 static struct timer *
 timer_create_timer() {
-	struct timer *r=(struct timer *)skynet_malloc(sizeof(struct timer));
+	struct timer *r=(struct timer *)skynet_malloc(sizeof(struct timer));//创建定时器结构
 	memset(r,0,sizeof(*r));
 
 	int i,j;
 
+	/* 依次清空所有时间节点链表 */
 	for (i=0;i<TIME_NEAR;i++) {
 		link_clear(&r->near[i]);
 	}
@@ -221,7 +228,7 @@ timer_create_timer() {
  */
 int
 skynet_timeout(uint32_t handle, int time, int session) {
-	if (time <= 0) {
+	if (time <= 0) {//超时时间不大于0，则直接要入handle的消息队列
 		struct skynet_message message;
 		message.source = 0;
 		message.session = session;
@@ -231,7 +238,7 @@ skynet_timeout(uint32_t handle, int time, int session) {
 		if (skynet_context_push(handle, &message)) {
 			return -1;
 		}
-	} else {
+	} else {//添加一个定时器事件
 		struct timer_event event;
 		event.handle = handle;
 		event.session = session;
@@ -259,7 +266,7 @@ systime(uint32_t *sec, uint32_t *cs) {
 #endif
 }
 
-/* 获取当前系统时间 */
+/* 获取当前系统时间，以时间ticks的形式表示 */
 static uint64_t
 gettime() {
 	uint64_t t;
@@ -278,7 +285,7 @@ gettime() {
 }
 
 
-/* 更新时间 */
+/* 更新时间，时间精度0.01s */
 void
 skynet_updatetime(void) {
 	uint64_t cp = gettime();
