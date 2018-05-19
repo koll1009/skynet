@@ -91,17 +91,17 @@ struct socket {
 struct socket_server {
 	int recvctrl_fd; /* pipe读端 */
 	int sendctrl_fd; /* pipe写端 */
-	int checkctrl;
+	int checkctrl;//标志位，为1时才会查pipe是否有数据可读
 	poll_fd event_fd;/* event poll fd */
 	int alloc_id;
-	int event_n;
+	int event_n;//已就位事件数量
 	int event_index;
 	struct socket_object_interface soi;
 	struct event ev[MAX_EVENT];
 	struct socket slot[MAX_SOCKET];/* 65536个socket数组，用以管理所有的socket */
 	char buffer[MAX_INFO];
 	uint8_t udpbuffer[MAX_UDP_PACKAGE];
-	fd_set rfds;
+	fd_set rfds;//select|poll的fd_set参数
 };
 
 /* open请求描述符 */
@@ -134,11 +134,11 @@ struct request_close {
 	uintptr_t opaque;
 };
 
-/* 监听请求描述符 */
+/* pipe "L"命令的数据格式 */
 struct request_listen {
-	int id;
-	int fd;
-	uintptr_t opaque;
+	int id;//在socket_server管理器中的索引
+	int fd;//server socket 描述符
+	uintptr_t opaque;//开启listen操作的服务的handle
 	char host[1];
 };
 
@@ -249,7 +249,7 @@ socket_keepalive(int fd) {
 	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepalive , sizeof(keepalive));  
 }
 
-/* 分配socket id */
+/* 从全局socket管理器中的socket array中分配一个地址，return地址在数组中的索引 */
 static int
 reserve_id(struct socket_server *ss) {
 	int i;
@@ -926,7 +926,7 @@ has_cmd(struct socket_server *ss) {
     /* 文件无变化且超时，返回0，错误返回-1，有变化，返回正值 */
 	retval = select(ss->recvctrl_fd+1, &ss->rfds, NULL, NULL, &tv);
 	
-	if (retval == 1) {
+	if (retval == 1) {//有数据可读
 		return 1;
 	}
 	return 0;
@@ -976,20 +976,22 @@ set_udp_address(struct socket_server *ss, struct request_setudp *request, struct
 	return -1;
 }
 
-// 处理管道命令return type
+/* 管道命令的处理函数
+ * 命令格式：1个字节的cmd type+1个字节的cmd len+len个字节的cmd data
+ */
 static int
 ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	int fd = ss->recvctrl_fd;
 	// the length of message is one byte, so 256+8 buffer size is enough.
 	uint8_t buffer[256];
 	uint8_t header[2];
-	block_readpipe(fd, header, sizeof(header));/* 读头，头的格式为type+len，各占一个字节 */
+	block_readpipe(fd, header, sizeof(header));/* 读取cmd type and cmd len */
 	int type = header[0];
 	int len = header[1];
-	block_readpipe(fd, buffer, len);/* 读数据，数据根据类型的不同解释为各种结构 */
+	block_readpipe(fd, buffer, len);/* 读取cmd data，cmd data会根据cmd type转换成不同的数据结构 */
 	// ctrl command only exist in local fd, so don't worry about endian.
 	switch (type) {
-	case 'S': /* 处理start请求 */
+	case 'S': /* 处理socket start请求 */
 		return start_socket(ss,(struct request_start *)buffer, result);
 	case 'B':
 		return bind_socket(ss,(struct request_bind *)buffer, result);
@@ -1201,7 +1203,7 @@ report_accept(struct socket_server *ss, struct socket *s, struct socket_message 
 	ns->type = SOCKET_TYPE_PACCEPT;
 	result->opaque = s->opaque;
 	result->id = s->id;
-	result->ud = id;/*  */
+	result->ud = id;/* 客户端socket的id */
 	result->data = NULL;
 
 	/* client sock的ip地址和端口 */
@@ -1234,12 +1236,12 @@ clear_closed_event(struct socket_server *ss, struct socket_message * result, int
 	}
 }
 
-// return type
+/* socket线程处理网络io和pipe命令的函数 */
 int 
 socket_server_poll(struct socket_server *ss, struct socket_message * result, int * more) {
 	for (;;) {
 		if (ss->checkctrl) {
-			if (has_cmd(ss)) { /* pipe有数据可读,说明有待处理的管道命令 */
+			if (has_cmd(ss)) { /* 返回true,说明有新的pipe命令 */
 				int type = ctrl_cmd(ss, result);/* 处理管道命令 */
 				if (type != -1) {
 					clear_closed_event(ss, result, type);
@@ -1251,7 +1253,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 			}
 		}
 		if (ss->event_index == ss->event_n) {
-			ss->event_n = sp_wait(ss->event_fd, ss->ev, MAX_EVENT);/* 监听事件 */
+			ss->event_n = sp_wait(ss->event_fd, ss->ev, MAX_EVENT);/* 取已就位的事件，返回值为数量 */
 			ss->checkctrl = 1;
 			if (more) {
 				*more = 0;
@@ -1325,7 +1327,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 }
 
 
-/* 发送请求 */
+/* 发送pipe cmd */
 static void
 send_request(struct socket_server *ss, struct request_package *request, char type, int len) {
 	request->header[6] = (uint8_t)type;
@@ -1438,9 +1440,9 @@ socket_server_shutdown(struct socket_server *ss, uintptr_t opaque, int id) {
 	send_request(ss, &request, 'K', sizeof(request.u.close));
 }
 
-// return -1 means failed
-// or return AF_INET or AF_INET6
-static int
+// socket bind操作 
+// return -1 means failed or return AF_INET or AF_INET6
+static int  
 do_bind(const char *host, int port, int protocol, int *family) {
 	int fd;
 	int status;
@@ -1453,7 +1455,7 @@ do_bind(const char *host, int port, int protocol, int *family) {
 	}
 	sprintf(portstr, "%d", port);
 	memset( &ai_hints, 0, sizeof( ai_hints ) );
-	ai_hints.ai_family = AF_UNSPEC;/* 地址族 */
+	ai_hints.ai_family = AF_UNSPEC;/* 协议族族 */
 	if (protocol == IPPROTO_TCP) {
 		ai_hints.ai_socktype = SOCK_STREAM; /* 套接字类型，流或数据报 */
 	} else {
@@ -1467,7 +1469,7 @@ do_bind(const char *host, int port, int protocol, int *family) {
 		return -1;
 	}
 	*family = ai_list->ai_family;
-	fd = socket(*family, ai_list->ai_socktype, 0);
+	fd = socket(*family, ai_list->ai_socktype, 0);//创建一个 socket
 	if (fd < 0) {
 		goto _failed_fd;
 	}
@@ -1491,18 +1493,20 @@ _failed_fd:
 static int
 do_listen(const char * host, int port, int backlog) {
 	int family = 0;
-	int listen_fd = do_bind(host, port, IPPROTO_TCP, &family);/* 绑定端口 */
+	int listen_fd = do_bind(host, port, IPPROTO_TCP, &family);/* 创建一个server socket，并且绑定地址host和端口port */
 	if (listen_fd < 0) {
 		return -1;
 	}
-	if (listen(listen_fd, backlog) == -1) {/* 开始监听 */
+	if (listen(listen_fd, backlog) == -1) {/* 开始监听，默认的accept队列大小为backlog */
 		close(listen_fd);
 		return -1;
 	}
-	return listen_fd;/* 返回server socket */
+	return listen_fd;/* 返回server socket fd */
 }
 
-/* socket server启动监听，@opaque为服务的handle值 */
+/* 开启监听，并且向socket线程发送一个pipe Listen command，通知socket thread是服务source开启的监听操作
+ * 当后续有该socket fd的accept事件时，会发送一条socket message通知给服务source
+ */
 int 
 socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * addr, int port, int backlog) {
 	int fd = do_listen(addr, port, backlog);/* 开启监听，返回server sock fd */
@@ -1510,7 +1514,7 @@ socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * ad
 		return -1;
 	}
 	struct request_package request;
-	int id = reserve_id(ss);/* 分配socket数组上的地址 */
+	int id = reserve_id(ss);/* 从socket管理器中的socket数组上分配一个地址，id为索引 */
 	if (id < 0) {
 		close(fd);
 		return id;
@@ -1518,7 +1522,7 @@ socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * ad
 	request.u.listen.opaque = opaque;/* 服务的handle值 */
 	request.u.listen.id = id;
 	request.u.listen.fd = fd;
-	send_request(ss, &request, 'L', sizeof(request.u.listen));/* 发送请求 */
+	send_request(ss, &request, 'L', sizeof(request.u.listen));/* 发送一个pipe L命令，会通知socket线程把该fd添加到epoll中，后续fd接收到accept事件会发消息通知服务opaque */
 	return id;
 }
 

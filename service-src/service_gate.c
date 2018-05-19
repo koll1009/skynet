@@ -308,6 +308,7 @@ _cb(struct skynet_context * ctx, void * ud, int type, int session, uint32_t sour
 	return 0;
 }
 
+//
 static int
 start_listen(struct gate *g, char * listen_addr) {
 	struct skynet_context * ctx = g->ctx;
@@ -337,7 +338,30 @@ start_listen(struct gate *g, char * listen_addr) {
 	return 0;
 }
 
-/*  */
+/* 
+char tmp[strlen(args) + 32];
+sprintf(tmp,"gate L ! %s %d %d 0",args,PTYPE_HARBOR,REMOTE_MAX);
+const char * gate_addr = skynet_command(ctx, "LAUNCH", tmp);//启动gate服务，监听@args指向的ip地址
+if (gate_addr == NULL) {
+skynet_error(ctx, "Master : launch gate failed");
+return 1;
+}
+uint32_t gate = strtoul(gate_addr+1, NULL, 16);
+if (gate == 0) {
+skynet_error(ctx, "Master : launch gate invalid %s", gate_addr);
+return 1;
+}
+const char * self_addr = skynet_command(ctx, "REG", NULL);
+int n = sprintf(tmp,"broker %s",self_addr);
+skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, tmp, n);//master服务设置为gate的broker服务
+skynet_send(ctx, 0, gate, PTYPE_TEXT, 0, "start", 5);//gate服务开始
+
+skynet_callback(ctx, m, _mainloop);//设置master服务的消息处理函数
+
+m->ctx = ctx;
+return 0;
+
+*/
 int
 gate_init(struct gate *g , struct skynet_context * ctx, char * parm) {
 	if (parm == NULL)

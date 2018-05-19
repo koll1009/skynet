@@ -174,7 +174,7 @@ skynet_context_new(const char * name, const char *param) {
 	}
 }
 
-/* 创建新session */
+/* 创建新session，session标识了服务中处理的消息的id */
 int
 skynet_context_newsession(struct skynet_context *ctx) {
 	// session always be a positive number
@@ -487,7 +487,7 @@ cmd_kill(struct skynet_context * context, const char * param) {
 }
 
 
-/* LAUNCH命令,param由snlua+lua服务名组成 */
+/* LAUNCH命令 */
 static const char *
 cmd_launch(struct skynet_context * context, const char * param) {
 	size_t sz = strlen(param);
@@ -676,7 +676,7 @@ skynet_command(struct skynet_context * context, const char * cmd , const char * 
 /* 参数处理，根据type的类型，进行相应的参数处理 */
 static void
 _filter_args(struct skynet_context * context, int type, int *session, void ** data, size_t * sz) {
-	int needcopy = !(type & PTYPE_TAG_DONTCOPY);/* 是否copy */
+	int needcopy = !(type & PTYPE_TAG_DONTCOPY);/* 是否copy数据 */
 	int allocsession = type & PTYPE_TAG_ALLOCSESSION;/* 是否分配session */
 	type &= 0xff;
 
@@ -727,7 +727,7 @@ skynet_send(struct skynet_context * context, uint32_t source, uint32_t destinati
 		rmsg->message = data;
 		rmsg->sz = sz;
 		skynet_harbor_send(rmsg, source, session);
-	} else { /* 把消息压入目标消息队列 */
+	} else { /* 把消息压入目标服务的消息队列 */
 		struct skynet_message smsg;
 		smsg.source = source;
 		smsg.session = session;

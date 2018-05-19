@@ -72,14 +72,15 @@ forward_message(int type, bool padding, struct socket_message * result) {
 }
 
 
-//
+/* skynet的网络事件以及pipe事件处理函数 */
 int 
 skynet_socket_poll() {
 	struct socket_server *ss = SOCKET_SERVER;
 	assert(ss);
 	struct socket_message result;
 	int more = 1;
-	int type = socket_server_poll(ss, &result, &more);
+	int type = socket_server_poll(ss, &result, &more);//具体的事件处理函数
+	/* type为网络事件的类型标识，某些网络事件需要发消息通知到相应的服务 */
 	switch (type) {
 	case SOCKET_EXIT:
 		return 0;
@@ -143,7 +144,7 @@ skynet_socket_send_lowpriority(struct skynet_context *ctx, int id, void *buffer,
 int 
 skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int backlog) {
 	uint32_t source = skynet_context_handle(ctx);/* 取服务的handle */
-	return socket_server_listen(SOCKET_SERVER, source, host, port, backlog);
+	return socket_server_listen(SOCKET_SERVER, source, host, port, backlog);//开启监听，并且向socket线程发送一个pipe Listen command，通知socket thread是服务source开启的监听操作
 }
 
 int 

@@ -65,9 +65,9 @@ wakeup(struct monitor *m, int busy) {
 static void *
 thread_socket(void *p) {
 	struct monitor * m = p;
-	skynet_initthread(THREAD_SOCKET);
+	skynet_initthread(THREAD_SOCKET);//线程标识
 	for (;;) {
-		int r = skynet_socket_poll();
+		int r = skynet_socket_poll();//循环处理管道命令以及网络io事件
 		if (r==0)
 			break;
 		if (r<0) {

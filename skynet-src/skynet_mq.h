@@ -4,11 +4,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+/* skynet服务间通信的消息协议 */
 struct skynet_message {
 	uint32_t source;/* source handle */
-	int session;
+	int session;/* 某些发送方服务需要异步等待消息处理结果，保留该session号，当目标方返回一条消息时，可以用于识别 */
 	void * data;/* 消息数据 */
-	size_t sz;/* 高八位为类型，低24位为长度 */
+	size_t sz;/* 高八位为消息类型类型，低24位为长度 */
 };
 
 // type is encoding in skynet_message.sz high 8bit
