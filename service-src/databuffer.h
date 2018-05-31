@@ -130,7 +130,7 @@ databuffer_push(struct databuffer *db, struct messagepool *mp, void *data, int s
 	}
 }
 
-/* 解析databuffer中的数据，每个tcp数据包是以size+data的协议格式封装的 */
+/* 解析databuffer中的数据长度size，每个tcp数据包是以size+data的协议格式封装的 */
 static int
 databuffer_readheader(struct databuffer *db, struct messagepool *mp, int header_size) {
 	if (db->header == 0) {//先解析数据包的长度
@@ -139,7 +139,7 @@ databuffer_readheader(struct databuffer *db, struct messagepool *mp, int header_
 			return -1;
 		}
 		uint8_t plen[4];
-		databuffer_read(db,mp,(char *)plen,header_size);
+		databuffer_read(db,mp,(char *)plen,header_size);//开始读取并解析数据包的size长度
 		// big-endian
 		if (header_size == 2) {
 			db->header = plen[0] << 8 | plen[1];
@@ -147,7 +147,7 @@ databuffer_readheader(struct databuffer *db, struct messagepool *mp, int header_
 			db->header = plen[0] << 24 | plen[1] << 16 | plen[2] << 8 | plen[3];
 		}
 	}
-	if (db->size < db->header)
+	if (db->size < db->header)//解析出数据包长度后，检索数据包接收是否完整，不完整，返回-1，然后等待下一次网络io数据的触发
 		return -1;
 	return db->header;
 }

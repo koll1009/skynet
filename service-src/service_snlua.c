@@ -76,19 +76,19 @@ optstring(struct skynet_context *ctx, const char *key, const char * str) {
 }
 
 
-/* 初始化服务 */
+/* 初始化lua服务 */
 static int
 init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t sz) {
 	lua_State *L = l->L;
 	l->ctx = ctx;
-	lua_gc(L, LUA_GCSTOP, 0);
+	lua_gc(L, LUA_GCSTOP, 0);//暂停gc操作
 	lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
 	lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");/* registry["LUA_NOENV"]=1 */
 	luaL_openlibs(L);/* 加载库 */
-	lua_pushlightuserdata(L, ctx);
+	lua_pushlightuserdata(L, ctx);//把服务上下文作为一个轻量级用户自定义数据保存到注册表中
 	lua_setfield(L, LUA_REGISTRYINDEX, "skynet_context");/* registry["skynet_context"]=ctx  */
-	luaL_requiref(L, "skynet.codecache", codecache , 0);/* 加载skynet.codecache库 */
-	lua_pop(L,1);
+	luaL_requiref(L, "skynet.codecache", codecache , 0);/* 加载skynet.codecache */
+	lua_pop(L,1);//
 
 	/* 在snlua->L的虚拟机中设置全局变量值 */
 	const char *path = optstring(ctx, "lua_path","./lualib/?.lua;./lualib/?/init.lua"); /* lua路径 */
@@ -115,7 +115,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 		report_launcher_error(ctx);
 		return 1;
 	}
-	lua_pushlstring(L, args, sz);
+	lua_pushlstring(L, args, sz);//把lua服务名作为参数执行loader.lua
 	r = lua_pcall(L,1,0,1);/* 执行loader.lua，error func为traceback函数 */
 	if (r != LUA_OK) {
 		skynet_error(ctx, "lua loader error : %s", lua_tostring(L, -1));
@@ -123,7 +123,7 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 		return 1;
 	}
 	lua_settop(L,0);
-	if (lua_getfield(L, LUA_REGISTRYINDEX, "memlimit") == LUA_TNUMBER) {
+	if (lua_getfield(L, LUA_REGISTRYINDEX, "memlimit") == LUA_TNUMBER) {//读取lua虚拟机中设置的内存限制值
 		size_t limit = lua_tointeger(L, -1);
 		l->mem_limit = limit;
 		skynet_error(ctx, "Set memory limit to %.2f M", (float)limit / (1024 * 1024));
@@ -137,7 +137,8 @@ init_cb(struct snlua *l, struct skynet_context *ctx, const char * args, size_t s
 	return 0;
 }
 
-/* @ud:sn_create创建的数据类型，此处为struct snlua  
+/* 启动lua服务
+ * @ud:sn_create创建的数据类型，此处为struct snlua  
  * @type:消息类型
  * @session:
  * @source:
@@ -148,8 +149,8 @@ static int
 launch_cb(struct skynet_context * context, void *ud, int type, int session, uint32_t source , const void * msg, size_t sz) {
 	assert(type == 0 && session == 0);
 	struct snlua *l = ud;/* 在snlua_init里，把context->cb_ud设置成了服务的上下文snlua */
-	skynet_callback(context, NULL, NULL);
-	int err = init_cb(l, context, msg, sz);
+	skynet_callback(context, NULL, NULL);//snlua服务只是lua服务的一层外皮，所以不需要消息处理函数，这样如果有误发到该服务的消息，work thread也能识并过滤掉
+	int err = init_cb(l, context, msg, sz);//初始化lua服务
 	if (err) {
 		skynet_command(context, "EXIT", NULL);
 	}
@@ -163,8 +164,8 @@ snlua_init(struct snlua *l, struct skynet_context *ctx, const char * args) {
 	int sz = strlen(args);
 	char * tmp = skynet_malloc(sz);
 	memcpy(tmp, args, sz);
-	skynet_callback(ctx, l , launch_cb);/* 设置ctx->cb回调函数，并把snlua指针设置为相应的参数 */
-	const char * self = skynet_command(ctx, "REG", NULL);/* self指向ctx的result数组，result里保存有handle值 */
+	skynet_callback(ctx, l , launch_cb);/* 把服务的消息处理函数设置为launch_cb函数， */
+	const char * self = skynet_command(ctx, "REG", NULL);/* 调用REG命令，取本服务的handle的字符串值，返回值为":handle的16进制数" */
 	uint32_t handle_id = strtoul(self+1, NULL, 16);/* self+1是为了跳过首字符，其为16进制标记字符X;字符串的字符为16进制数,此时handle_id=ctx->handle */
 
 	// it must be first message
@@ -200,7 +201,7 @@ struct snlua *
 snlua_create(void) {
 	struct snlua * l = skynet_malloc(sizeof(*l));
 	memset(l,0,sizeof(*l));
-	l->mem_report = MEMORY_WARNING_REPORT;
+	l->mem_report = MEMORY_WARNING_REPORT;//内存警告值，32Mb
 	l->mem_limit = 0;
 	l->L = lua_newstate(lalloc, l);/* 单独使用一个虚拟机，虚拟机使用的内存分配函数为lalloc */
 	return l;

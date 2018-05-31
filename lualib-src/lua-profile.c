@@ -148,6 +148,7 @@ lresume_co(lua_State *L) {
 	return timing_resume(L);
 }
 
+/*  */
 static int
 timing_yield(lua_State *L) {
 #ifdef DEBUG_LOG
@@ -176,17 +177,17 @@ timing_yield(lua_State *L) {
 		lua_rawset(L, lua_upvalueindex(2));
 	}
 
-	lua_CFunction co_yield = lua_tocfunction(L, lua_upvalueindex(3));
+	lua_CFunction co_yield = lua_tocfunction(L, lua_upvalueindex(3));//函数的第三个up value为coroutine.yield函数
 
-	return co_yield(L);
+	return co_yield(L);//调用
 }
 
 /* profile.yield函数 */
 static int
 lyield(lua_State *L) {
-	lua_pushthread(L);
+	lua_pushthread(L);//把协程L压入栈
 
-	return timing_yield(L);
+	return timing_yield(L);//
 }
 
 static int

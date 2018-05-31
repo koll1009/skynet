@@ -47,7 +47,7 @@ struct skynet_context {
 	skynet_cb cb;/* 服务的消息处理函数 */
 	struct message_queue *queue;
 	FILE * logfile;
-	char result[32];
+	char result[32];//用于临时返回值的空间
 	uint32_t handle;/* 低24位为handle_storage.slot的索引，高8位为handle_storge.harbor值 */
 	int session_id;
 	int ref;
@@ -404,7 +404,7 @@ cmd_timeout(struct skynet_context * context, const char * param) {
 }
 
 
-/* "REG"-注册命令 */
+/* "REG"-注册命令，有两种 */
 static const char *
 cmd_reg(struct skynet_context * context, const char * param) {
 	if (param == NULL || param[0] == '\0')/* 把handle以16进制格式存于result，并返回 */
@@ -412,7 +412,7 @@ cmd_reg(struct skynet_context * context, const char * param) {
 		sprintf(context->result, ":%x", context->handle);
 		return context->result;
 	} 
-	else if (param[0] == '.') //如果首字符为字符'.'，则注册一个服务名，对应的服务为context
+	else if (param[0] == '.') //如果首字符为字符'.'，则注册一个服务名，对应的服务上下文为context
 	{
 		return skynet_handle_namehandle(context->handle, param + 1);
 	} 
@@ -423,10 +423,11 @@ cmd_reg(struct skynet_context * context, const char * param) {
 	}
 }
 
+/* QUERY command，查询名为param的服务 */
 static const char *
 cmd_query(struct skynet_context * context, const char * param) {
 	if (param[0] == '.') {
-		uint32_t handle = skynet_handle_findname(param+1);
+		uint32_t handle = skynet_handle_findname(param+1);//查找服务，有则返回handle的16进制字符，无则返回NULL
 		if (handle) {
 			sprintf(context->result, ":%x", handle);
 			return context->result;

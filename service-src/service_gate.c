@@ -167,14 +167,17 @@ _report(struct gate * g, const char * data, ...) {
 	int n = vsnprintf(tmp, sizeof(tmp), data, ap);
 	va_end(ap);
 
-	skynet_send(ctx, 0, g->watchdog, PTYPE_TEXT,  0, tmp, n);
+	skynet_send(ctx, 0, g->watchdog, PTYPE_TEXT,  0, tmp, n);//给watchdog发送一条消息，显示已经收到一个客户端连接
 }
 
+/* 接收到数据包后的转发处理
+ * 1.发送到broker服务
+ */
 static void
 _forward(struct gate *g, struct connection * c, int size) {
 	struct skynet_context * ctx = g->ctx;
 	if (g->broker) {
-		void * temp = skynet_malloc(size);
+		void * temp = skynet_malloc(size);//分配一段空间用于存储
 		databuffer_read(&c->buffer,&g->mp,temp, size);
 		skynet_send(ctx, 0, g->broker, g->client_tag | PTYPE_TAG_DONTCOPY, 0, temp, size);
 		return;
@@ -197,8 +200,8 @@ static void
 dispatch_message(struct gate *g, struct connection *c, int id, void * data, int sz) {
 	databuffer_push(&c->buffer,&g->mp, data, sz);//把新接收到的数据添加到connection对应的databuffer中
 	for (;;) {
-		int size = databuffer_readheader(&c->buffer, &g->mp, g->header_size);//读取header
-		if (size < 0) {
+		int size = databuffer_readheader(&c->buffer, &g->mp, g->header_size);//读取解析数据包的size
+		if (size < 0) {//表示数据不全
 			return;
 		} else if (size > 0) {
 			if (size >= 0x1000000) {

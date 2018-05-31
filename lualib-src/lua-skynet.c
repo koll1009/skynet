@@ -88,9 +88,9 @@ forward_cb(struct skynet_context * context, void * ud, int type, int session, ui
  */
 static int
 lcallback(lua_State *L) {
-	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));
+	struct skynet_context * context = lua_touserdata(L, lua_upvalueindex(1));//本库初始化时，把服务的上下文context设成了Up Value
 	int forward = lua_toboolean(L, 2);
-	luaL_checktype(L,1,LUA_TFUNCTION);
+	luaL_checktype(L,1,LUA_TFUNCTION);//第一个参数必须为函数
 	lua_settop(L,1);
 	lua_rawsetp(L, LUA_REGISTRYINDEX, _cb);/* 使用函数_cb的地址做为key registry[&_cb]=skynet.dispatch_message */
 
@@ -198,9 +198,9 @@ lsend(lua_State *L) {
 
 	int mtype = lua_type(L,4);/* 消息数据的类型，可以是字符串和lightuserdata */
 	switch (mtype) {
-	case LUA_TSTRING: {
+	case LUA_TSTRING: {//数据类型时字符串
 		size_t len = 0;
-		void * msg = (void *)lua_tolstring(L,4,&len);
+		void * msg = (void *)lua_tolstring(L,4,&len);//则取字符串地址，并保存长度，然后send出去
 		if (len == 0) {
 			msg = NULL;
 		}
@@ -211,7 +211,7 @@ lsend(lua_State *L) {
 		}
 		break;
 	}
-	case LUA_TLIGHTUSERDATA: {
+	case LUA_TLIGHTUSERDATA: {//light userdata类型，则为msg的指针，需要手动传入长度
 		void * msg = lua_touserdata(L,4);
 		int size = luaL_checkinteger(L,5);
 		if (dest_string) {

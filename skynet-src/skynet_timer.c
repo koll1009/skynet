@@ -16,7 +16,7 @@
 #include <sys/time.h>
 #endif
 
-typedef void (*timer_execute_func)(void *ud,void *arg);
+typedef void(*timer_execute_func)(void *ud, void *arg);
 
 #define TIME_NEAR_SHIFT 8
 #define TIME_NEAR (1 << TIME_NEAR_SHIFT)/* 1<<8，256 */
@@ -68,32 +68,33 @@ link_clear(struct link_list *list) {
 
 /* 把timer_node插入到link_list中 */
 static inline void
-link(struct link_list *list,struct timer_node *node) {
+link(struct link_list *list, struct timer_node *node) {
 	list->tail->next = node;
 	list->tail = node;/* 末端插入 */
-	node->next=0;
+	node->next = 0;
 }
 
 
 /* 把定时器节点@node添加到当前的定时器管理器中 */
 static void
-add_node(struct timer *T,struct timer_node *node) {
-	uint32_t time=node->expire;
-	uint32_t current_time=T->time;
-	
-	if ((time|TIME_NEAR_MASK)==(current_time|TIME_NEAR_MASK)) {/* 时间间隔为0xff之内 */
-		link(&T->near[time&TIME_NEAR_MASK],node);
-	} else {
+add_node(struct timer *T, struct timer_node *node) {
+	uint32_t time = node->expire;
+	uint32_t current_time = T->time;
+
+	if ((time | TIME_NEAR_MASK) == (current_time | TIME_NEAR_MASK)) {/* 时间间隔为0xff之内 */
+		link(&T->near[time&TIME_NEAR_MASK], node);
+	}
+	else {
 		int i;
-		uint32_t mask=TIME_NEAR << TIME_LEVEL_SHIFT;
-		for (i=0;i<3;i++) {
-			if ((time|(mask-1))==(current_time|(mask-1))) {
+		uint32_t mask = TIME_NEAR << TIME_LEVEL_SHIFT;
+		for (i = 0; i < 3; i++) {
+			if ((time | (mask - 1)) == (current_time | (mask - 1))) {
 				break;
 			}
 			mask <<= TIME_LEVEL_SHIFT;
 		}
 
-		link(&T->t[i][((time>>(TIME_NEAR_SHIFT + i*TIME_LEVEL_SHIFT)) & TIME_LEVEL_MASK)],node);	
+		link(&T->t[i][((time >> (TIME_NEAR_SHIFT + i * TIME_LEVEL_SHIFT)) & TIME_LEVEL_MASK)], node);
 	}
 }
 
@@ -102,14 +103,14 @@ add_node(struct timer *T,struct timer_node *node) {
  * @arg:为定时器事件的参数 @sz：参数长度 @time:
  */
 static void
-timer_add(struct timer *T,void *arg,size_t sz,int time) {
-	struct timer_node *node = (struct timer_node *)skynet_malloc(sizeof(*node)+sz);//每个定时器事节点后面跟定时器事件
-	memcpy(node+1,arg,sz);
+timer_add(struct timer *T, void *arg, size_t sz, int time) {
+	struct timer_node *node = (struct timer_node *)skynet_malloc(sizeof(*node) + sz);//每个定时器事节点后面跟定时器事件
+	memcpy(node + 1, arg, sz);
 
 	SPIN_LOCK(T);
 
-		node->expire=time+T->time;
-		add_node(T,node);
+	node->expire = time + T->time;
+	add_node(T, node);
 
 	SPIN_UNLOCK(T);
 }
@@ -118,9 +119,9 @@ static void
 move_list(struct timer *T, int level, int idx) {
 	struct timer_node *current = link_clear(&T->t[level][idx]);
 	while (current) {
-		struct timer_node *temp=current->next;
-		add_node(T,current);
-		current=temp;
+		struct timer_node *temp = current->next;
+		add_node(T, current);
+		current = temp;
 	}
 }
 
@@ -131,15 +132,16 @@ timer_shift(struct timer *T) {
 	uint32_t ct = ++T->time;
 	if (ct == 0) {
 		move_list(T, 3, 0);
-	} else {
+	}
+	else {
 		uint32_t time = ct >> TIME_NEAR_SHIFT;
-		int i=0;
+		int i = 0;
 
-		while ((ct & (mask-1))==0) {//每ct满256进行一次移位
-			int idx=time & TIME_LEVEL_MASK;
-			if (idx!=0) {
+		while ((ct & (mask - 1)) == 0) {//每ct满256进行一次移位
+			int idx = time & TIME_LEVEL_MASK;
+			if (idx != 0) {
 				move_list(T, i, idx);
-				break;				
+				break;
 			}
 			//idx==0，代表更高级的降阶
 			mask <<= TIME_LEVEL_SHIFT;
@@ -153,7 +155,7 @@ timer_shift(struct timer *T) {
 static inline void
 dispatch_list(struct timer_node *current) {
 	do {
-		struct timer_event * event = (struct timer_event *)(current+1);
+		struct timer_event * event = (struct timer_event *)(current + 1);
 		struct skynet_message message;
 		message.source = 0;
 		message.session = event->session;
@@ -161,17 +163,17 @@ dispatch_list(struct timer_node *current) {
 		message.sz = (size_t)PTYPE_RESPONSE << MESSAGE_TYPE_SHIFT;
 
 		skynet_context_push(event->handle, &message);
-		
+
 		struct timer_node * temp = current;
-		current=current->next;
-		skynet_free(temp);	
+		current = current->next;
+		skynet_free(temp);
 	} while (current);
 }
 
 static inline void
 timer_execute(struct timer *T) {
 	int idx = T->time & TIME_NEAR_MASK;
-	
+
 	while (T->near[idx].head.next) {
 		struct timer_node *current = link_clear(&T->near[idx]);
 		SPIN_UNLOCK(T);
@@ -181,7 +183,7 @@ timer_execute(struct timer *T) {
 	}
 }
 
-static void 
+static void
 timer_update(struct timer *T) {
 	SPIN_LOCK(T);
 
@@ -199,25 +201,25 @@ timer_update(struct timer *T) {
 /* 创建定时器 */
 static struct timer *
 timer_create_timer() {
-	struct timer *r=(struct timer *)skynet_malloc(sizeof(struct timer));//创建定时器结构
-	memset(r,0,sizeof(*r));
+	struct timer *r = (struct timer *)skynet_malloc(sizeof(struct timer));//创建定时器结构
+	memset(r, 0, sizeof(*r));
 
-	int i,j;
+	int i, j;
 
 	/* 依次清空所有时间节点链表 */
-	for (i=0;i<TIME_NEAR;i++) {
+	for (i = 0; i < TIME_NEAR; i++) {
 		link_clear(&r->near[i]);
 	}
 
-	for (i=0;i<4;i++) {
-		for (j=0;j<TIME_LEVEL;j++) {
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < TIME_LEVEL; j++) {
 			link_clear(&r->t[i][j]);
 		}
 	}
 
 	SPIN_INIT(r)
 
-	r->current = 0;
+		r->current = 0;
 
 	return r;
 }
@@ -238,7 +240,8 @@ skynet_timeout(uint32_t handle, int time, int session) {
 		if (skynet_context_push(handle, &message)) {
 			return -1;
 		}
-	} else {//添加一个定时器事件
+	}
+	else {//添加一个定时器事件
 		struct timer_event event;
 		event.handle = handle;
 		event.session = session;
@@ -248,9 +251,9 @@ skynet_timeout(uint32_t handle, int time, int session) {
 	return session;/*  */
 }
 
-/* centisecond: 1/100 second 
+/* centisecond: 1/100 second
  * 当前实时时间，用秒+cs表示
- */ 
+ */
 static void
 systime(uint32_t *sec, uint32_t *cs) {
 #if !defined(__APPLE__)
@@ -289,15 +292,16 @@ gettime() {
 void
 skynet_updatetime(void) {
 	uint64_t cp = gettime();
-	if(cp < TI->current_point) {
+	if (cp < TI->current_point) {
 		skynet_error(NULL, "time diff error: change from %lld to %lld", cp, TI->current_point);
 		TI->current_point = cp;
-	} else if (cp != TI->current_point) {
+	}
+	else if (cp != TI->current_point) {
 		uint32_t diff = (uint32_t)(cp - TI->current_point);
 		TI->current_point = cp;
 		TI->current += diff;
 		int i;
-		for (i=0;i<diff;i++) {
+		for (i = 0; i < diff; i++) {
 			timer_update(TI);
 		}
 	}
@@ -308,13 +312,13 @@ skynet_starttime(void) {
 	return TI->starttime;
 }
 
-uint64_t 
+uint64_t
 skynet_now(void) {
 	return TI->current;
 }
 
 /* 初始化定时器 */
-void 
+void
 skynet_timer_init(void) {
 	TI = timer_create_timer();
 	uint32_t current = 0;

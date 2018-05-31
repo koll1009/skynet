@@ -42,7 +42,7 @@ logger_cb(struct skynet_context * context, void *ud, int type, int session, uint
 			inst->handle = freopen(inst->filename, "a", inst->handle);
 		}
 		break;
-	case PTYPE_TEXT:
+	case PTYPE_TEXT://Ğ´ÈÕÖ¾
 		fprintf(inst->handle, "[:%08x] ",source);
 		fwrite(msg, sz , 1, inst->handle);
 		fprintf(inst->handle, "\n");

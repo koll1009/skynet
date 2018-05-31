@@ -246,7 +246,7 @@ bootstrap(struct skynet_context * logger, const char * cmdline) {
 	char name[sz+1];
 	char args[sz+1];
 	sscanf(cmdline, "%s %s", name, args);/* cmdline="snlua bootstrap" => name=snlua args=bootstrap，snlua标识是lua脚本开发的服务，bootstrap为服务名 */
-	struct skynet_context *ctx = skynet_context_new(name, args);
+	struct skynet_context *ctx = skynet_context_new(name, args);//启动服务
 	if (ctx == NULL) {
 		skynet_error(NULL, "Bootstrap error : %s\n", cmdline);
 		skynet_context_dispatchall(logger);
