@@ -1,37 +1,40 @@
 local args = {}
-for word in string.gmatch(..., "%S+") do  --ÒÔ¿Õ¸ñ·Ö¸î×Ö·û´®£¨µÚÒ»¸ö²ÎÊı£©£¬µÚÒ»¸ö²ÎÊıÎªsnluaÀàÏûÏ¢µÄdata
+--ä»¥ç©ºæ ¼ç¬¦åˆ†å‰²ç¬¬ä¸€ä¸ªå‚æ•°ï¼Œloader.luaçš„å‚æ•°ä¸€èˆ¬ä¸ºluaçš„æœåŠ¡å
+for word in string.gmatch(..., "%S+") do  --ï¿½Ô¿Õ¸ï¿½Ö¸ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªsnluaï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½data
 	table.insert(args, word)
 end
 
-SERVICE_NAME = args[1] --·şÎñÃû£¬ÀıÈç'bootstrap'
+SERVICE_NAME = args[1] --ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'bootstrap'
 
 local main, pattern
 
 local err = {}
-for pat in string.gmatch(LUA_SERVICE, "([^;]+);*") do    --ÒÔ;·Ö¸îluaserviceÂ·¾¶
-	local filename = string.gsub(pat, "?", SERVICE_NAME) --ÓÃ"bootstrap"´úÌæ£¿£¬´ËÎªluaÎÄ¼şÂ·¾¶
-	local f, msg = loadfile(filename)    --¼ÓÔØ¸ÃluaÎÄ¼ş
+
+--æŠŠluaæœåŠ¡å+luaæœåŠ¡çš„è·¯å¾„åæ‹¼æ¥æˆæ–‡ä»¶åï¼ŒåŠ è½½å¹¶è§£æè¯¥luaæ–‡ä»¶
+for pat in string.gmatch(LUA_SERVICE, "([^;]+);*") do    --ï¿½ï¿½;ï¿½Ö¸ï¿½luaserviceÂ·ï¿½ï¿½
+	local filename = string.gsub(pat, "?", SERVICE_NAME) --ï¿½ï¿½"bootstrap"ï¿½ï¿½ï¿½æ£¿ï¿½ï¿½ï¿½ï¿½Îªluaï¿½Ä¼ï¿½Â·ï¿½ï¿½
+	local f, msg = loadfile(filename)    --ï¿½ï¿½ï¿½Ø¸ï¿½luaï¿½Ä¼ï¿½
 	if not f then
 		table.insert(err, msg)
 	else
-		pattern = pat  --patternÎªluaÎÄ¼şÌæ´úÂ·¾¶
-		main = f       --mainÎªluaÎÄ¼ş±àÒëºóµÄLClosure£¬ÀıÈçbootstrap.lua
+		pattern = pat  --patternÎªluaï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½
+		main = f       --mainÎªluaï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½LClosureï¿½ï¿½ï¿½ï¿½ï¿½ï¿½bootstrap.lua
 		break
 	end
 end
 
-if not main then       --luaÎÄ¼ş²»´æÔÚ
+if not main then       --luaï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	error(table.concat(err, "\n"))
 end
 
 LUA_SERVICE = nil
-package.path , LUA_PATH = LUA_PATH   --ÖØĞÂÉèÖÃlua¿âºÍc¿âµÄÂ·¾¶
+package.path , LUA_PATH = LUA_PATH   --ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½luaï¿½ï¿½ï¿½cï¿½ï¿½ï¿½Â·ï¿½ï¿½
 package.cpath , LUA_CPATH = LUA_CPATH
 
 local service_path = string.match(pattern, "(.*/)[^/?]+$") --
 
 if service_path then
-	service_path = string.gsub(service_path, "?", args[1])
+	service_path = string.gsub(service_path, "?", args[1])--luaæœåŠ¡çš„è·¯å¾„
 	package.path = service_path .. "?.lua;" .. package.path
 	SERVICE_PATH = service_path
 else
@@ -45,4 +48,5 @@ if LUA_PRELOAD then
 	LUA_PRELOAD = nil
 end
 
-main(select(2, table.unpack(args))) --Ö´ĞĞbootstrap.lua
+--æ‰§è¡ŒluaæœåŠ¡
+main(select(2, table.unpack(args))) --Ö´ï¿½ï¿½bootstrap.lua

@@ -10,31 +10,33 @@ struct hashid_node {
 	struct hashid_node *next;
 };
 
+/* 哈希表 */
 struct hashid {
 	int hashmod;
-	int cap;
+	int cap;//
 	int count;
 	struct hashid_node *id;
 	struct hashid_node **hash;
 };
 
+/* 哈希表初始化 */
 static void
 hashid_init(struct hashid *hi, int max) {
 	int i;
 	int hashcap;
 	hashcap = 16;
-	while (hashcap < max) {
+	while (hashcap < max) {//为了检索性能最大化，所以cap/最大负载要>=1，这样检索速度才为O（1）
 		hashcap *= 2;
 	}
 	hi->hashmod = hashcap - 1;
 	hi->cap = max;
 	hi->count = 0;
-	hi->id = skynet_malloc(max * sizeof(struct hashid_node));
+	hi->id = skynet_malloc(max * sizeof(struct hashid_node));//提前分配好最大负载数量的哈希节点
 	for (i=0;i<max;i++) {
 		hi->id[i].id = -1;
 		hi->id[i].next = NULL;
 	}
-	hi->hash = skynet_malloc(hashcap * sizeof(struct hashid_node *));
+	hi->hash = skynet_malloc(hashcap * sizeof(struct hashid_node *));//映射数组
 	memset(hi->hash, 0, hashcap * sizeof(struct hashid_node *));
 }
 
@@ -49,6 +51,7 @@ hashid_clear(struct hashid *hi) {
 	hi->count = 0;
 }
 
+/* 哈希查询操作 */
 static int
 hashid_lookup(struct hashid *hi, int id) {
 	int h = id & hi->hashmod;
@@ -88,11 +91,12 @@ _clear:
 	return c - hi->id;
 }
 
+/* 插入一个哈希节点 */
 static int
 hashid_insert(struct hashid * hi, int id) {
 	struct hashid_node *c = NULL;
 	int i;
-	for (i=0;i<hi->cap;i++) {
+	for (i=0;i<hi->cap;i++) {//先找到一个未使用的哈希节点
 		int index = (i+id) % hi->cap;
 		if (hi->id[index].id == -1) {
 			c = &hi->id[index];
@@ -104,7 +108,7 @@ hashid_insert(struct hashid * hi, int id) {
 	c->id = id;
 	assert(c->next == NULL);
 	int h = id & hi->hashmod;
-	if (hi->hash[h]) {
+	if (hi->hash[h]) {//
 		c->next = hi->hash[h];
 	}
 	hi->hash[h] = c;
@@ -112,6 +116,7 @@ hashid_insert(struct hashid * hi, int id) {
 	return c - hi->id;
 }
 
+/* 判断哈希表是否已满 */
 static inline int
 hashid_full(struct hashid *hi) {
 	return hi->count == hi->cap;

@@ -7,20 +7,23 @@
 
 #define MESSAGEPOOL 1023
 
+/* epoll里的网络数据，会以message的形式存储，考虑到数据大分包的可能，所以定义了一个@next指针 */
 struct message {
-	char * buffer;
-	int size;
+	char * buffer;//网络数据缓存
+	int size;//网络数据的长度
 	struct message * next;
 };
 
+/* 通信中完整数据缓冲区结构体 */
 struct databuffer {
-	int header;
-	int offset;
-	int size;
-	struct message * head;
+	int header;//数据包以size+data的协议格式封装，header用来存储解析后的size的数值
+	int offset;//在当前处理的message中的偏移值
+	int size;//数据大小
+	struct message * head;//数据块的头尾指针
 	struct message * tail;
 };
 
+/* message pool，会预分配1023个message结构体 */
 struct messagepool_list {
 	struct messagepool_list *next;
 	struct message pool[MESSAGEPOOL];
@@ -45,40 +48,43 @@ messagepool_free(struct messagepool *pool) {
 	pool->freelist = NULL;
 }
 
+/* databuffer的当前message回收，并且重置为下一个待处理message */
 static inline void
 _return_message(struct databuffer *db, struct messagepool *mp) {
 	struct message *m = db->head;
-	if (m->next == NULL) {
+	if (m->next == NULL) {//重置
 		assert(db->tail == m);
 		db->head = db->tail = NULL;
 	} else {
 		db->head = m->next;
 	}
 	skynet_free(m->buffer);
-	m->buffer = NULL;
+	m->buffer = NULL;//回收到freelist中
 	m->size = 0;
 	m->next = mp->freelist;
 	mp->freelist = m;
 }
 
+
+/* 从当前databuffer中读取sz个字符存储到buffer中 */
 static void
 databuffer_read(struct databuffer *db, struct messagepool *mp, void * buffer, int sz) {
 	assert(db->size >= sz);
 	db->size -= sz;
 	for (;;) {
 		struct message *current = db->head;
-		int bsz = current->size - db->offset;
-		if (bsz > sz) {
+		int bsz = current->size - db->offset;//先计算当前message的数据量，分为三个情况处理
+		if (bsz > sz) {//当前message中的数据足够，copy
 			memcpy(buffer, current->buffer + db->offset, sz);
 			db->offset += sz;
 			return;
 		}
-		if (bsz == sz) {
+		if (bsz == sz) {//当前message中的数据正好等于要读取的，copy并且把当前message回收
 			memcpy(buffer, current->buffer + db->offset, sz);
 			db->offset = 0;
 			_return_message(db, mp);
 			return;
-		} else {
+		} else {//当前message中的数据不足，copy，并且把当前message回收，并计算欠缺的数值，循环处理
 			memcpy(buffer, current->buffer + db->offset, bsz);
 			_return_message(db, mp);
 			db->offset = 0;
@@ -88,17 +94,19 @@ databuffer_read(struct databuffer *db, struct messagepool *mp, void * buffer, in
 	}
 }
 
+
+/* 往databuffer中添加一个数据块 */
 static void
 databuffer_push(struct databuffer *db, struct messagepool *mp, void *data, int sz) {
 	struct message * m;
-	if (mp->freelist) {
+	if (mp->freelist) {//先取空闲的message
 		m = mp->freelist;
 		mp->freelist = m->next;
 	} else {
-		struct messagepool_list * mpl = skynet_malloc(sizeof(*mpl));
+		struct messagepool_list * mpl = skynet_malloc(sizeof(*mpl));//重新分配一个message pool，每个pool会预分配1023个message结构体
 		struct message * temp = mpl->pool;
 		int i;
-		for (i=1;i<MESSAGEPOOL;i++) {
+		for (i=1;i<MESSAGEPOOL;i++) {//把message数组以链表的形式链接起来
 			temp[i].buffer = NULL;
 			temp[i].size = 0;
 			temp[i].next = &temp[i+1];
@@ -122,9 +130,10 @@ databuffer_push(struct databuffer *db, struct messagepool *mp, void *data, int s
 	}
 }
 
+/* 解析databuffer中的数据，每个tcp数据包是以size+data的协议格式封装的 */
 static int
 databuffer_readheader(struct databuffer *db, struct messagepool *mp, int header_size) {
-	if (db->header == 0) {
+	if (db->header == 0) {//先解析数据包的长度
 		// parser header (2 or 4)
 		if (db->size < header_size) {
 			return -1;

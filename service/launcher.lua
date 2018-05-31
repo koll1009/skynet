@@ -90,7 +90,7 @@ local function launch_service(service, ...)
 	return inst   --返回新服务的handle值                    
 end
 
---启动命令
+--launcher服务的LAUNCH命令
 function command.LAUNCH(_, service, ...)
 	launch_service(service, ...) --启动lua服务,service为服务名
 	return NORET
@@ -116,6 +116,7 @@ function command.ERROR(address)
 	return NORET
 end
 
+--launcher服务的LAUNCHOK命令，当新服务启动后，会向launcher服务发送该消息命令
 function command.LAUNCHOK(address)
 	-- init notice
 	local response = instance[address]
@@ -129,7 +130,7 @@ end
 
 -- for historical reasons, launcher support text command (for C service)
 
---注册proto.text协议
+--注册proto.text类型消息的处理
 skynet.register_protocol {
 	name = "text",
 	id = skynet.PTYPE_TEXT,
@@ -151,7 +152,7 @@ skynet.dispatch("lua", function(session, address, cmd , ...)
 	local f = command[cmd] --根据命令字符串，指向相应的函数
 	if f then
 		local ret = f(address, ...) --执行命令
-		if ret ~= NORET then
+		if ret ~= NORET then  --需要返回值
 			skynet.ret(skynet.pack(ret)) --序列化handle值，返回
 		end
 	else

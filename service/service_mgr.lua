@@ -186,17 +186,17 @@ skynet.start(function()
 			skynet.ret(skynet.pack(nil, r))
 		end
 	end)
-	local handle = skynet.localname ".service"
+	local handle = skynet.localname ".service" --查询服务是否注册为.service
 	if  handle then
 		skynet.error(".service is already register by ", skynet.address(handle))
 		skynet.exit()
 	else
-		skynet.register(".service")
+		skynet.register(".service") --注册服务名
 	end
 	if skynet.getenv "standalone" then
 		skynet.register("SERVICE")
 		register_global()
 	else
-		register_local()
+		register_local() --注册服务的局部cmd table
 	end
 end)

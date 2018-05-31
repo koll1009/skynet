@@ -21,14 +21,16 @@
 #define MAX_SOCKET_P 16
 #define MAX_EVENT 64
 #define MIN_READ_BUFFER 64
+
+/* socket_server管理中socket的类型 */
 #define SOCKET_TYPE_INVALID 0
 #define SOCKET_TYPE_RESERVE 1
-#define SOCKET_TYPE_PLISTEN 2
-#define SOCKET_TYPE_LISTEN 3
+#define SOCKET_TYPE_PLISTEN 2 //代表server socket刚开启listen，但还未添加到epoll中监听
+#define SOCKET_TYPE_LISTEN 3  //代表server socket已添加到epoll中监听客户端的连接
 #define SOCKET_TYPE_CONNECTING 4
-#define SOCKET_TYPE_CONNECTED 5
+#define SOCKET_TYPE_CONNECTED 5 //已添加到epoll中监听网络io的socket 类型
 #define SOCKET_TYPE_HALFCLOSE 6
-#define SOCKET_TYPE_PACCEPT 7
+#define SOCKET_TYPE_PACCEPT 7 //accept到的client socket类型，还未添加到epoll中监听网络io
 #define SOCKET_TYPE_BIND 8
 
 #define MAX_SOCKET (1<<MAX_SOCKET_P) /* 2^16 65536 */
@@ -99,7 +101,7 @@ struct socket_server {
 	struct socket_object_interface soi;
 	struct event ev[MAX_EVENT];
 	struct socket slot[MAX_SOCKET];/* 65536个socket数组，用以管理所有的socket */
-	char buffer[MAX_INFO];
+	char buffer[MAX_INFO];//用于缓存socket的某些临时结果
 	uint8_t udpbuffer[MAX_UDP_PACKAGE];
 	fd_set rfds;//select|poll的fd_set参数
 };
@@ -148,9 +150,10 @@ struct request_bind {
 	uintptr_t opaque;
 };
 
+/* pipe "S"命令的数据格式 */
 struct request_start {
-	int id;
-	uintptr_t opaque;
+	int id;//socket在socket server管理器中的索引
+	uintptr_t opaque;//发出pipe S命令的服务
 };
 
 struct request_setopt {
@@ -401,7 +404,7 @@ new_fd(struct socket_server *ss, int id, int fd, int protocol, uintptr_t opaque,
 	s->id = id;
 	s->fd = fd;
 	s->protocol = protocol;
-	s->p.size = MIN_READ_BUFFER;
+	s->p.size = MIN_READ_BUFFER;//socket读取时缓存区的大小
 	s->opaque = opaque;
 	s->wb_size = 0;
 	check_wb_list(&s->high);
@@ -854,6 +857,9 @@ start_socket(struct socket_server *ss, struct request_start *request, struct soc
 		result->data = "invalid socket";
 		return SOCKET_ERROR;
 	}
+
+	//对于执行了listen操作的server socket和刚执行了accept操作的client socket，S命令的含义是把把socket添加到epoll池中，这样socket thread就可以
+	//监听后续的事件
 	if (s->type == SOCKET_TYPE_PACCEPT || s->type == SOCKET_TYPE_PLISTEN) {
 		if (sp_add(ss->event_fd, s->fd, s)) {/* 把socket添加到epoll中 */
 			force_close(ss, s, result);
@@ -864,7 +870,7 @@ start_socket(struct socket_server *ss, struct request_start *request, struct soc
 		s->opaque = request->opaque;
 		result->data = "start";
 		return SOCKET_OPEN;  
-	} else if (s->type == SOCKET_TYPE_CONNECTED) {
+	} else if (s->type == SOCKET_TYPE_CONNECTED) {//更改client socket的io的处理服务
 		// todo: maybe we should send a message SOCKET_TRANSFER to s->opaque
 		s->opaque = request->opaque;
 		result->data = "transfer";
@@ -995,7 +1001,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 		return start_socket(ss,(struct request_start *)buffer, result);
 	case 'B':
 		return bind_socket(ss,(struct request_bind *)buffer, result);
-	case 'L': /* 处理listen请求 */
+	case 'L': /* 处理listen cmd，如果成功，返回-1，表示不需要往对应的服务中发消息*/
 		return listen_socket(ss,(struct request_listen *)buffer, result);
 	case 'K':
 		return close_socket(ss,(struct request_close *)buffer, result);
@@ -1031,15 +1037,15 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	return -1;
 }
 
-// 读取数据 return -1 (ignore) when error
+// tcp读取数据 return -1 (ignore) when error
 static int
 forward_message_tcp(struct socket_server *ss, struct socket *s, struct socket_message * result) {
-	int sz = s->p.size;
+	int sz = s->p.size;//读取配置的
 	char * buffer = MALLOC(sz);
 	int n = (int)read(s->fd, buffer, sz);
 	if (n<0) {
 		FREE(buffer);
-		switch(errno) {
+		switch(errno) {//read函数出错，如果是因为信号中断或者暂无数据，则跳过
 		case EINTR:
 			break;
 		case AGAIN_WOULDBLOCK:
@@ -1065,7 +1071,7 @@ forward_message_tcp(struct socket_server *ss, struct socket *s, struct socket_me
 		return -1;
 	}
 
-	if (n == sz) {
+	if (n == sz) {//根据读取的数量值大小动态调整读取缓冲区的大小
 		s->p.size *= 2;
 	} else if (sz > MIN_READ_BUFFER && n*2 < sz) {
 		s->p.size /= 2;
@@ -1075,7 +1081,7 @@ forward_message_tcp(struct socket_server *ss, struct socket *s, struct socket_me
 	result->id = s->id;
 	result->ud = n;
 	result->data = buffer;
-	return SOCKET_DATA;
+	return SOCKET_DATA;//
 }
 
 static int
@@ -1195,7 +1201,7 @@ report_accept(struct socket_server *ss, struct socket *s, struct socket_message 
 	}
 	socket_keepalive(client_fd);
 	sp_nonblocking(client_fd);
-	struct socket *ns = new_fd(ss, id, client_fd, PROTOCOL_TCP, s->opaque, false);
+	struct socket *ns = new_fd(ss, id, client_fd, PROTOCOL_TCP, s->opaque, false);//初始化socket的设置
 	if (ns == NULL) {
 		close(client_fd);
 		return 0;
@@ -1246,13 +1252,13 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 				if (type != -1) {
 					clear_closed_event(ss, result, type);
 					return type;
-				} else
+				} else //pipe cmd返回-1说明
 					continue;
 			} else {/* 管道无数据，置为0 */
 				ss->checkctrl = 0;
 			}
 		}
-		if (ss->event_index == ss->event_n) {
+		if (ss->event_index == ss->event_n) {//pipe命令处理完后，处理epoll中的事件
 			ss->event_n = sp_wait(ss->event_fd, ss->ev, MAX_EVENT);/* 取已就位的事件，返回值为数量 */
 			ss->checkctrl = 1;
 			if (more) {
@@ -1280,7 +1286,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 			int ok = report_accept(ss, s, result);
 			if (ok > 0)
 			{
-				return SOCKET_ACCEPT;
+				return SOCKET_ACCEPT;//accept一个客户端连接
 			} if (ok < 0 ) {
 				return SOCKET_ERROR;
 			}
@@ -1291,11 +1297,11 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 			fprintf(stderr, "socket-server: invalid socket\n");
 			break;
 		default:
-			if (e->read) {
+			if (e->read) {//读取网络io数据
 				int type;
 				if (s->protocol == PROTOCOL_TCP) 
 				{
-					type = forward_message_tcp(ss, s, result);
+					type = forward_message_tcp(ss, s, result);//执行网络读操作
 				} 
 				else 
 				{
@@ -1306,12 +1312,12 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 						return SOCKET_UDP;
 					}
 				}
-				if (e->write && type != SOCKET_CLOSE && type != SOCKET_ERROR) {
+				if (e->write && type != SOCKET_CLOSE && type != SOCKET_ERROR) {//如果socket有写事件，则优先处理
 					// Try to dispatch write message next step if write flag set.
 					e->read = false;
 					--ss->event_index;
 				}
-				if (type == -1)
+				if (type == -1)//跳过
 					break;				
 				return type;
 			}
@@ -1540,13 +1546,13 @@ socket_server_bind(struct socket_server *ss, uintptr_t opaque, int fd) {
 }
 
 
-/* 启动server socket */
+/* 启动socket，会把id对应的socket添加到epoll中 */
 void 
 socket_server_start(struct socket_server *ss, uintptr_t opaque, int id) {
 	struct request_package request;
 	request.u.start.id = id;
 	request.u.start.opaque = opaque;
-	send_request(ss, &request, 'S', sizeof(request.u.start));/* 发送start请求 */
+	send_request(ss, &request, 'S', sizeof(request.u.start));/* 发送pipe cmd "S" 命令， */
 }
 
 void

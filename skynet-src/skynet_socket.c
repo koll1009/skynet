@@ -30,7 +30,7 @@ skynet_socket_free() {
 	SOCKET_SERVER = NULL;
 }
 
-// mainloop thread
+// mainloop thread，socket thread处理完io事件后，会根据需要把结果以消息的形式，发给socket所属的服务
 static void
 forward_message(int type, bool padding, struct socket_message * result) {
 	struct skynet_socket_message *sm;
@@ -90,7 +90,7 @@ skynet_socket_poll() {
 	case SOCKET_CLOSE:
 		forward_message(SKYNET_SOCKET_TYPE_CLOSE, false, &result);
 		break;
-	case SOCKET_OPEN: /* server sock:返回消息表示已开始监听；client sock:表示已就位读数据 */
+	case SOCKET_OPEN: /* 说明已经把socket添加到了epoll中，后续可以监听socket的io事件 */
 		forward_message(SKYNET_SOCKET_TYPE_CONNECT, true, &result);
 		break;
 	case SOCKET_ERROR:
@@ -140,7 +140,7 @@ skynet_socket_send_lowpriority(struct skynet_context *ctx, int id, void *buffer,
 }
 
 
-/* 开启监听，返回在socket server中套接字数组的索引 */
+/* skynet中socket的监听listen接口，返回在socket server中套接字数组的索引 */
 int 
 skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int backlog) {
 	uint32_t source = skynet_context_handle(ctx);/* 取服务的handle */
@@ -171,7 +171,7 @@ skynet_socket_shutdown(struct skynet_context *ctx, int id) {
 	socket_server_shutdown(SOCKET_SERVER, source, id);
 }
 
-/*  */
+/* skynet中socket操作接口组中的start操作 */
 void 
 skynet_socket_start(struct skynet_context *ctx, int id) {
 	uint32_t source = skynet_context_handle(ctx);

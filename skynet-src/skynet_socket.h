@@ -11,11 +11,12 @@ struct skynet_context;
 #define SKYNET_SOCKET_TYPE_UDP 6
 #define SKYNET_SOCKET_TYPE_WARNING 7
 
+/* skynet中socket消息的内容描述符 */
 struct skynet_socket_message {
-	int type;
-	int id;
-	int ud;
-	char * buffer;
+	int type;//socket消息的类型
+	int id;//socket_server管理器中的索引
+	int ud;//
+	char * buffer;//数据地址
 };
 
 void skynet_socket_init();

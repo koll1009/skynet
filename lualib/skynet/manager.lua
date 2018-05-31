@@ -22,6 +22,7 @@ function skynet.abort()
 	c.command("ABORT")
 end
 
+--检查@name是否为服务@handle的全局名
 local function globalname(name, handle)
 	local c = string.sub(name,1,1) --取第一个字符
 	assert(c ~= ':')
@@ -39,9 +40,10 @@ local function globalname(name, handle)
 	return true
 end
 
+--注册服务名name
 function skynet.register(name)
 	if not globalname(name) then
-		c.command("REG", name)
+		c.command("REG", name)--调用reg cmd注册
 	end
 end
 

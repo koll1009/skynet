@@ -12,12 +12,13 @@
 
 #define BACKLOG 32
 
+/* 客户端连接描述符 */
 struct connection {
 	int id;	// skynet_socket id
 	uint32_t agent;
 	uint32_t client;
-	char remote_name[32];
-	struct databuffer buffer;
+	char remote_name[32];//ip:port
+	struct databuffer buffer;//客户端连接的数据缓存
 };
 
 
@@ -33,7 +34,7 @@ struct gate {
 	struct hashid hash;
 	struct connection *conn;
 	// todo: save message pool ptr for release
-	struct messagepool mp;
+	struct messagepool mp;//数据池
 };
 
 /* gate服务的create函数 */
@@ -153,6 +154,7 @@ _ctrl(struct gate * g, const void * msg, int sz) {
 	skynet_error(ctx, "[gate] Unkown command : %s", command);
 }
 
+/* 想watchdog发送一条消息 */
 static void
 _report(struct gate * g, const char * data, ...) {
 	if (g->watchdog == 0) {
@@ -189,11 +191,13 @@ _forward(struct gate *g, struct connection * c, int size) {
 	}
 }
 
+
+/* 处理接收到的网络数据，@id为 */
 static void
 dispatch_message(struct gate *g, struct connection *c, int id, void * data, int sz) {
-	databuffer_push(&c->buffer,&g->mp, data, sz);
+	databuffer_push(&c->buffer,&g->mp, data, sz);//把新接收到的数据添加到connection对应的databuffer中
 	for (;;) {
-		int size = databuffer_readheader(&c->buffer, &g->mp, g->header_size);
+		int size = databuffer_readheader(&c->buffer, &g->mp, g->header_size);//读取header
 		if (size < 0) {
 			return;
 		} else if (size > 0) {
@@ -211,15 +215,16 @@ dispatch_message(struct gate *g, struct connection *c, int id, void * data, int 
 	}
 }
 
+/* gate服务的socket消息处理 */
 static void
 dispatch_socket_message(struct gate *g, const struct skynet_socket_message * message, int sz) {
 	struct skynet_context * ctx = g->ctx;
 	switch(message->type) {
-	case SKYNET_SOCKET_TYPE_DATA: {
-		int id = hashid_lookup(&g->hash, message->id);
+	case SKYNET_SOCKET_TYPE_DATA: {//收到网络io数据
+		int id = hashid_lookup(&g->hash, message->id);//先检索是否未有效连接
 		if (id>=0) {
 			struct connection *c = &g->conn[id];
-			dispatch_message(g, c, message->id, message->buffer, message->ud);
+			dispatch_message(g, c, message->id, message->buffer, message->ud);//有效连接，调用dspatch_message函数处理接收到的数据
 		} else {
 			skynet_error(ctx, "Drop unknown connection %d message", message->id);
 			skynet_socket_close(ctx, message->id);
@@ -227,12 +232,12 @@ dispatch_socket_message(struct gate *g, const struct skynet_socket_message * mes
 		}
 		break;
 	}
-	case SKYNET_SOCKET_TYPE_CONNECT: {
-		if (message->id == g->listen_id) {
+	case SKYNET_SOCKET_TYPE_CONNECT: {//socket添加到epoll池中后，会跟相应服务发条SKYNET_SOCKET_TYPE_CONNECT类型消息
+		if (message->id == g->listen_id) {//表示是socket server start，不做任何处理
 			// start listening
 			break;
 		}
-		int id = hashid_lookup(&g->hash, message->id);
+		int id = hashid_lookup(&g->hash, message->id);//如果是client socket，因为在处理SKYNET_SOCKET_TYPE_ACCEPT消息时，已经把socket添加到了哈希表中，如果未查询到，则报错
 		if (id<0) {
 			skynet_error(ctx, "Close unknown connection %d", message->id);
 			skynet_socket_close(ctx, message->id);
@@ -251,13 +256,13 @@ dispatch_socket_message(struct gate *g, const struct skynet_socket_message * mes
 		}
 		break;
 	}
-	case SKYNET_SOCKET_TYPE_ACCEPT:
+	case SKYNET_SOCKET_TYPE_ACCEPT://监听到一个客户端连接
 		// report accept, then it will be get a SKYNET_SOCKET_TYPE_CONNECT message
 		assert(g->listen_id == message->id);
-		if (hashid_full(&g->hash)) {
+		if (hashid_full(&g->hash)) {//哈希表已满，处理已满载
 			skynet_socket_close(ctx, message->ud);
 		} else {
-			struct connection *c = &g->conn[hashid_insert(&g->hash, message->ud)];
+			struct connection *c = &g->conn[hashid_insert(&g->hash, message->ud)];//使用client socket的id值作为hashcode插入到哈希表中
 			if (sz >= sizeof(c->remote_name)) {
 				sz = sizeof(c->remote_name) - 1;
 			}
@@ -274,6 +279,7 @@ dispatch_socket_message(struct gate *g, const struct skynet_socket_message * mes
 	}
 }
 
+/* gate服务的消息处理函数 */
 static int
 _cb(struct skynet_context * ctx, void * ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
 	struct gate *g = ud;
@@ -300,7 +306,7 @@ _cb(struct skynet_context * ctx, void * ud, int type, int session, uint32_t sour
 			break;
 		}
 	}
-	case PTYPE_SOCKET:
+	case PTYPE_SOCKET://socket消息类型的处理
 		// recv socket message from skynet_socket
 		dispatch_socket_message(g, msg, (int)(sz-sizeof(struct skynet_socket_message)));
 		break;
@@ -308,7 +314,7 @@ _cb(struct skynet_context * ctx, void * ud, int type, int session, uint32_t sour
 	return 0;
 }
 
-//
+//开启服务器监听
 static int
 start_listen(struct gate *g, char * listen_addr) {
 	struct skynet_context * ctx = g->ctx;
@@ -330,11 +336,11 @@ start_listen(struct gate *g, char * listen_addr) {
 		portstr[0] = '\0';
 		host = listen_addr;
 	}
-	g->listen_id = skynet_socket_listen(ctx, host, port, BACKLOG);
+	g->listen_id = skynet_socket_listen(ctx, host, port, BACKLOG);//开启监听
 	if (g->listen_id < 0) {
 		return 1;
 	}
-	skynet_socket_start(ctx, g->listen_id);
+	skynet_socket_start(ctx, g->listen_id);//添加到epoll事件池
 	return 0;
 }
 
@@ -372,6 +378,7 @@ gate_init(struct gate *g , struct skynet_context * ctx, char * parm) {
 	char binding[sz];
 	int client_tag = 0;
 	char header;
+	/* gate服务的初始化参数解析，@header: */
 	int n = sscanf(parm, "%c %s %s %d %d", &header, watchdog, binding, &client_tag, &max);
 	if (n<4) {
 		skynet_error(ctx, "Invalid gate parm %s",parm);
