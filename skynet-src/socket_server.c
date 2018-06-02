@@ -108,10 +108,10 @@ struct socket_server {
 
 /* open请求描述符 */
 struct request_open {
-	int id;//
-	int port;
-	uintptr_t opaque;
-	char host[1];
+	int id;//sock id
+	int port;//端口
+	uintptr_t opaque;//发送open命令的服务
+	char host[1];//ip
 };
 
 struct request_send {
@@ -394,7 +394,7 @@ new_fd(struct socket_server *ss, int id, int fd, int protocol, uintptr_t opaque,
 	struct socket * s = &ss->slot[HASH_ID(id)];
 	assert(s->type == SOCKET_TYPE_RESERVE);
 
-	if (add) {
+	if (add) {//true，则把sock添加到epoll中
 		if (sp_add(ss->event_fd, fd, s)) {
 			s->type = SOCKET_TYPE_INVALID;
 			return NULL;
@@ -412,7 +412,7 @@ new_fd(struct socket_server *ss, int id, int fd, int protocol, uintptr_t opaque,
 	return s;
 }
 
-// return -1 when connecting
+// return -1 when connecting 连接服务器，
 static int
 open_socket(struct socket_server *ss, struct request_open * request, struct socket_message *result) {
 	int id = request->id;
@@ -432,6 +432,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 	ai_hints.ai_socktype = SOCK_STREAM;
 	ai_hints.ai_protocol = IPPROTO_TCP;
 
+	//取地址信息
 	status = getaddrinfo( request->host, port, &ai_hints, &ai_list );
 	if ( status != 0 ) {
 		result->data = (void *)gai_strerror(status);
@@ -459,6 +460,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		goto _failed;
 	}
 
+	//初始话skynet socket信息
 	ns = new_fd(ss, id, sock, PROTOCOL_TCP, request->opaque, true);
 	if (ns == NULL) {
 		close(sock);
@@ -477,7 +479,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		return SOCKET_OPEN;
 	} else {//连接还在继续执行
 		ns->type = SOCKET_TYPE_CONNECTING;
-		sp_write(ss->event_fd, ns->fd, ns, true);
+		sp_write(ss->event_fd, ns->fd, ns, true);//设置可写状态
 	}
 
 	freeaddrinfo( ai_list );
@@ -1005,7 +1007,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 		return listen_socket(ss,(struct request_listen *)buffer, result);
 	case 'K':
 		return close_socket(ss,(struct request_close *)buffer, result);
-	case 'O'://处理open命令
+	case 'O'://处理open命令，用于连接服务器
 		return open_socket(ss, (struct request_open *)buffer, result);
 	case 'X':
 		result->opaque = 0;
@@ -1351,6 +1353,7 @@ send_request(struct socket_server *ss, struct request_package *request, char typ
 	}
 }
 
+//初始化pipe open命令需要的数据
 static int
 open_request(struct socket_server *ss, struct request_package *req, uintptr_t opaque, const char *addr, int port) {
 	int len = strlen(addr);
@@ -1358,7 +1361,7 @@ open_request(struct socket_server *ss, struct request_package *req, uintptr_t op
 		fprintf(stderr, "socket-server : Invalid addr %s.\n",addr);
 		return -1;
 	}
-	int id = reserve_id(ss);
+	int id = reserve_id(ss);//分配id
 	if (id < 0)
 		return -1;
 	req->u.open.opaque = opaque;
@@ -1370,13 +1373,14 @@ open_request(struct socket_server *ss, struct request_package *req, uintptr_t op
 	return len;
 }
 
+//连接服务器
 int 
 socket_server_connect(struct socket_server *ss, uintptr_t opaque, const char * addr, int port) {
 	struct request_package request;
-	int len = open_request(ss, &request, opaque, addr, port);
+	int len = open_request(ss, &request, opaque, addr, port);//初始化pipe open命令请求
 	if (len < 0)
 		return -1;
-	send_request(ss, &request, 'O', sizeof(request.u.open) + len);
+	send_request(ss, &request, 'O', sizeof(request.u.open) + len);//发送请求
 	return request.u.open.id;
 }
 

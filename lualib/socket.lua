@@ -27,9 +27,10 @@ local function wakeup(s)
 	end
 end
 
+--挂起协程
 local function suspend(s)
 	assert(not s.co)
-	s.co = coroutine.running() --取当前协程
+	s.co = coroutine.running() --取当前协程保存
 	skynet.wait(s.co)
 	-- wakeup closing corouting every time suspend,
 	-- because socket.close() will wait last socket buffer operation before clear the buffer.
@@ -81,7 +82,7 @@ socket_message[2] = function(id, _ , addr)
 		return
 	end
 	-- log remote addr
-	s.connected = true
+	s.connected = true --设置状态
 	wakeup(s) --唤醒协程
 end
 
@@ -178,12 +179,12 @@ local function connect(id, func)
 		connecting = true,
 		read_required = false,
 		co = false,
-		callback = func,
+		callback = func,--accept后的回调函数
 		protocol = "TCP",
 	}
 	assert(not socket_pool[id], "socket is not closed")
 	socket_pool[id] = s  --保存sock的相关信息
-	suspend(s)         
+	suspend(s)  --挂起协程，等待连接完成    
 	--此时，s已处于连接状态
 	local err = s.connecting
 	s.connecting = nil
@@ -195,9 +196,12 @@ local function connect(id, func)
 	end
 end
 
+--连接服务器addr:port,返回id
 function socket.open(addr, port)
+    --socketdriver.connect(addr,port)，会连接服务器，并把socket添加到epoll中，当连接成功后
+	--socket thread会返回
 	local id = driver.connect(addr,port)
-	return connect(id)
+	return connect(id)--保存id-sock信息
 end
 
 function socket.bind(os_fd)
@@ -261,11 +265,11 @@ function socket.close(id)
 	socket_pool[id] = nil
 end
 
---从socket读数据
+--从socket读数据，@sz为字节数
 function socket.read(id, sz)
-	local s = socket_pool[id]
+	local s = socket_pool[id] 
 	assert(s)
-	if sz == nil then
+	if sz == nil then --如果没有传入读取的字节，则把
 		-- read some bytes
 		local ret = driver.readall(s.buffer, buffer_pool)
 		if ret ~= "" then

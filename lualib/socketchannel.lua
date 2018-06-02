@@ -23,12 +23,13 @@ local channel_socket_meta = {
 local socket_error = setmetatable({}, {__tostring = function() return "[Error: socket]" end })	-- alias for error object
 socket_channel.error = socket_error
 
+--创建一个channel表，初始化了状态
 function socket_channel.channel(desc)
 	local c = {
-		__host = assert(desc.host),
-		__port = assert(desc.port),
+		__host = assert(desc.host),--ip
+		__port = assert(desc.port),--port
 		__backup = desc.backup,
-		__auth = desc.auth,
+		__auth = desc.auth,        --autn函数
 		__response = desc.response,	-- It's for session mode
 		__request = {},	-- request seq { response func or session }	-- It's for order mode
 		__thread = {}, -- coroutine seq or session->coroutine map
@@ -41,7 +42,7 @@ function socket_channel.channel(desc)
 		__nodelay = desc.nodelay,
 	}
 
-	return setmetatable(c, channel_meta)
+	return setmetatable(c, channel_meta) --返回table c
 end
 
 local function close_channel_socket(self)
@@ -138,6 +139,7 @@ local function pop_response(self)
 	end
 end
 
+--保存响应回调函数
 local function push_response(self, response, co)
 	if self.__response then
 		-- response is session
@@ -153,6 +155,7 @@ local function push_response(self, response, co)
 	end
 end
 
+--按序调度响应
 local function dispatch_by_order(self)
 	while self.__sock do
 		local func, co = pop_response(self)
@@ -176,7 +179,7 @@ local function dispatch_by_order(self)
 				else
 					self.__result_data[co] = result_data
 				end
-				skynet.wakeup(co)
+				skynet.wakeup(co)--唤醒
 			end
 		else
 			close_channel_socket(self)
@@ -193,6 +196,7 @@ local function dispatch_by_order(self)
 	exit_thread(self)
 end
 
+--取调度函数
 local function dispatch_function(self)
 	if self.__response then
 		return dispatch_by_session
@@ -222,28 +226,34 @@ local function connect_backup(self)
 	end
 end
 
+--实际连接操作，只连接一次
 local function connect_once(self)
-	if self.__closed then
+	if self.__closed then --状态检查
 		return false
 	end
 	assert(not self.__sock and not self.__authcoroutine)
-	local fd,err = socket.open(self.__host, self.__port)
+	local fd,err = socket.open(self.__host, self.__port) --连接，并返回sock id
 	if not fd then
 		fd = connect_backup(self)
 		if not fd then
 			return false, err
 		end
 	end
-	if self.__nodelay then
+	if self.__nodelay then --设置nodelay option
 		socketdriver.nodelay(fd)
 	end
 
+	--连接成功，设置_sock
 	self.__sock = setmetatable( {fd} , channel_socket_meta )
+
+	--新fork一个协程执行response函数（此处为dispatch_by_order（self）），并保存协程
 	self.__dispatch_thread = skynet.fork(dispatch_function(self), self)
 
+	--有认证函数
 	if self.__auth then
-		self.__authcoroutine = coroutine.running()
-		local ok , message = pcall(self.__auth, self)
+		self.__authcoroutine = coroutine.running() --保存认证协程
+		--执行认证操作
+		local ok , message = pcall(self.__auth, self) --mysql中__auth指向_mysql_login的返回函数
 		if not ok then
 			close_channel_socket(self)
 			if message ~= socket_error then
@@ -265,7 +275,7 @@ end
 local function try_connect(self , once)
 	local t = 0
 	while not self.__closed do
-		local ok, err = connect_once(self)
+		local ok, err = connect_once(self) --连接一次
 		if ok then
 			if not once then
 				skynet.error("socket: connect to", self.__host, self.__port)
@@ -287,37 +297,40 @@ local function try_connect(self , once)
 	end
 end
 
+--检查连接状态 
 local function check_connection(self)
-	if self.__sock then
-		local authco = self.__authcoroutine
-		if not authco then
+	if self.__sock then --__sock字段已赋值，表示已经连接
+		local authco = self.__authcoroutine 
+		if not authco then --不需要认证，返回true
 			return true
 		end
-		if authco == coroutine.running() then
+		if authco == coroutine.running() then --正在认证，返回true
 			-- authing
 			return true
 		end
 	end
-	if self.__closed then
+	if self.__closed then --
 		return false
 	end
+	--默认返回nil，表示尚未连接
 end
 
+--阻塞式连接函数，@once为true表示只连接一次，返回是否成功
 local function block_connect(self, once)
-	local r = check_connection(self)
-	if r ~= nil then
+	local r = check_connection(self) --检查连接状态
+	if r ~= nil then --已连接，true表示连接成功或者正在认证，false表示已关闭
 		return r
 	end
 	local err
 
-	if #self.__connecting > 0 then
+	if #self.__connecting > 0 then --其他协程已经发起连接操作
 		-- connecting in other coroutine
-		local co = coroutine.running()
-		table.insert(self.__connecting, co)
-		skynet.wait(co)
+		local co = coroutine.running() 
+		table.insert(self.__connecting, co) --把当前协程保存，并睡眠
+		skynet.wait(co) 
 	else
-		self.__connecting[1] = true
-		err = try_connect(self, once)
+		self.__connecting[1] = true --有一个连接
+		err = try_connect(self, once)--实际的连接操作
 		self.__connecting[1] = nil
 		for i=2, #self.__connecting do
 			local co = self.__connecting[i]
@@ -335,8 +348,9 @@ local function block_connect(self, once)
 	end
 end
 
+--连接方法，@once标记是否只连接一次，self为socketchannel:channel方法的返回值
 function channel:connect(once)
-	if self.__closed then
+	if self.__closed then  --__closed初始状态为false
 		if self.__dispatch_thread then
 			-- closing, wait
 			assert(self.__connecting_thread == nil, "already connecting")
@@ -348,14 +362,16 @@ function channel:connect(once)
 		self.__closed = false
 	end
 
-	return block_connect(self, once)
+	return block_connect(self, once)--阻塞性连接
 end
 
+--等待响应
 local function wait_for_response(self, response)
 	local co = coroutine.running()
-	push_response(self, response, co)
-	skynet.wait(co)
+	push_response(self, response, co)--把响应函数和协程保存起来，执行睡眠
+	skynet.wait(co) --当fork的协程执行完dispatch_by_order后唤醒
 
+	--读取响应的数据，并返回
 	local result = self.__result[co]
 	self.__result[co] = nil
 	local result_data = self.__result_data[co]
@@ -404,8 +420,9 @@ function channel:request(request, response, padding)
 	return wait_for_response(self, response)
 end
 
+--异步响应，@response为回调的响应函数
 function channel:response(response)
-	assert(block_connect(self))
+	assert(block_connect(self)) --确保已连接
 
 	return wait_for_response(self, response)
 end
