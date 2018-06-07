@@ -73,15 +73,15 @@ skynet.start(function()
 	local function on_connect(db)
 		db:query("set charset utf8");
 	end
-	local db=mysql.connect({
+	local db=mysql.connect({ --µ÷ÓÃmysql.connect 
 		host="127.0.0.1",
 		port=3306,
 		database="skynet",
 		user="root",
 		password="1",
 		max_packet_size = 1024 * 1024,
-		on_connect = on_connect
-	})
+		on_connect = on_connect --set charset utf8
+	}) 
 	if not db then
 		print("failed to connect")
 	end

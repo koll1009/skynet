@@ -148,7 +148,11 @@ skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int
 	return socket_server_listen(SOCKET_SERVER, source, host, port, backlog);//开启监听，并且向socket线程发送一个pipe Listen command，通知socket thread是服务source开启的监听操作
 }
 
+<<<<<<< HEAD
 /* skynet中的socket连接服务器接口， */
+=======
+//skynet中socket的connect接口
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 int 
 skynet_socket_connect(struct skynet_context *ctx, const char *host, int port) {
 	uint32_t source = skynet_context_handle(ctx);

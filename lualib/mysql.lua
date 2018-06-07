@@ -58,7 +58,7 @@ local function _get_byte2(data, i)
 	return strunpack("<I2",data,i)
 end
 
-
+-- '<'符号表示data是以小端法排列，从data的第（i-1）个字节开始取3个字节转换成整型
 local function _get_byte3(data, i)
 	return strunpack("<I3",data,i)
 end
@@ -74,6 +74,7 @@ local function _get_byte8(data, i)
 end
 
 
+--
 local function _set_byte2(n)
     return strpack("<I2", n)
 end
@@ -88,7 +89,7 @@ local function _set_byte4(n)
     return strpack("<I4", n)
 end
 
-
+--把字符串data从索引i-1开始，转换成整型，例如string.unpack("z","1234",2)返回234
 local function _from_cstring(data, i)
     return strunpack("z", data, i)
 end
@@ -125,15 +126,16 @@ local function _compose_packet(self, req, size)
     return packet
 end
 
+--connect后，服务器返回给客户端的handshake包
 local function _recv_packet(self,sock)
 
-
-    local data = sock:read( 4)
+    --前4个字节，分为3个字节的payload长度+1个字节的序号
+    local data = sock:read( 4) --读4个字节
     if not data then
         return nil, nil, "failed to receive packet header: "
     end
 
-
+	--解析payload长度
     local len, pos = _get_byte3(data, 1)
 
 
@@ -141,26 +143,28 @@ local function _recv_packet(self,sock)
         return nil, nil, "empty packet"
     end
 
+	--长度大于设置的最大packet size
     if len > self._max_packet_size then
         return nil, nil, "packet size too big: " .. len
     end
 
+	--解析序号
     local num = strbyte(data, pos)
 
-    self.packet_no = num
+    self.packet_no = num --记录包的序号
 
-    data = sock:read(len)
+    data = sock:read(len) --读取packet data
 
     if not data then
         return nil, nil, "failed to read packet content: "
     end
 
-
+	--mysql data种filed的大小
     local field_count = strbyte(data, 1)
     local typ
     if field_count == 0x00 then
         typ = "OK"
-    elseif field_count == 0xff then
+    elseif field_count == 0xff then 
         typ = "ERR"
     elseif field_count == 0xfe then
         typ = "EOF"
@@ -371,6 +375,7 @@ local function _recv_field_packet(self, sock)
     return _parse_field_packet(packet)
 end
 
+--接收转义过的包
 local function _recv_decode_packet_resp(self)
      return function(sock)
 		-- don't return more than 2 results
@@ -378,6 +383,7 @@ local function _recv_decode_packet_resp(self)
     end
 end
 
+--接收认证响应
 local function _recv_auth_resp(self)
      return function(sock)
         local packet, typ, err = _recv_packet(self,sock)
@@ -404,11 +410,14 @@ local function _recv_auth_resp(self)
     end
 end
 
-
+--返回认证函数
 local function _mysql_login(self,user,password,database,on_connect)
 
+    --认证函数
     return function(sockchannel)
-          local packet, typ, err =   sockchannel:response( _recv_decode_packet_resp(self) )
+	    
+		--读取服务端返回的handshake packet
+        local packet, typ, err =   sockchannel:response( _recv_decode_packet_resp(self) )
         --local aat={}
         if not packet then
             error(  err )
@@ -419,8 +428,10 @@ local function _mysql_login(self,user,password,database,on_connect)
             error( strformat("errno:%d, msg:%s,sqlstate:%s",errno,msg,sqlstate))
         end
 
+		--解析mysql的版本号
         self.protocol_ver = strbyte(packet)
 
+		--2个字节的mysql版本信息
         local server_ver, pos = _from_cstring(packet, 2)
         if not server_ver then
             error "bad handshake initialization packet: bad server version"
@@ -428,9 +439,10 @@ local function _mysql_login(self,user,password,database,on_connect)
 
         self._server_ver = server_ver
 
-
+		--4个字节的服务器线程id
         local thread_id, pos = _get_byte4(packet, pos)
 
+		--8个字节的随机数
         local scramble1 = sub(packet, pos, pos + 8 - 1)
         if not scramble1 then
             error "1st part of scramble not found"
@@ -466,6 +478,13 @@ local function _mysql_login(self,user,password,database,on_connect)
 
         local client_flags = 260047;
 
+		--把认证信息打包
+		--4个字节的客户端权能标志 
+		--4个字节的最大包长度
+		--24个填充字节，说明
+		--用户名
+		--认证
+		--数据库名，后三个字符串都是NULL Terminated
 		local req = strpack("<I4I4c24zs1z",
 			client_flags,
 			self._max_packet_size,
@@ -474,12 +493,12 @@ local function _mysql_login(self,user,password,database,on_connect)
 			token,
 			database)
 
-        local packet_len = #req
+        local packet_len = #req --取包的长度
 
-        local authpacket=_compose_packet(self,req,packet_len)
+        local authpacket=_compose_packet(self,req,packet_len)--打包
         sockchannel:request(authpacket,_recv_auth_resp(self))
 	if on_connect then
-		on_connect(self)
+		on_connect(self) --执行连接回调
 	end
     end
 end
@@ -620,11 +639,21 @@ local function _query_resp(self)
     end
 end
 
+--[[ local db=mysql.connect({ --调用mysql.connect 
+		host="127.0.0.1",
+		port=3306,
+		database="skynet",
+		user="root",
+		password="1",
+		max_packet_size = 1024 * 1024,
+		on_connect = on_connect --set charset utf8
+	})
+--]]
 function _M.connect(opts)
 
     local self = setmetatable( {}, mt)
 
-    local max_packet_size = opts.max_packet_size
+    local max_packet_size = opts.max_packet_size  --
     if not max_packet_size then
         max_packet_size = 1024 * 1024 -- default 1 MB
     end
@@ -632,18 +661,19 @@ function _M.connect(opts)
     self.compact = opts.compact_arrays
 
 
-    local database = opts.database or ""
-    local user = opts.user or ""
+    local database = opts.database or "" --数据库
+    local user = opts.user or ""         --用户名、密码
     local password = opts.password or ""
 
+	--新创建一个channel，以metatable的形式继承了connect等方法
     local channel = socketchannel.channel {
         host = opts.host,
         port = opts.port or 3306,
-        auth = _mysql_login(self,user,password,database,opts.on_connect),
+        auth = _mysql_login(self,user,password,database,opts.on_connect),--验证函数
     }
     self.sockchannel = channel
     -- try connect first only once
-    channel:connect(true)
+    channel:connect(true) --连接
 
 
     return self
@@ -656,12 +686,12 @@ function _M.disconnect(self)
     setmetatable(self, nil)
 end
 
-
+--mysql query function
 function _M.query(self, query)
     local querypacket = _compose_query(self, query)
     local sockchannel = self.sockchannel
     if not self.query_resp then
-        self.query_resp = _query_resp(self)
+        self.query_resp = _query_resp(self)--查询请求的响应
     end
     return  sockchannel:request( querypacket, self.query_resp )
 end

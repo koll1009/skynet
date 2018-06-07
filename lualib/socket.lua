@@ -28,10 +28,14 @@ local function wakeup(s)
 	end
 end
 
+<<<<<<< HEAD
 --挂起当前协程，等待激活
+=======
+--挂起协程
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 local function suspend(s)
 	assert(not s.co)
-	s.co = coroutine.running() --取当前协程
+	s.co = coroutine.running() --取当前协程保存
 	skynet.wait(s.co)
 	-- wakeup closing corouting every time suspend,
 	-- because socket.close() will wait last socket buffer operation before clear the buffer.
@@ -83,7 +87,11 @@ socket_message[2] = function(id, _ , addr)
 		return
 	end
 	-- log remote addr
+<<<<<<< HEAD
 	s.connected = true --设置连接状态
+=======
+	s.connected = true --设置状态
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 	wakeup(s) --唤醒协程
 end
 
@@ -180,12 +188,20 @@ local function connect(id, func)
 		connecting = true, --
 		read_required = false,
 		co = false,
+<<<<<<< HEAD
 		callback = func, --accpet回调函数
+=======
+		callback = func,--accept后的回调函数
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 		protocol = "TCP",
 	}
 	assert(not socket_pool[id], "socket is not closed")
 	socket_pool[id] = s  --保存sock的相关信息
+<<<<<<< HEAD
 	suspend(s)    --挂起当前协程，等到socket thread返回连接成功或者监听成功    
+=======
+	suspend(s)  --挂起协程，等待连接完成    
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 	--此时，s已处于连接状态
 	local err = s.connecting
 	s.connecting = nil
@@ -197,10 +213,19 @@ local function connect(id, func)
 	end
 end
 
+<<<<<<< HEAD
 --连接服务器
 function socket.open(addr, port)
 	local id = driver.connect(addr,port) --调用skynetdriver.connect连接服务器，连接成功会返回一个SKYNET_SOCKET_TYPE_CONNECT类型的socket消息
 	return connect(id)
+=======
+--连接服务器addr:port,返回id
+function socket.open(addr, port)
+    --socketdriver.connect(addr,port)，会连接服务器，并把socket添加到epoll中，当连接成功后
+	--socket thread会返回
+	local id = driver.connect(addr,port)
+	return connect(id)--保存id-sock信息
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 end
 
 --监听os_fd
@@ -266,11 +291,15 @@ function socket.close(id)
 	socket_pool[id] = nil
 end
 
+<<<<<<< HEAD
 --从socket读数据，@sz为读取的数据字节数
+=======
+--从socket读数据，@sz为字节数
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 function socket.read(id, sz)
-	local s = socket_pool[id]
+	local s = socket_pool[id] 
 	assert(s)
-	if sz == nil then
+	if sz == nil then --如果没有传入读取的字节，则把
 		-- read some bytes
 		local ret = driver.readall(s.buffer, buffer_pool)--读取缓冲区里的所有数据
 		if ret ~= "" then

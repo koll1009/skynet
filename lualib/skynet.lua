@@ -122,15 +122,15 @@ local function co_create(f)
 	return co
 end
 
-
+--重新执行一个已wakeup的协程 
 local function dispatch_wakeup()
-	local co = next(wakeup_session) --ȡwakeup_session�ĵ�һ����nilֵ
+	local co = next(wakeup_session) --取一个待唤醒的协程
 	if co then
-		wakeup_session[co] = nil
-		local session = sleep_session[co]
+		wakeup_session[co] = nil --重置
+		local session = sleep_session[co] --取出对应的session
 		if session then
-			session_id_coroutine[session] = "BREAK"
-			return suspend(co, coroutine_resume(co, false, "BREAK"))
+			session_id_coroutine[session] = "BREAK" 
+			return suspend(co, coroutine_resume(co, false, "BREAK")) --resume
 		end
 	end
 end
@@ -165,7 +165,7 @@ function suspend(co, result, command, param, size)
 	end
 	if command == "CALL" then                 --"CALL"命令，param此时为session id，暂存该协程，等到消息相应执行回调
 		session_id_coroutine[param] = co  
-	elseif command == "SLEEP" then            --"SLEEP"������±���Э��paramΪsessionֵ
+	elseif command == "SLEEP" then            --"SLEEP"命令，等待skynet.wakeup
 		session_id_coroutine[param] = co
 		sleep_session[co] = param
 
@@ -291,10 +291,12 @@ function skynet.yield()
 	return skynet.sleep(0)
 end
 
---Э��cou����
+--等待协程co，先生成服务的一个session id，
+--session_id_coroutine[param] = co
+--sleep_session[co] = param 
 function skynet.wait(co)
-	local session = c.genid()  --����һ��sessionֵ
-	local ret, msg = coroutine_yield("SLEEP", session) --�ó�ִ��
+	local session = c.genid()  --新建一个session
+	local ret, msg = coroutine_yield("SLEEP", session) --向主协程返回SLEEP命令，param此时为session
 	co = co or coroutine.running()
 	sleep_session[co] = nil
 	session_id_coroutine[session] = nil
@@ -429,8 +431,9 @@ function skynet.retpack(...)
 	return skynet.ret(skynet.pack(...))
 end
 
+--唤醒协程co
 function skynet.wakeup(co)
-	if sleep_session[co] and wakeup_session[co] == nil then
+	if sleep_session[co] and wakeup_session[co] == nil then --如果co在睡眠组中，且尚未唤醒，则。。。
 		wakeup_session[co] = true
 		return true
 	end
@@ -471,7 +474,11 @@ function skynet.dispatch_unknown_response(unknown)
 	return prev
 end
 
+<<<<<<< HEAD
 --使用独立的协程执行func
+=======
+--新建一个协程，执行func函数，协程保存在fork_queue表中，消息处理结束后，会依次执行表中的co
+>>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 function skynet.fork(func,...)
 	local args = table.pack(...)
 	local co = co_create(function()
@@ -534,7 +541,7 @@ function skynet.dispatch_message(...)
 			break
 		end
 		fork_queue[key] = nil
-		local fork_succ, fork_err = pcall(suspend,co,coroutine_resume(co))
+		local fork_succ, fork_err = pcall(suspend,co,coroutine_resume(co))--依次执行fork表中的协程
 		if not fork_succ then
 			if succ then
 				succ = false
