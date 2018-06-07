@@ -423,7 +423,7 @@ cmd_reg(struct skynet_context * context, const char * param) {
 	}
 }
 
-/* QUERY command，查询名为param的服务 */
+/* QUERY command，查询名为param的服务是否已启动 */
 static const char *
 cmd_query(struct skynet_context * context, const char * param) {
 	if (param[0] == '.') {

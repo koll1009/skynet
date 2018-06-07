@@ -4,7 +4,7 @@ local skynet_core = require "skynet.core"
 local assert = assert
 
 local socket = {}	-- api
-local buffer_pool = {}	-- store all message buffer object
+local buffer_pool = {}	-- store all message buffer object，socket free buffer node池
 local socket_pool = setmetatable( -- store all socket object
 	{},
 	{ __gc = function(p)
@@ -19,6 +19,7 @@ local socket_pool = setmetatable( -- store all socket object
 
 local socket_message = {}
 
+--激活协程
 local function wakeup(s)
 	local co = s.co
 	if co then
@@ -27,6 +28,7 @@ local function wakeup(s)
 	end
 end
 
+--挂起当前协程，等待激活
 local function suspend(s)
 	assert(not s.co)
 	s.co = coroutine.running() --取当前协程
@@ -39,16 +41,16 @@ local function suspend(s)
 end
 
 -- read skynet_socket.h for these macro
--- SKYNET_SOCKET_TYPE_DATA = 1
+-- SKYNET_SOCKET_TYPE_DATA = 1，接收到socket数据
 socket_message[1] = function(id, size, data)
-	local s = socket_pool[id]
+	local s = socket_pool[id] --取socket
 	if s == nil then
 		skynet.error("socket: drop package from " .. id)
 		driver.drop(data, size)
 		return
 	end
 
-	local sz = driver.push(s.buffer, buffer_pool, data, size)
+	local sz = driver.push(s.buffer, buffer_pool, data, size) --保存到socekt的buffer里
 	local rr = s.read_required
 	local rrt = type(rr)
 	if rrt == "number" then
@@ -81,7 +83,7 @@ socket_message[2] = function(id, _ , addr)
 		return
 	end
 	-- log remote addr
-	s.connected = true
+	s.connected = true --设置连接状态
 	wakeup(s) --唤醒协程
 end
 
@@ -102,7 +104,7 @@ socket_message[4] = function(id, newid, addr)
 		driver.close(newid)
 		return
 	end
-	s.callback(newid, addr)
+	s.callback(newid, addr) --调用accept回调函数
 end
 
 -- SKYNET_SOCKET_TYPE_ERROR = 5
@@ -165,25 +167,25 @@ skynet.register_protocol {
 	end
 }
 
---id为skynet sock id
+--处理监听成功或者连接成功后的@id :skynet sock id
 local function connect(id, func)
 	local newbuffer
 	if func == nil then
-		newbuffer = driver.buffer()
+		newbuffer = driver.buffer() --分配缓冲区
 	end
 	local s = {
 		id = id,
 		buffer = newbuffer,
 		connected = false,
-		connecting = true,
+		connecting = true, --
 		read_required = false,
 		co = false,
-		callback = func,
+		callback = func, --accpet回调函数
 		protocol = "TCP",
 	}
 	assert(not socket_pool[id], "socket is not closed")
 	socket_pool[id] = s  --保存sock的相关信息
-	suspend(s)         
+	suspend(s)    --挂起当前协程，等到socket thread返回连接成功或者监听成功    
 	--此时，s已处于连接状态
 	local err = s.connecting
 	s.connecting = nil
@@ -195,24 +197,27 @@ local function connect(id, func)
 	end
 end
 
+--连接服务器
 function socket.open(addr, port)
-	local id = driver.connect(addr,port)
+	local id = driver.connect(addr,port) --调用skynetdriver.connect连接服务器，连接成功会返回一个SKYNET_SOCKET_TYPE_CONNECT类型的socket消息
 	return connect(id)
 end
 
+--监听os_fd
 function socket.bind(os_fd)
 	local id = driver.bind(os_fd)
 	return connect(id)
 end
 
+--监听标准输入流
 function socket.stdin()
 	return socket.bind(0)
 end
 
---启动函数
+--skynet socket启动函数
 function socket.start(id, func)
 	driver.start(id)         --socketdriver.start(id)，发送启动请求
-	return connect(id, func) --
+	return connect(id, func) --func为server socket的accept处理函数
 end
 
 local function close_fd(id, func)
@@ -261,25 +266,26 @@ function socket.close(id)
 	socket_pool[id] = nil
 end
 
---从socket读数据
+--从socket读数据，@sz为读取的数据字节数
 function socket.read(id, sz)
 	local s = socket_pool[id]
 	assert(s)
 	if sz == nil then
 		-- read some bytes
-		local ret = driver.readall(s.buffer, buffer_pool)
+		local ret = driver.readall(s.buffer, buffer_pool)--读取缓冲区里的所有数据
 		if ret ~= "" then
 			return ret
 		end
 
-		--运行到此处说明还未接收到数据，需要等待数据传输
-		if not s.connected then
+		--缓冲区为空，则等待数据到来
+		
+		if not s.connected then --未连接成功
 			return false, ret
 		end
 		assert(not s.read_required)
 		s.read_required = 0
-		suspend(s)
-		ret = driver.readall(s.buffer, buffer_pool)
+		suspend(s) --挂起，等待数据
+		ret = driver.readall(s.buffer, buffer_pool) 
 		if ret ~= "" then
 			return ret
 		else
@@ -287,21 +293,22 @@ function socket.read(id, sz)
 		end
 	end
 
-	local ret = driver.pop(s.buffer, buffer_pool, sz)
+	local ret = driver.pop(s.buffer, buffer_pool, sz) --读数据，如果数据不足返回nil
 	if ret then
 		return ret
 	end
+	
 	if not s.connected then
 		return false, driver.readall(s.buffer, buffer_pool)
 	end
 
 	assert(not s.read_required)
 	s.read_required = sz
-	suspend(s)
+	suspend(s) --挂起，等待数据到来
 	ret = driver.pop(s.buffer, buffer_pool, sz)
 	if ret then
 		return ret
-	else
+	else --如果数据还是不够，则返回false和当前缓冲区的所有数据
 		return false, driver.readall(s.buffer, buffer_pool)
 	end
 end

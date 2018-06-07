@@ -12,19 +12,21 @@ local harbor_service
 local monitor = {}
 local monitor_master_set = {}
 
+--读包
 local function read_package(fd)
-	local sz = socket.read(fd, 1)
+	local sz = socket.read(fd, 1)--读一个字节的长度
 	assert(sz, "closed")
-	sz = string.byte(sz)
-	local content = assert(socket.read(fd, sz), "closed")
-	return skynet.unpack(content)
+	sz = string.byte(sz) --因为在pack_package的时候，把256以下的数字转成了一个char类型的字节，所以此处要拆解成长度
+	local content = assert(socket.read(fd, sz), "closed") --读取socket message的内容
+	return skynet.unpack(content) --拆包
 end
 
+--数据打包，组成socket消息包 为size+message
 local function pack_package(...)
 	local message = skynet.packstring(...)
-	local size = #message
+	local size = #message --计算包的长度
 	assert(size <= 255 , "too long")
-	return string.char(size) .. message
+	return string.char(size) .. message --组包
 end
 
 local function monitor_clear(id)
@@ -64,8 +66,9 @@ local function ready()
 	end
 end
 
+--
 local function response_name(name)
-	local address = globalname[name]
+	local address = globalname[name] --取服务地址
 	if queryname[name] then
 		local tmp = queryname[name]
 		queryname[name] = nil
@@ -75,9 +78,10 @@ local function response_name(name)
 	end
 end
 
+--监听master服务器的命令请求 
 local function monitor_master(master_fd)
 	while true do
-		local ok, t, id_name, address = pcall(read_package,master_fd)
+		local ok, t, id_name, address = pcall(read_package,master_fd) --读取master服务器的数据
 		if ok then
 			if t == 'C' then
 				if connect_queue then
@@ -169,12 +173,13 @@ local function monitor_harbor(master_fd)
 	end
 end
 
+--注册全局服务名的lua命令处理
 function harbor.REGISTER(fd, name, handle)
 	assert(globalname[name] == nil)
-	globalname[name] = handle
+	globalname[name] = handle --先在服务中保存name-handle对
 	response_name(name)
-	socket.write(fd, pack_package("R", name, handle))
-	skynet.redirect(harbor_service, handle, "harbor", 0, "N " .. name)
+	socket.write(fd, pack_package("R", name, handle)) --通过tcp协议，发送内容
+	skynet.redirect(harbor_service, handle, "harbor", 0, "N " .. name) --转到harbor服务
 end
 
 function harbor.LINK(fd, id)
@@ -224,27 +229,31 @@ function harbor.QUERYNAME(fd, name)
 end
 
 skynet.start(function()
-	local master_addr = skynet.getenv "master"
-	local harbor_id = tonumber(skynet.getenv "harbor")
-	local slave_address = assert(skynet.getenv "address")
-	local slave_fd = socket.listen(slave_address)
+	local master_addr = skynet.getenv "master"  --取master主机地址
+	local harbor_id = tonumber(skynet.getenv "harbor") --取harbor id
+	local slave_address = assert(skynet.getenv "address") --取slave地址
+	local slave_fd = socket.listen(slave_address) --监听
 	skynet.error("slave connect to master " .. tostring(master_addr))
-	local master_fd = assert(socket.open(master_addr), "Can't connect to master")
+	local master_fd = assert(socket.open(master_addr), "Can't connect to master") --连接master主机
 
+	--lua消息处理
 	skynet.dispatch("lua", function (_,_,command,...)
-		local f = assert(harbor[command])
+		local f = assert(harbor[command]) --取命令
 		f(master_fd, ...)
 	end)
+
+	--text消息处理
 	skynet.dispatch("text", monitor_harbor(master_fd))
 
+	--启动harbor服务，传入harborid，以及本服务号
 	harbor_service = assert(skynet.launch("harbor", harbor_id, skynet.self()))
 
-	local hs_message = pack_package("H", harbor_id, slave_address)
-	socket.write(master_fd, hs_message)
-	local t, n = read_package(master_fd)
+	local hs_message = pack_package("H", harbor_id, slave_address)--使用harborid:slave地址组一个socket message包
+	socket.write(master_fd, hs_message)--发送给master主机
+	local t, n = read_package(master_fd)--读取master主机的返回内容，并解析，返回W+一个数字(标识服务器数量)
 	assert(t == "W" and type(n) == "number", "slave shakehand failed")
 	skynet.error(string.format("Waiting for %d harbors", n))
-	skynet.fork(monitor_master, master_fd)
+	skynet.fork(monitor_master, master_fd) --使用独立协程执行monitor_master(master_fd)
 	if n > 0 then
 		local co = coroutine.running()
 		socket.start(slave_fd, function(fd, addr)

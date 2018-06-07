@@ -27,8 +27,8 @@ struct buffer_node {
 
 //socket缓冲区
 struct socket_buffer {
-	int size;
-	int offset;
+	int size; //大小
+	int offset;//当前node的偏移量
 	struct buffer_node *head;
 	struct buffer_node *tail;
 };
@@ -95,9 +95,10 @@ lnewbuffer(lua_State *L) {
 	lpushbbuffer will get a free struct buffer_node from table pool, and then put the msg/size in it.
 	lpopbuffer return the struct buffer_node back to table pool (By calling return_free_node).
  */
+//接收到socket数据，放到buffer里
 static int
 lpushbuffer(lua_State *L) {
-	struct socket_buffer *sb = lua_touserdata(L,1);
+	struct socket_buffer *sb = lua_touserdata(L,1);//参数1 buffer
 	if (sb == NULL) {
 		return luaL_error(L, "need buffer object at param 1");
 	}
@@ -106,7 +107,7 @@ lpushbuffer(lua_State *L) {
 		return luaL_error(L, "need message block at param 3");
 	}
 	int pool_index = 2;
-	luaL_checktype(L,pool_index,LUA_TTABLE); //arg2为一个table buffer pool
+	luaL_checktype(L,pool_index,LUA_TTABLE); //参数2为buffer free node pool，缓存着可用buffer_node
 	int sz = luaL_checkinteger(L,4);//arg4为消息数据大小
 	lua_rawgeti(L,pool_index,1);
 	struct buffer_node * free_node = lua_touserdata(L,-1);	// sb poolt msg size free_node
@@ -145,23 +146,24 @@ lpushbuffer(lua_State *L) {
 	return 1;
 }
 
+//返回空闲socket buffer node
 static void
 return_free_node(lua_State *L, int pool, struct socket_buffer *sb) {
 	struct buffer_node *free_node = sb->head;
 	sb->offset = 0;
-	sb->head = free_node->next;
+	sb->head = free_node->next;//移除当前node
 	if (sb->head == NULL) {
 		sb->tail = NULL;
 	}
-	lua_rawgeti(L,pool,1);
-	free_node->next = lua_touserdata(L,-1);
+	lua_rawgeti(L,pool,1);//取socket node pool中的第一个节点
+	free_node->next = lua_touserdata(L,-1);//链接其他free node
 	lua_pop(L,1);
 	skynet_free(free_node->msg);
 	free_node->msg = NULL;
 
 	free_node->sz = 0;
 	lua_pushlightuserdata(L, free_node);
-	lua_rawseti(L, pool, 1);
+	lua_rawseti(L, pool, 1);//保存为socket node pool的第一个节点，做header
 }
 
 static void
@@ -238,7 +240,7 @@ lpopbuffer(lua_State *L) {
 	}
 	luaL_checktype(L,2,LUA_TTABLE);
 	int sz = luaL_checkinteger(L,3);
-	if (sb->size < sz || sz == 0) {
+	if (sb->size < sz || sz == 0) {//先检查缓冲数据是否够
 		lua_pushnil(L);
 	} else {
 		pop_lstring(L,sb,sz,0);
@@ -267,9 +269,10 @@ lclearbuffer(lua_State *L) {
 	return 0;
 }
 
+/* socketdriver.readall函数 */
 static int
 lreadall(lua_State *L) {
-	struct socket_buffer * sb = lua_touserdata(L, 1);
+	struct socket_buffer * sb = lua_touserdata(L, 1);//参数1为缓冲区
 	if (sb == NULL) {
 		return luaL_error(L, "Need buffer object at param 1");
 	}
@@ -279,7 +282,7 @@ lreadall(lua_State *L) {
 	while(sb->head) {
 		struct buffer_node *current = sb->head;
 		luaL_addlstring(&b, current->msg + sb->offset, current->sz - sb->offset);
-		return_free_node(L,2,sb);
+		return_free_node(L,2,sb);//参数2为free node pool
 	}
 	luaL_pushresult(&b);
 	sb->size = 0;
@@ -438,6 +441,7 @@ address_port(lua_State *L, char *tmp, const char * addr, int port_index, int *po
 	return host;
 }
 
+//socketdriver.connect函数，连接服务器，返回skynet socket id
 static int
 lconnect(lua_State *L) {
 	size_t sz = 0;
@@ -449,7 +453,7 @@ lconnect(lua_State *L) {
 		return luaL_error(L, "Invalid port");
 	}
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
-	int id = skynet_socket_connect(ctx, host, port);
+	int id = skynet_socket_connect(ctx, host, port);//连接
 	lua_pushinteger(L, id);
 
 	return 1;
@@ -573,6 +577,7 @@ lsendlow(lua_State *L) {
 	return 0;
 }
 
+/* socketdriver.bind函数， */
 static int
 lbind(lua_State *L) {
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));

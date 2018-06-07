@@ -108,15 +108,16 @@ struct socket_server {
 
 /* open请求描述符 */
 struct request_open {
-	int id;//
-	int port;
-	uintptr_t opaque;
-	char host[1];
+	int id;//socket id
+	int port;//端口
+	uintptr_t opaque;//服务
+	char host[1];//主机or ip
 };
 
+/* pipe D(send)命令的数据描述符 */
 struct request_send {
-	int id;
-	int sz;
+	int id;//socket id
+	int sz;//数据 size
 	char * buffer;
 };
 
@@ -219,6 +220,7 @@ struct send_object {
 #define MALLOC skynet_malloc
 #define FREE skynet_free
 
+//初始化发送对象
 static inline bool
 send_object_init(struct socket_server *ss, struct send_object *so, void *object, int sz) {
 	if (sz < 0) {
@@ -412,7 +414,7 @@ new_fd(struct socket_server *ss, int id, int fd, int protocol, uintptr_t opaque,
 	return s;
 }
 
-// return -1 when connecting
+// 连接服务器 return -1 when connecting
 static int
 open_socket(struct socket_server *ss, struct request_open * request, struct socket_message *result) {
 	int id = request->id;
@@ -477,7 +479,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		return SOCKET_OPEN;
 	} else {//连接还在继续执行
 		ns->type = SOCKET_TYPE_CONNECTING;
-		sp_write(ss->event_fd, ns->fd, ns, true);
+		sp_write(ss->event_fd, ns->fd, ns, true);//设置可写，当连接成功后，epoll会提醒
 	}
 
 	freeaddrinfo( ai_list );
@@ -718,11 +720,15 @@ send_socket(struct socket_server *ss, struct request_send * request, struct sock
 		so.free_func(request->buffer);
 		return -1;
 	}
+
+	//监听socket不能发送
 	if (s->type == SOCKET_TYPE_PLISTEN || s->type == SOCKET_TYPE_LISTEN) {
 		fprintf(stderr, "socket-server: write to listen fd %d.\n", id);
 		so.free_func(request->buffer);
 		return -1;
 	}
+
+    /* socket的发送缓冲区为空，且状态正常 */	
 	if (send_buffer_empty(s) && s->type == SOCKET_TYPE_CONNECTED) {
 		if (s->protocol == PROTOCOL_TCP) {
 			int n = write(s->fd, so.buffer, so.sz);//第一次发送
@@ -827,6 +833,7 @@ close_socket(struct socket_server *ss, struct request_close *request, struct soc
 	return -1;
 }
 
+/* pipe bind命令处理，会把调用bind的socket添加到epoll中 */
 static int
 bind_socket(struct socket_server *ss, struct request_bind *request, struct socket_message *result) {
 	int id = request->id;
@@ -999,13 +1006,13 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 	switch (type) {
 	case 'S': /* 处理socket start请求 */
 		return start_socket(ss,(struct request_start *)buffer, result);
-	case 'B':
+	case 'B': /* bind命令，添加到epoll中，用于监听文件描述符fd */
 		return bind_socket(ss,(struct request_bind *)buffer, result);
 	case 'L': /* 处理listen cmd，如果成功，返回-1，表示不需要往对应的服务中发消息*/
 		return listen_socket(ss,(struct request_listen *)buffer, result);
 	case 'K':
 		return close_socket(ss,(struct request_close *)buffer, result);
-	case 'O'://处理open命令
+	case 'O'://处理open命令，连接服务器
 		return open_socket(ss, (struct request_open *)buffer, result);
 	case 'X':
 		result->opaque = 0;
@@ -1013,7 +1020,7 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 		result->ud = 0;
 		result->data = NULL;
 		return SOCKET_EXIT;
-	case 'D':
+	case 'D': /* Send命令，发送数据 */
 		return send_socket(ss, (struct request_send *)buffer, result, PRIORITY_HIGH, NULL);
 	case 'P':
 		return send_socket(ss, (struct request_send *)buffer, result, PRIORITY_LOW, NULL);
@@ -1351,6 +1358,7 @@ send_request(struct socket_server *ss, struct request_package *request, char typ
 	}
 }
 
+/* 初始化pipe Open命令的请求数据 */
 static int
 open_request(struct socket_server *ss, struct request_package *req, uintptr_t opaque, const char *addr, int port) {
 	int len = strlen(addr);
@@ -1358,9 +1366,10 @@ open_request(struct socket_server *ss, struct request_package *req, uintptr_t op
 		fprintf(stderr, "socket-server : Invalid addr %s.\n",addr);
 		return -1;
 	}
-	int id = reserve_id(ss);
+	int id = reserve_id(ss);//分配socket
 	if (id < 0)
 		return -1;
+	//初始化数据
 	req->u.open.opaque = opaque;
 	req->u.open.id = id;
 	req->u.open.port = port;
@@ -1370,14 +1379,15 @@ open_request(struct socket_server *ss, struct request_package *req, uintptr_t op
 	return len;
 }
 
+/* 连接服务器，使用pipe命令"O" */
 int 
 socket_server_connect(struct socket_server *ss, uintptr_t opaque, const char * addr, int port) {
 	struct request_package request;
 	int len = open_request(ss, &request, opaque, addr, port);
 	if (len < 0)
 		return -1;
-	send_request(ss, &request, 'O', sizeof(request.u.open) + len);
-	return request.u.open.id;
+	send_request(ss, &request, 'O', sizeof(request.u.open) + len); //发送请求
+	return request.u.open.id;//返回socket id
 }
 
 static void
@@ -1387,7 +1397,7 @@ free_buffer(struct socket_server *ss, const void * buffer, int sz) {
 	so.free_func((void *)buffer);
 }
 
-// return -1 when error
+// 发送数据，使用pipe D命令 return -1 when error
 int64_t 
 socket_server_send(struct socket_server *ss, int id, const void * buffer, int sz) {
 	struct socket * s = &ss->slot[HASH_ID(id)];

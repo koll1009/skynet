@@ -128,6 +128,7 @@ check_wsz(struct skynet_context *ctx, int id, void *buffer, int64_t wsz) {
 	return 0;
 }
 
+/* skynet中socket的发送数据函数 */
 int
 skynet_socket_send(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	int64_t wsz = socket_server_send(SOCKET_SERVER, id, buffer, sz);
@@ -147,12 +148,14 @@ skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int
 	return socket_server_listen(SOCKET_SERVER, source, host, port, backlog);//开启监听，并且向socket线程发送一个pipe Listen command，通知socket thread是服务source开启的监听操作
 }
 
+/* skynet中的socket连接服务器接口， */
 int 
 skynet_socket_connect(struct skynet_context *ctx, const char *host, int port) {
 	uint32_t source = skynet_context_handle(ctx);
 	return socket_server_connect(SOCKET_SERVER, source, host, port);
 }
 
+/* skynet中的socket或者文件描述符的bind命令，添加到epoll中，进行事件监听 */
 int 
 skynet_socket_bind(struct skynet_context *ctx, int fd) {
 	uint32_t source = skynet_context_handle(ctx);

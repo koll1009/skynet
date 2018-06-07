@@ -170,7 +170,9 @@ local function register_local()
 	skynet.call("SERVICE", "lua", "REPORT", skynet.self())
 end
 
+--服务启动函数
 skynet.start(function()
+	--设置lua消息的处理函数
 	skynet.dispatch("lua", function(session, address, command, ...)
 		local f = cmd[command]
 		if f == nil then
@@ -186,14 +188,14 @@ skynet.start(function()
 			skynet.ret(skynet.pack(nil, r))
 		end
 	end)
-	local handle = skynet.localname ".service" --查询服务是否注册为.service
-	if  handle then
+	local handle = skynet.localname ".service" --查询是否已有.service服务
+	if  handle then --已启动，则提醒
 		skynet.error(".service is already register by ", skynet.address(handle))
 		skynet.exit()
 	else
-		skynet.register(".service") --注册服务名
+		skynet.register(".service") -- 注册服务名
 	end
-	if skynet.getenv "standalone" then
+	if skynet.getenv "standalone" then --如果是master主机，则把服务注册为全局服务名SERVICE
 		skynet.register("SERVICE")
 		register_global()
 	else

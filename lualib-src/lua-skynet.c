@@ -118,7 +118,7 @@ lcommand(lua_State *L) {
 		parm = luaL_checkstring(L,2);/* 参数2为命令的参数 */
 	}
 
-	result = skynet_command(context, cmd, parm);
+	result = skynet_command(context, cmd, parm);//调用skynet的cmd table完成命令的执行
 	if (result) {
 		lua_pushstring(L, result);
 		return 1;

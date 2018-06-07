@@ -311,7 +311,7 @@ end
 
 --查询名为name的服务，有则query cmd返回的addr为16进制字符形式，先转换成handle值再返回
 function skynet.localname(name)
-	local addr = c.command("QUERY", name)
+	local addr = c.command("QUERY", name)--查询名为name的服务是否已启动
 	if addr then
 		return string_to_handle(addr)
 	end
@@ -471,6 +471,7 @@ function skynet.dispatch_unknown_response(unknown)
 	return prev
 end
 
+--使用独立的协程执行func
 function skynet.fork(func,...)
 	local args = table.pack(...)
 	local co = co_create(function()
@@ -551,7 +552,7 @@ function skynet.newservice(name, ...)
 	return skynet.call(".launcher", "lua" , "LAUNCH", "snlua", name, ...)
 end
 
---
+--service_mgr服务启动服务，唯一启动
 function skynet.uniqueservice(global, ...)
 	if global == true then
 		return assert(skynet.call(".service", "lua", "GLAUNCH", ...))

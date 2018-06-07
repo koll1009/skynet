@@ -22,17 +22,18 @@ function skynet.abort()
 	c.command("ABORT")
 end
 
---检查@name是否为服务@handle的全局名
+--检查@name是否为全服服务名
 local function globalname(name, handle)
 	local c = string.sub(name,1,1) --取第一个字符
-	assert(c ~= ':')
-	if c == '.' then   --第一个字符为'.'
+	assert(c ~= ':') 
+	if c == '.' then   --第一个字符为'.'，表示为local name
 		return false
 	end
 
 	assert(#name <= 16)	-- GLOBALNAME_LENGTH is 16, defined in skynet_harbor.h
 	assert(tonumber(name) == nil)	-- global name can't be number
 
+	--调用skynet.harbor.globalname注册全服服务名
 	local harbor = require "skynet.harbor"
 
 	harbor.globalname(name, handle)
@@ -42,7 +43,7 @@ end
 
 --注册服务名name
 function skynet.register(name)
-	if not globalname(name) then
+	if not globalname(name) then --首先验证是否为全服服务名
 		c.command("REG", name)--调用reg cmd注册
 	end
 end
