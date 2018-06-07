@@ -173,7 +173,7 @@ local function monitor_harbor(master_fd)
 	end
 end
 
---注册全局服务名的lua命令处理
+--注册全局服务名的lua命令处理,fd为master socket id
 function harbor.REGISTER(fd, name, handle)
 	assert(globalname[name] == nil)
 	globalname[name] = handle --先在服务中保存name-handle对
