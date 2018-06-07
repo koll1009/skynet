@@ -108,17 +108,12 @@ struct socket_server {
 
 /* open请求描述符 */
 struct request_open {
-<<<<<<< HEAD
+
 	int id;//socket id
 	int port;//端口
 	uintptr_t opaque;//服务
 	char host[1];//主机or ip
-=======
-	int id;//sock id
-	int port;//端口
-	uintptr_t opaque;//发送open命令的服务
-	char host[1];//ip
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
+
 };
 
 /* pipe D(send)命令的数据描述符 */
@@ -421,11 +416,8 @@ new_fd(struct socket_server *ss, int id, int fd, int protocol, uintptr_t opaque,
 	return s;
 }
 
-<<<<<<< HEAD
-// 连接服务器 return -1 when connecting
-=======
+
 // return -1 when connecting 连接服务器，
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 static int
 open_socket(struct socket_server *ss, struct request_open * request, struct socket_message *result) {
 	int id = request->id;
@@ -492,11 +484,7 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 		return SOCKET_OPEN;
 	} else {//连接还在继续执行
 		ns->type = SOCKET_TYPE_CONNECTING;
-<<<<<<< HEAD
 		sp_write(ss->event_fd, ns->fd, ns, true);//设置可写，当连接成功后，epoll会提醒
-=======
-		sp_write(ss->event_fd, ns->fd, ns, true);//设置可写状态
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 	}
 
 	freeaddrinfo( ai_list );
@@ -1029,11 +1017,8 @@ ctrl_cmd(struct socket_server *ss, struct socket_message *result) {
 		return listen_socket(ss,(struct request_listen *)buffer, result);
 	case 'K':
 		return close_socket(ss,(struct request_close *)buffer, result);
-<<<<<<< HEAD
-	case 'O'://处理open命令，连接服务器
-=======
+
 	case 'O'://处理open命令，用于连接服务器
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 		return open_socket(ss, (struct request_open *)buffer, result);
 	case 'X':
 		result->opaque = 0;
@@ -1379,11 +1364,8 @@ send_request(struct socket_server *ss, struct request_package *request, char typ
 	}
 }
 
-<<<<<<< HEAD
+
 /* 初始化pipe Open命令的请求数据 */
-=======
-//初始化pipe open命令需要的数据
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 static int
 open_request(struct socket_server *ss, struct request_package *req, uintptr_t opaque, const char *addr, int port) {
 	int len = strlen(addr);
@@ -1391,11 +1373,8 @@ open_request(struct socket_server *ss, struct request_package *req, uintptr_t op
 		fprintf(stderr, "socket-server : Invalid addr %s.\n",addr);
 		return -1;
 	}
-<<<<<<< HEAD
+
 	int id = reserve_id(ss);//分配socket
-=======
-	int id = reserve_id(ss);//分配id
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 	if (id < 0)
 		return -1;
 	//初始化数据
@@ -1408,24 +1387,15 @@ open_request(struct socket_server *ss, struct request_package *req, uintptr_t op
 	return len;
 }
 
-<<<<<<< HEAD
 /* 连接服务器，使用pipe命令"O" */
-=======
-//连接服务器
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 int 
 socket_server_connect(struct socket_server *ss, uintptr_t opaque, const char * addr, int port) {
 	struct request_package request;
 	int len = open_request(ss, &request, opaque, addr, port);//初始化pipe open命令请求
 	if (len < 0)
 		return -1;
-<<<<<<< HEAD
 	send_request(ss, &request, 'O', sizeof(request.u.open) + len); //发送请求
 	return request.u.open.id;//返回socket id
-=======
-	send_request(ss, &request, 'O', sizeof(request.u.open) + len);//发送请求
-	return request.u.open.id;
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 }
 
 static void

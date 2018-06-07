@@ -269,17 +269,12 @@ lclearbuffer(lua_State *L) {
 	return 0;
 }
 
-<<<<<<< HEAD
+
 /* socketdriver.readall函数 */
 static int
 lreadall(lua_State *L) {
 	struct socket_buffer * sb = lua_touserdata(L, 1);//参数1为缓冲区
-=======
-//socketdriver.readll函数，把socket缓冲池里的数据返回
-static int
-lreadall(lua_State *L) {
-	struct socket_buffer * sb = lua_touserdata(L, 1);//socket 缓冲区
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
+
 	if (sb == NULL) {
 		return luaL_error(L, "Need buffer object at param 1");
 	}
@@ -448,11 +443,7 @@ address_port(lua_State *L, char *tmp, const char * addr, int port_index, int *po
 	return host;
 }
 
-<<<<<<< HEAD
 //socketdriver.connect函数，连接服务器，返回skynet socket id
-=======
-//socketdriver.connect函数
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 static int
 lconnect(lua_State *L) {
 	size_t sz = 0;

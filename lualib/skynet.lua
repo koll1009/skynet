@@ -474,11 +474,7 @@ function skynet.dispatch_unknown_response(unknown)
 	return prev
 end
 
-<<<<<<< HEAD
---使用独立的协程执行func
-=======
 --新建一个协程，执行func函数，协程保存在fork_queue表中，消息处理结束后，会依次执行表中的co
->>>>>>> 99cf0b049af914609dd499d57ff9f692f613cc70
 function skynet.fork(func,...)
 	local args = table.pack(...)
 	local co = co_create(function()

@@ -81,9 +81,9 @@ end
 --监听master服务器的命令请求 
 local function monitor_master(master_fd)
 	while true do
-		local ok, t, id_name, address = pcall(read_package,master_fd) --读取master服务器的数据
+		local ok, t, id_name, address = pcall(read_package,master_fd) --读取master服务器的数据，并unpack
 		if ok then
-			if t == 'C' then
+			if t == 'C' then 
 				if connect_queue then
 					connect_queue[id_name] = address
 				else
