@@ -85,7 +85,7 @@ local header_cache = make_cache(function(t,k)
 	end)
 
 local command_cache = make_cache(function(t,cmd)
-		local s = "\r\n$"..#cmd.."\r\n"..cmd:upper()
+		local s = "\r\n$"..#cmd.."\r\n"..cmd:upper() --
 		t[cmd] = s
 		return s
 	end)
@@ -96,8 +96,10 @@ local count_cache = make_cache(function(t,k)
 		return s
 	end)
 
+
+--redis数据包封装 
 local function compose_message(cmd, msg)
-	local t = type(msg)
+	local t = type(msg) --取数据的类型，可选的为table以及string
 	local lines = {}
 
 	if t == "table" then
@@ -111,12 +113,12 @@ local function compose_message(cmd, msg)
 			idx = idx + 2
 		end
 		lines[idx] = "\r\n"
-	else
+	else 
 		msg = tostring(msg)
-		lines[1] = "*2"
-		lines[2] = command_cache[cmd]
-		lines[3] = header_cache[#msg]
-		lines[4] = msg
+		lines[1] = "*2" --消息体有两行
+		lines[2] = command_cache[cmd] --第一行的消息体为命令
+		lines[3] = header_cache[#msg] --命令参数的长度
+		lines[4] = msg                --命令参数字符串和上一行的长度组成消息体的第二行
 		lines[5] = "\r\n"
 	end
 
@@ -244,6 +246,7 @@ local function watch_login(obj, auth)
 	end
 end
 
+--
 function redis.watch(db_conf)
 	local obj = {
 		__subscribe = {},
@@ -258,8 +261,8 @@ function redis.watch(db_conf)
 	obj.__sock = channel
 
 	-- try connect first only once
-	channel:connect(true)
-	return setmetatable( obj, watchmeta )
+	channel:connect(true) --连接redis服务器
+	return setmetatable( obj, watchmeta ) --设置metatable为watchmeta，其__index指向watch，所以返回值obj可以继承watch的方法
 end
 
 function watch:disconnect()
@@ -269,16 +272,17 @@ end
 
 local function watch_func( name )
 	local NAME = string.upper(name)
-	watch[name] = function(self, ...)
+	watch[name] = function(self, ...)  --self指向redis.watch返回的obj数组，_sock字段指向socket channel
 		local so = self.__sock
-		for i = 1, select("#", ...) do
-			local v = select(i, ...)
-			so:request(compose_message(NAME, v))
+		for i = 1, select("#", ...) do --选择的长度
+			local v = select(i, ...)   --取索引为i的选择
+			so:request(compose_message(NAME, v)) --发送请求，不处理响应
 		end
 	end
 end
 
-watch_func "subscribe"
+--依次定义watch.subscribe  watch.psubscribe  watch.unsubscribe  watch.punsubscribe函数
+watch_func "subscribe" 
 watch_func "psubscribe"
 watch_func "unsubscribe"
 watch_func "punsubscribe"
