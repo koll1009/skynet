@@ -102,23 +102,25 @@ lquerytype(lua_State *L) {
 	return 0;
 }
 
+//encode函数用户参数
 struct encode_ud {
 	lua_State *L;
-	struct sproto_type *st;
-	int tbl_index;
+	struct sproto_type *st;//编码的类型
+	int tbl_index;//指向初始化该类型的table
 	const char * array_tag;
-	int array_index;
-	int deep;
-	int iter_index;
+	int array_index;//
+	int deep;//深度
+	int iter_index;//迭代器索引
 };
 
+//编码
 static int
 encode(const struct sproto_arg *args) {
 	struct encode_ud *self = args->ud;
 	lua_State *L = self->L;
-	if (self->deep >= ENCODE_DEEPLEVEL)
+	if (self->deep >= ENCODE_DEEPLEVEL)//最大嵌套层数
 		return luaL_error(L, "The table is too deep");
-	if (args->index > 0) {
+	if (args->index > 0) {//数组类型
 		if (args->tagname != self->array_tag) {
 			// a new array
 			self->array_tag = args->tagname;
@@ -156,8 +158,8 @@ encode(const struct sproto_arg *args) {
 		} else {
 			lua_geti(L, self->array_index, args->index);
 		}
-	} else {
-		lua_getfield(L, self->tbl_index, args->tagname);
+	} else {//第一个字段
+		lua_getfield(L, self->tbl_index, args->tagname);//取该字段的值
 	}
 	if (lua_isnil(L, -1)) {
 		lua_pop(L,1);
@@ -168,7 +170,7 @@ encode(const struct sproto_arg *args) {
 		lua_Integer v;
 		lua_Integer vh;
 		int isnum;
-		v = lua_tointegerx(L, -1, &isnum);
+		v = lua_tointegerx(L, -1, &isnum);//转换成整型
 		if(!isnum) {
 			return luaL_error(L, ".%s[%d] is not an integer (Is a %s)", 
 				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
@@ -195,7 +197,8 @@ encode(const struct sproto_arg *args) {
 		lua_pop(L,1);
 		return 4;
 	}
-	case SPROTO_TSTRING: {
+
+	case SPROTO_TSTRING: {//字符串类型
 		size_t sz = 0;
 		const char * str;
 		if (!lua_isstring(L, -1)) {
@@ -206,11 +209,11 @@ encode(const struct sproto_arg *args) {
 		}
 		if (sz > args->length)
 			return SPROTO_CB_ERROR;
-		memcpy(args->value, str, sz);
+		memcpy(args->value, str, sz);//copy，返回长度
 		lua_pop(L,1);
 		return sz;
 	}
-	case SPROTO_TSTRUCT: {
+	case SPROTO_TSTRUCT: {//struct类型
 		struct encode_ud sub;
 		int r;
 		int top = lua_gettop(L);
@@ -226,7 +229,7 @@ encode(const struct sproto_arg *args) {
 		sub.deep = self->deep + 1;
 		lua_pushnil(L);	// prepare an iterator slot
 		sub.iter_index = sub.tbl_index + 1;
-		r = sproto_encode(args->subtype, args->value, args->length, encode, &sub);
+		r = sproto_encode(args->subtype, args->value, args->length, encode, &sub);//递归解析
 		lua_settop(L, top-1);	// pop the value
 		if (r < 0) 
 			return SPROTO_CB_ERROR;
@@ -255,11 +258,10 @@ expand_buffer(lua_State *L, int osz, int nsz) {
 	return output;
 }
 
-/*  sproto.core.encode函数
-	lightuserdata sproto_type
-	table source
-
-	return string
+/* sproto.core.encode函数　
+　 @arg1：lightuserdata sproto_type，type原型
+   @table source，用于初始化type原型，两者field一一对应
+   return string
  */
 static int
 lencode(lua_State *L) {
@@ -267,11 +269,11 @@ lencode(lua_State *L) {
 	void * buffer = lua_touserdata(L, lua_upvalueindex(1));//buffer 
 	int sz = lua_tointeger(L, lua_upvalueindex(2));//buffer的长度
 	int tbl_index = 2;
-	struct sproto_type * st = lua_touserdata(L, 1);//第一个参数为sproto_type，
+	struct sproto_type * st = lua_touserdata(L, 1);//第一个参数为sproto_type 
 	if (st == NULL) {
 		return luaL_argerror(L, 1, "Need a sproto_type object");
 	}
-	luaL_checktype(L, tbl_index, LUA_TTABLE);
+	luaL_checktype(L, tbl_index, LUA_TTABLE);//第二个参数必须为table，即用来初始化sproto_type的值
 	luaL_checkstack(L, ENCODE_DEEPLEVEL*2 + 8, NULL);
 	self.L = L;
 	self.st = st;
@@ -283,15 +285,15 @@ lencode(lua_State *L) {
 		self.deep = 0;
 
 		lua_settop(L, tbl_index);
-		lua_pushnil(L);	// for iterator (stack slot 3)
-		self.iter_index = tbl_index+1;
+		lua_pushnil(L);	// for iterator (stack slot 3) 压入一个nil值
+		self.iter_index = tbl_index+1;//迭代的起始索引
 
-		r = sproto_encode(st, buffer, sz, encode, &self);
+		r = sproto_encode(st, buffer, sz, encode, &self);//开始编码
 		if (r<0) {
 			buffer = expand_buffer(L, sz, sz*2);
 			sz *= 2;
 		} else {
-			lua_pushlstring(L, buffer, r);
+			lua_pushlstring(L, buffer, r);//返回字符串
 			return 1;
 		}
 	}

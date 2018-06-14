@@ -640,6 +640,7 @@ fill_size(uint8_t * data, int sz) {
 	return sz + SIZEOF_LENGTH;
 }
 
+//32位整型编码，4个字节的长度+4个字节的值
 static int
 encode_integer(uint32_t v, uint8_t * data, int size) {
 	if (size < SIZEOF_LENGTH + sizeof(v))
@@ -651,6 +652,7 @@ encode_integer(uint32_t v, uint8_t * data, int size) {
 	return fill_size(data, sizeof(v));
 }
 
+//64位整型编码，4个字节的长度+8个字节的值
 static int
 encode_uint64(uint64_t v, uint8_t * data, int size) {
 	if (size < SIZEOF_LENGTH + sizeof(v))
@@ -688,15 +690,15 @@ do_cb(sproto_callback cb, void *ud, const char *tagname, int type, int index, st
 }
 #define CB(tagname,type,index,subtype,value,length) do_cb(cb,ud, tagname,type,index,subtype,value,length)
 */
-
+//字符串、struct类型的编码
 static int
 encode_object(sproto_callback cb, struct sproto_arg *args, uint8_t *data, int size) {
 	int sz;
 	if (size < SIZEOF_LENGTH)
 		return -1;
-	args->value = data+SIZEOF_LENGTH;
+	args->value = data+SIZEOF_LENGTH;//前面预留4个字段的长度
 	args->length = size-SIZEOF_LENGTH;
-	sz = cb(args);
+	sz = cb(args);//返回长度
 	if (sz < 0) {
 		if (sz == SPROTO_CB_NIL)
 			return 0;
@@ -808,6 +810,7 @@ encode_integer_array(sproto_callback cb, struct sproto_arg *args, uint8_t *buffe
 	return buffer;
 }
 
+//编码数组
 static int
 encode_array(sproto_callback cb, struct sproto_arg *args, uint8_t *data, int size) {
 	uint8_t * buffer;
@@ -884,7 +887,7 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 	struct sproto_arg args;
 	uint8_t * header = buffer;
 	uint8_t * data;
-	int header_sz = SIZEOF_HEADER + st->maxn * SIZEOF_FIELD;
+	int header_sz = SIZEOF_HEADER + st->maxn * SIZEOF_FIELD;//头部字节长度
 	int i;
 	int index;
 	int lasttag;
@@ -896,24 +899,24 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 	size -= header_sz;
 	index = 0;
 	lasttag = -1;
-	for (i=0;i<st->n;i++) {
+	for (i=0;i<st->n;i++) {//依次遍历field
 		struct field *f = &st->f[i];
 		int type = f->type;
 		int value = 0;
 		int sz = -1;
-		args.tagname = f->name;
-		args.tagid = f->tag;
-		args.subtype = f->st;
-		args.mainindex = f->key;
-		if (type & SPROTO_TARRAY) {
+		args.tagname = f->name;//field name
+		args.tagid = f->tag;//index
+		args.subtype = f->st;//子类型指针
+		args.mainindex = f->key;//子类型的字段索引
+		if (type & SPROTO_TARRAY) {//数组类型
 			args.type = type & ~SPROTO_TARRAY;
 			sz = encode_array(cb, &args, data, size);
-		} else {
-			args.type = type;
+		} else {//非数组类型
+			args.type = type;//
 			args.index = 0;
 			switch(type) {
 			case SPROTO_TINTEGER:
-			case SPROTO_TBOOLEAN: {
+			case SPROTO_TBOOLEAN: { //整型和布尔类型
 				union {
 					uint64_t u64;
 					uint32_t u32;
@@ -928,12 +931,12 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 						return 0;
 					return -1;	// sz == SPROTO_CB_ERROR
 				}
-				if (sz == sizeof(uint32_t)) {
-					if (u.u32 < 0x7fff) {
+				if (sz == sizeof(uint32_t)) {//如果值为32位
+					if (u.u32 < 0x7fff) {//编码成两个字节
 						value = (u.u32+1) * 2;
 						sz = 2; // sz can be any number > 0
 					} else {
-						sz = encode_integer(u.u32, data, size);
+						sz = encode_integer(u.u32, data, size);//
 					}
 				} else if (sz == sizeof(uint64_t)) {
 					sz= encode_uint64(u.u64, data, size);

@@ -31,14 +31,15 @@ struct sproto_type * sproto_type(const struct sproto *, const char * type_name);
 int sproto_pack(const void * src, int srcsz, void * buffer, int bufsz);
 int sproto_unpack(const void * src, int srcsz, void * buffer, int bufsz);
 
+/* 用于encode的参数结构体 */
 struct sproto_arg {
 	void *ud;
-	const char *tagname;
-	int tagid;
-	int type;
-	struct sproto_type *subtype;
-	void *value;
-	int length;
+	const char *tagname;//field name
+	int tagid;//index
+	int type;//类型
+	struct sproto_type *subtype;//子类型指针
+	void *value;//编码过程中获取到的参数值
+	int length;//value的长度
 	int index;	// array base 1
 	int mainindex;	// for map
 };
