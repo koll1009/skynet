@@ -13,10 +13,11 @@ function sproto_mt:__gc()
 	core.deleteproto(self.__cobj)
 end
 
+--创建一个sproto对象
 function sproto.new(bin)
 	local cobj = assert(core.newproto(bin))
 	local self = {
-		__cobj = cobj,
+		__cobj = cobj,--指向c函数创建的sproto
 		__tcache = setmetatable( {} , weak_mt ),
 		__pcache = setmetatable( {} , weak_mt ),
 	}
@@ -38,11 +39,12 @@ function sproto.parse(ptext)
 	return sproto.new(pbin)
 end
 
+--
 function sproto:host( packagename )
-	packagename = packagename or  "package"
+	packagename = packagename or  "package" --默认类型名为package
 	local obj = {
 		__proto = self,
-		__package = assert(core.querytype(self.__cobj, packagename), "type package not found"),
+		__package = assert(core.querytype(self.__cobj, packagename), "type package not found"),--指向packagename对应的sproto_type
 		__session = {},
 	}
 	return setmetatable(obj, host_mt)
@@ -87,10 +89,11 @@ function sproto:pdecode(typename, ...)
 	return core.decode(st, core.unpack(...))
 end
 
+--从sproto self中检索协议pname
 local function queryproto(self, pname)
-	local v = self.__pcache[pname]
+	local v = self.__pcache[pname] --先读缓存
 	if not v then
-		local tag, req, resp = core.protocol(self.__cobj, pname)
+		local tag, req, resp = core.protocol(self.__cobj, pname) --检索协议，tag为协议index，req和resp为请求、响应的子协议
 		assert(tag, pname .. " not found")
 		if tonumber(pname) then
 			pname, tag = tag, pname
@@ -101,7 +104,7 @@ local function queryproto(self, pname)
 			name = pname,
 			tag = tag,
 		}
-		self.__pcache[pname] = v
+		self.__pcache[pname] = v --魂村
 		self.__pcache[tag]  = v
 	end
 
@@ -162,7 +165,7 @@ function sproto:default(typename, type)
 	if type == nil then
 		return core.default(querytype(self, typename))
 	else
-		local p = queryproto(self, typename)
+		local p = queryproto(self, typename) --
 		if type == "REQUEST" then
 			if p.request then
 				return core.default(p.request)
@@ -227,13 +230,15 @@ function host:dispatch(...)
 	end
 end
 
+--返回函数
 function host:attach(sp)
+    --name为协议名，args为传递的真实数据，session为编号，ud为
 	return function(name, args, session, ud)
-		local proto = queryproto(sp, name)
-		header_tmp.type = proto.tag
-		header_tmp.session = session
-		header_tmp.ud = ud
-		local header = core.encode(self.__package, header_tmp)
+		local proto = queryproto(sp, name) --检索协议，返回协议信息
+		header_tmp.type = proto.tag --用协议的index作为类型
+		header_tmp.session = session --消息编号
+		header_tmp.ud = ud           --
+		local header = core.encode(self.__package, header_tmp) --编码头部
 
 		if session then
 			self.__session[session] = proto.response or true

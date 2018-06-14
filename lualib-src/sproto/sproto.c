@@ -12,32 +12,35 @@
 #define SIZEOF_HEADER 2
 #define SIZEOF_FIELD 2
 
+/* field结构体 */
 struct field {
-	int tag;
-	int type;
-	const char * name;
+	int tag;//index
+	int type;//类型，当为SPROTO_TSTRUCT是st字段指向具体的type类型，如果field为数组则会添加SPROTO_TARRAY标记
+	const char * name;//字段名
 	struct sproto_type * st;
-	int key;
+	int key;//field指向type类型的字段
 };
 
+/* type类型的结构体 */
 struct sproto_type {
-	const char * name;
-	int n;
-	int base;
-	int maxn;
+	const char * name;//协议名
+	int n;//filed nums
+	int base;//初始index
+	int maxn;//有效最大filed nums，如果有index跳跃，则在n的基础上加1
 	struct field *f;
 };
 
 struct protocol {
-	const char *name;
-	int tag;
-	struct sproto_type * p[2];
+	const char *name; //协议名
+	int tag; //索引
+	struct sproto_type * p[2];//request和response两个子协议指向的相应的type
 };
 
 struct chunk {
 	struct chunk * next;
 };
 
+//
 struct pool {
 	struct chunk * header;
 	struct chunk * current;
@@ -46,10 +49,10 @@ struct pool {
 
 struct sproto {
 	struct pool memory;
-	int type_n;
-	int protocol_n;
-	struct sproto_type * type;
-	struct protocol * proto;
+	int type_n;//type数组的长度
+	int protocol_n;//protocol数组的长度
+	struct sproto_type * type;//type数组指针
+	struct protocol * proto;//protocol数组指针
 };
 
 static void
@@ -69,35 +72,37 @@ pool_release(struct pool *p) {
 	}
 }
 
+/* 分配新chunk内存块 */
 static void *
 pool_newchunk(struct pool *p, size_t sz) {
 	struct chunk * t = malloc(sz + sizeof(struct chunk));
 	if (t == NULL)
 		return NULL;
 	t->next = p->header;
-	p->header = t;
+	p->header = t;//头部插入
 	return t+1;
 }
 
+/* 分配一个内存，放到pool中 */
 static void *
 pool_alloc(struct pool *p, size_t sz) {
 	// align by 8
-	sz = (sz + 7) & ~7;
+	sz = (sz + 7) & ~7; //对齐
 	if (sz >= CHUNK_SIZE) {
 		return pool_newchunk(p, sz);
 	}
 	if (p->current == NULL) {
-		if (pool_newchunk(p, CHUNK_SIZE) == NULL)
+		if (pool_newchunk(p, CHUNK_SIZE) == NULL) //一次分配chunk_size的内存，多次使用
 			return NULL;
 		p->current = p->header;
 	}
 	if (sz + p->current_used <= CHUNK_SIZE) {
-		void * ret = (char *)(p->current+1) + p->current_used;
+		void * ret = (char *)(p->current+1) + p->current_used;//计算free addr
 		p->current_used += sz;
 		return ret;
 	}
 
-	if (sz >= p->current_used) {
+	if (sz >= p->current_used) { //sz>current_use and sz+current_use>chunk_size ,所以sz肯定大于一半的chunk_size,分配一整块
 		return pool_newchunk(p, sz);
 	} else {
 		void * ret = pool_newchunk(p, CHUNK_SIZE);
@@ -117,16 +122,17 @@ todword(const uint8_t *p) {
 	return p[0] | p[1]<<8 | p[2]<<16 | p[3]<<24;
 }
 
+//计算数组长度
 static int
 count_array(const uint8_t * stream) {
-	uint32_t length = todword(stream);
+	uint32_t length = todword(stream);//先读取4个字节的length
 	int n = 0;
 	stream += SIZEOF_LENGTH;
 	while (length > 0) {
 		uint32_t nsz;
 		if (length < SIZEOF_LENGTH)
 			return -1;
-		nsz = todword(stream);
+		nsz = todword(stream);//依次读取每个数组成员的长度，直到解析的尾部
 		nsz += SIZEOF_LENGTH;
 		if (nsz > length)
 			return -1;
@@ -138,27 +144,28 @@ count_array(const uint8_t * stream) {
 	return n;
 }
 
+//计算本struct的field数量
 static int
 struct_field(const uint8_t * stream, size_t sz) {
 	const uint8_t * field;
 	int fn, header, i;
-	if (sz < SIZEOF_LENGTH)
+	if (sz < SIZEOF_LENGTH) //
 		return -1;
-	fn = toword(stream);
-	header = SIZEOF_HEADER + SIZEOF_FIELD * fn;
+	fn = toword(stream);//读取头两个字节，头两个字节代表了field的个数，后跟fn个（空word）
+	header = SIZEOF_HEADER + SIZEOF_FIELD * fn; //两个字节的length+空word 组成header
 	if (sz < header)
 		return -1;
-	field = stream + SIZEOF_HEADER;
+	field = stream + SIZEOF_HEADER;//field部分
 	sz -= header;
 	stream += header;
 	for (i=0;i<fn;i++) {
-		int value= toword(field + i * SIZEOF_FIELD);
+		int value= toword(field + i * SIZEOF_FIELD);//
 		uint32_t dsz;
 		if (value != 0)
 			continue;
 		if (sz < SIZEOF_LENGTH)
 			return -1;
-		dsz = todword(stream);
+		dsz = todword(stream);//读取第一部分的长度
 		if (sz < SIZEOF_LENGTH + dsz)
 			return -1;
 		stream += SIZEOF_LENGTH + dsz;
@@ -168,6 +175,7 @@ struct_field(const uint8_t * stream, size_t sz) {
 	return fn;
 }
 
+//解析string
 static const char *
 import_string(struct sproto *s, const uint8_t * stream) {
 	uint32_t sz = todword(stream);
@@ -177,6 +185,7 @@ import_string(struct sproto *s, const uint8_t * stream) {
 	return buffer;
 }
 
+//解析field
 static const uint8_t *
 import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	uint32_t sz;
@@ -191,22 +200,22 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	f->st = NULL;
 	f->key = -1;
 
-	sz = todword(stream);
+	sz = todword(stream);//读取
 	stream += SIZEOF_LENGTH;
 	result = stream + sz;
-	fn = struct_field(stream, sz);
+	fn = struct_field(stream, sz); //一个field包含type name 等等属性，fn即属性数量
 	if (fn < 0)
 		return NULL;
-	stream += SIZEOF_HEADER;
-	for (i=0;i<fn;i++) {
+	stream += SIZEOF_HEADER;//跳过\0\0空字符
+	for (i=0;i<fn;i++) {//依次解析filed的属性
 		int value;
 		++tag;
-		value = toword(stream + SIZEOF_FIELD * i);
-		if (value & 1) {
+		value = toword(stream + SIZEOF_FIELD * i);//读取字段属性
+		if (value & 1) {//第一个值为1，说明非内置类型
 			tag+= value/2;
 			continue;
 		}
-		if (tag == 0) { // name
+		if (tag == 0) {
 			if (value != 0)
 				return NULL;
 			f->name = import_string(s, stream + fn * SIZEOF_FIELD);
@@ -247,7 +256,7 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 		return NULL;
 	f->type |= array;
 
-	return result;
+	return result;//返回下一个filed的指针
 }
 
 /*
@@ -263,42 +272,46 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	fields 1 : *field
 }
 */
+/* 导入type数据 */
 static const uint8_t *
 import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 	const uint8_t * result;
-	uint32_t sz = todword(stream);
+	uint32_t sz = todword(stream); //读四个字节的type长度
 	int i;
 	int fn;
 	int n;
 	int maxn;
 	int last;
 	stream += SIZEOF_LENGTH;
-	result = stream + sz;
-	fn = struct_field(stream, sz);
+	result = stream + sz;//此时result指向下一个type的地址
+
+	fn = struct_field(stream, sz);//有的type只有name而没有定义结构，所以fn为1，有的都有定义fn为2
 	if (fn <= 0 || fn > 2)
 		return NULL;
+
 	for (i=0;i<fn*SIZEOF_FIELD;i+=SIZEOF_FIELD) {
 		// name and fields must encode to 0
-		int v = toword(stream + SIZEOF_HEADER + i);
+		int v = toword(stream + SIZEOF_HEADER + i);  //fn后跟着fn个"\0\0"串
 		if (v != 0)
 			return NULL;
 	}
 	memset(t, 0, sizeof(*t));
-	stream += SIZEOF_HEADER + fn * SIZEOF_FIELD;
-	t->name = import_string(s, stream);
-	if (fn == 1) {
+	stream += SIZEOF_HEADER + fn * SIZEOF_FIELD;//跳过空串，此时到了type下结构体的filed字节
+	t->name = import_string(s, stream);//读取type name
+	if (fn == 1) {//fn=1说明没有filed array
 		return result;
 	}
-	stream += todword(stream)+SIZEOF_LENGTH;	// second data
-	n = count_array(stream);
+	stream += todword(stream)+SIZEOF_LENGTH;	// 跳过type name部分
+
+	n = count_array(stream);//计算filed的数量
 	if (n<0)
 		return NULL;
-	stream += SIZEOF_LENGTH;
+	stream += SIZEOF_LENGTH;//跳过filed的长度
 	maxn = n;
 	last = -1;
 	t->n = n;
-	t->f = pool_alloc(&s->memory, sizeof(struct field) * n);
-	for (i=0;i<n;i++) {
+	t->f = pool_alloc(&s->memory, sizeof(struct field) * n);//分配n个filed的内存
+	for (i=0;i<n;i++) { //依次解析filed 
 		int tag;
 		struct field *f = &t->f[i];
 		stream = import_field(s, f, stream);
@@ -332,14 +345,14 @@ import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 static const uint8_t *
 import_protocol(struct sproto *s, struct protocol *p, const uint8_t * stream) {
 	const uint8_t * result;
-	uint32_t sz = todword(stream);
+	uint32_t sz = todword(stream);//protocol的长度
 	int fn;
 	int i;
 	int tag;
 	stream += SIZEOF_LENGTH;
-	result = stream + sz;
-	fn = struct_field(stream, sz);
-	stream += SIZEOF_HEADER;
+	result = stream + sz;//指向下一个protocol的指针
+	fn = struct_field(stream, sz); //计算字段个数
+	stream += SIZEOF_HEADER; //跳过头部的\4\0两个字节
 	p->name = NULL;
 	p->tag = -1;
 	p->p[SPROTO_REQUEST] = NULL;
@@ -387,14 +400,15 @@ import_protocol(struct sproto *s, struct protocol *p, const uint8_t * stream) {
 	return result;
 }
 
+/* 根据定义的type以及package的字节流原型创建sproto */
 static struct sproto *
 create_from_bundle(struct sproto *s, const uint8_t * stream, size_t sz) {
 	const uint8_t * content;
 	const uint8_t * typedata = NULL;
 	const uint8_t * protocoldata = NULL;
-	int fn = struct_field(stream, sz);
+	int fn = struct_field(stream, sz); //解析stream有fn部分组成
 	int i;
-	if (fn < 0 || fn > 2)
+	if (fn < 0 || fn > 2) //最多两部分，type and protocol
 		return NULL;
 
 	stream += SIZEOF_HEADER;
@@ -405,9 +419,10 @@ create_from_bundle(struct sproto *s, const uint8_t * stream, size_t sz) {
 		int n;
 		if (value != 0)
 			return NULL;
-		n = count_array(content);
+		n = count_array(content);//计算type和protocol数组的数量
 		if (n<0)
 			return NULL;
+		//依次分配type protocol数组
 		if (i == 0) {
 			typedata = content+SIZEOF_LENGTH;
 			s->type_n = n;
@@ -420,12 +435,15 @@ create_from_bundle(struct sproto *s, const uint8_t * stream, size_t sz) {
 		content += todword(content) + SIZEOF_LENGTH;
 	}
 
+	//依次导入类型数据
 	for (i=0;i<s->type_n;i++) {
 		typedata = import_type(s, &s->type[i], typedata);
 		if (typedata == NULL) {
 			return NULL;
 		}
 	}
+
+	//依次导入protocol数据
 	for (i=0;i<s->protocol_n;i++) {
 		protocoldata = import_protocol(s, &s->proto[i], protocoldata);
 		if (protocoldata == NULL) {
@@ -436,12 +454,13 @@ create_from_bundle(struct sproto *s, const uint8_t * stream, size_t sz) {
 	return s;
 }
 
+/* 创建sproto */
 struct sproto *
 sproto_create(const void * proto, size_t sz) {
 	struct pool mem;
 	struct sproto * s;
 	pool_init(&mem);
-	s = pool_alloc(&mem, sizeof(*s));
+	s = pool_alloc(&mem, sizeof(*s));//分配内存
 	if (s == NULL)
 		return NULL;
 	memset(s, 0, sizeof(*s));
@@ -512,7 +531,7 @@ sproto_dump(struct sproto *s) {
 	}
 }
 
-// query
+// query 协议，name为协议名
 int
 sproto_prototag(const struct sproto *sp, const char * name) {
 	int i;
@@ -524,6 +543,7 @@ sproto_prototag(const struct sproto *sp, const char * name) {
 	return -1;
 }
 
+/* 通过索引查找protocol */
 static struct protocol *
 query_proto(const struct sproto *sp, int tag) {
 	int begin = 0, end = sp->protocol_n;
@@ -858,6 +878,7 @@ encode_array(sproto_callback cb, struct sproto_arg *args, uint8_t *data, int siz
 	return fill_size(data, sz);
 }
 
+/* sproto的编码函数 */
 int
 sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_callback cb, void *ud) {
 	struct sproto_arg args;

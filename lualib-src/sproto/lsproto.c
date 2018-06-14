@@ -60,16 +60,16 @@ static lua_Integer lua_tointegerx(lua_State *L, int idx, int *isnum) {
 
 #endif
 
-/* sproto.core.newproto */
+/* sproto.core.newproto函数，创建一个sproto原型 */
 static int
 lnewproto(lua_State *L) {
 	struct sproto * sp;
 	size_t sz;
-	void * buffer = (void *)luaL_checklstring(L,1,&sz);
-	sp = sproto_create(buffer, sz);
+	void * buffer = (void *)luaL_checklstring(L,1,&sz);//取字符串
+	sp = sproto_create(buffer, sz);//
 	if (sp) {
 		lua_pushlightuserdata(L, sp);
-		return 1;
+		return 1;//以light userdata的类型返回
 	}
 	return 0;
 }
@@ -84,6 +84,7 @@ ldeleteproto(lua_State *L) {
 	return 0;
 }
 
+/* 检索type，返回 */
 static int
 lquerytype(lua_State *L) {
 	const char * type_name;
@@ -254,7 +255,7 @@ expand_buffer(lua_State *L, int osz, int nsz) {
 	return output;
 }
 
-/*
+/*  sproto.core.encode函数
 	lightuserdata sproto_type
 	table source
 
@@ -263,10 +264,10 @@ expand_buffer(lua_State *L, int osz, int nsz) {
 static int
 lencode(lua_State *L) {
 	struct encode_ud self;
-	void * buffer = lua_touserdata(L, lua_upvalueindex(1));
-	int sz = lua_tointeger(L, lua_upvalueindex(2));
+	void * buffer = lua_touserdata(L, lua_upvalueindex(1));//buffer 
+	int sz = lua_tointeger(L, lua_upvalueindex(2));//buffer的长度
 	int tbl_index = 2;
-	struct sproto_type * st = lua_touserdata(L, 1);
+	struct sproto_type * st = lua_touserdata(L, 1);//第一个参数为sproto_type，
 	if (st == NULL) {
 		return luaL_argerror(L, 1, "Need a sproto_type object");
 	}
@@ -522,6 +523,7 @@ pushfunction_withbuffer(lua_State *L, const char * name, lua_CFunction func) {
 	lua_setfield(L, -2, name);
 }
 
+/* sproto.core.protocol函数，用于检索 */
 static int
 lprotocol(lua_State *L) {
 	struct sproto * sp = lua_touserdata(L, 1);
@@ -532,15 +534,15 @@ lprotocol(lua_State *L) {
 	if (sp == NULL) {
 		return luaL_argerror(L, 1, "Need a sproto_type object");
 	}
-	t = lua_type(L,2);
-	if (t == LUA_TNUMBER) {
+	t = lua_type(L,2); 
+	if (t == LUA_TNUMBER) {//通过index查找
 		const char * name;
 		tag = lua_tointeger(L, 2);
-		name = sproto_protoname(sp, tag);
+		name = sproto_protoname(sp, tag);//通过index查找protocol，name为协议名
 		if (name == NULL)
 			return 0;
-		lua_pushstring(L, name);
-	} else {
+		lua_pushstring(L, name);//压入协议名
+	} else {//通过协议名查找
 		const char * name = lua_tostring(L, 2);
 		if (name == NULL) {
 			return luaL_argerror(L, 2, "Should be number or string");
@@ -548,21 +550,21 @@ lprotocol(lua_State *L) {
 		tag = sproto_prototag(sp, name);
 		if (tag < 0)
 			return 0;
-		lua_pushinteger(L, tag);
+		lua_pushinteger(L, tag); //压入协议index
 	}
-	request = sproto_protoquery(sp, tag, SPROTO_REQUEST);
+	request = sproto_protoquery(sp, tag, SPROTO_REQUEST);//协议的request子协议
 	if (request == NULL) {
 		lua_pushnil(L);
 	} else {
 		lua_pushlightuserdata(L, request);
 	}
-	response = sproto_protoquery(sp, tag, SPROTO_RESPONSE);
+	response = sproto_protoquery(sp, tag, SPROTO_RESPONSE);//协议的response子协议
 	if (response == NULL) {
 		lua_pushnil(L);
 	} else {
 		lua_pushlightuserdata(L, response);
 	}
-	return 3;
+	return 3;//返回3个
 }
 
 /* global sproto pointer for multi states
