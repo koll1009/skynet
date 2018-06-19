@@ -107,8 +107,8 @@ struct encode_ud {
 	lua_State *L;
 	struct sproto_type *st;//编码的类型
 	int tbl_index;//指向初始化该类型的table
-	const char * array_tag;
-	int array_index;//
+	const char * array_tag;//数组指向的field name
+	int array_index;//数组中的索引
 	int deep;//深度
 	int iter_index;//迭代器索引
 };
@@ -121,11 +121,11 @@ encode(const struct sproto_arg *args) {
 	if (self->deep >= ENCODE_DEEPLEVEL)//最大嵌套层数
 		return luaL_error(L, "The table is too deep");
 	if (args->index > 0) {//数组类型
-		if (args->tagname != self->array_tag) {
+		if (args->tagname != self->array_tag) {//初始化一个新的数组
 			// a new array
-			self->array_tag = args->tagname;
-			lua_getfield(L, self->tbl_index, args->tagname);
-			if (lua_isnil(L, -1)) {
+			self->array_tag = args->tagname;//赋值
+			lua_getfield(L, self->tbl_index, args->tagname);//取数组table
+			if (lua_isnil(L, -1)) {//空数组
 				if (self->array_index) {
 					lua_replace(L, self->array_index);
 				}
@@ -276,13 +276,13 @@ lencode(lua_State *L) {
 	luaL_checktype(L, tbl_index, LUA_TTABLE);//第二个参数必须为table，即用来初始化sproto_type的值
 	luaL_checkstack(L, ENCODE_DEEPLEVEL*2 + 8, NULL);
 	self.L = L;
-	self.st = st;
-	self.tbl_index = tbl_index;
+	self.st = st;//sproto type
+	self.tbl_index = tbl_index; //传入数据table的索引
 	for (;;) {
 		int r;
 		self.array_tag = NULL;
 		self.array_index = 0;
-		self.deep = 0;
+		self.deep = 0;//层级
 
 		lua_settop(L, tbl_index);
 		lua_pushnil(L);	// for iterator (stack slot 3) 压入一个nil值
@@ -685,7 +685,7 @@ luaopen_sproto_core(lua_State *L) {
 		{ NULL, NULL },
 	};
 	luaL_newlib(L,l);
-	pushfunction_withbuffer(L, "encode", lencode);
+	pushfunction_withbuffer(L, "encode", lencode);//带buffer
 	pushfunction_withbuffer(L, "pack", lpack);
 	pushfunction_withbuffer(L, "unpack", lunpack);
 	return 1;

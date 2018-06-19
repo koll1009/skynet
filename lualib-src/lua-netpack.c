@@ -304,6 +304,7 @@ filter_data_(lua_State *L, int fd, uint8_t * buffer, int size) {
 	}
 }
 
+//接收到的数据过滤
 static inline int
 filter_data(lua_State *L, int fd, uint8_t * buffer, int size) {
 	int ret = filter_data_(L, fd, buffer, size);
@@ -337,7 +338,7 @@ lfilter(lua_State *L) {
 	struct skynet_socket_message *message = lua_touserdata(L,2); //socket消息的data
 	int size = luaL_checkinteger(L,3);//数据长度
 	char * buffer = message->buffer;
-	if (buffer == NULL) { //说明msg data跟在skynet_socket_message结构后面
+	if (buffer == NULL) { //除read data外的其他socket事件，数据用的buffer来保存，所以在向服务发送消息时，会把数据copy到message的后面
 		buffer = (char *)(message+1);
 		size -= sizeof(*message);
 	} else {
@@ -351,7 +352,7 @@ lfilter(lua_State *L) {
 		// ignore listen id (message->id)
 		assert(size == -1);	// never padding string
 		return filter_data(L, message->id, (uint8_t *)buffer, message->ud);
-	case SKYNET_SOCKET_TYPE_CONNECT:
+	case SKYNET_SOCKET_TYPE_CONNECT: //忽略start
 		// ignore listen fd connect
 		return 1;
 	case SKYNET_SOCKET_TYPE_CLOSE:
@@ -462,6 +463,7 @@ ltostring(lua_State *L) {
 	return 1;
 }
 
+//网络数据pack库
 int
 luaopen_netpack(lua_State *L) {
 	luaL_checkversion(L);
@@ -482,7 +484,7 @@ luaopen_netpack(lua_State *L) {
 	lua_pushliteral(L, "close");
 	lua_pushliteral(L, "warning");
 
-	lua_pushcclosure(L, lfilter, 6);
+	lua_pushcclosure(L, lfilter, 6); //添加6个upvalue，用于把skynet socket type转换成相应的cmd string
 	lua_setfield(L, -2, "filter");
 
 	return 1;

@@ -29,6 +29,7 @@ end
 
 local node_channel = setmetatable({}, { __index = open_channel })
 
+--加载配置，
 local function loadconfig()
 	local f = assert(io.open(config_name))
 	local source = f:read "*a"
@@ -52,12 +53,13 @@ function command.reload()
 	skynet.ret(skynet.pack(nil))
 end
 
+--监听端口，实现rpc
 function command.listen(source, addr, port)
 	local gate = skynet.newservice("gate")
 	if port == nil then
 		addr, port = string.match(node_address[addr], "([^:]+):(.*)$")
 	end
-	skynet.call(gate, "lua", "open", { address = addr, port = port })
+	skynet.call(gate, "lua", "open", { address = addr, port = port }) --开启监听
 	skynet.ret(skynet.pack(nil))
 end
 
@@ -73,6 +75,7 @@ local function send_request(source, node, addr, msg, sz)
 	return c:request(request, session, padding)
 end
 
+--请求，返回响应
 function command.req(...)
 	local ok, msg, sz = pcall(send_request, ...)
 	if ok then
@@ -89,6 +92,7 @@ end
 
 local proxy = {}
 
+--远程代理，实现通过
 function command.proxy(source, node, name)
 	local fullname = node .. "." .. name
 	if proxy[fullname] == nil then
@@ -114,8 +118,9 @@ end
 
 local large_request = {}
 
+--网关会把接收到的数据转发到clusterd服务处理
 function command.socket(source, subcmd, fd, msg)
-	if subcmd == "data" then
+	if subcmd == "data" then --监听到数据
 		local sz
 		local addr, session, msg, padding = cluster.unpackrequest(msg)
 		if padding then
@@ -164,7 +169,7 @@ function command.socket(source, subcmd, fd, msg)
 			response = cluster.packresponse(session, false, msg)
 			socket.write(fd, response)
 		end
-	elseif subcmd == "open" then
+	elseif subcmd == "open" then --监听到连接
 		skynet.error(string.format("socket accept from %s", msg))
 		skynet.call(source, "lua", "accept", fd)
 	else

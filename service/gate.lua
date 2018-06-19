@@ -17,6 +17,7 @@ function handler.open(source, conf)
 	watchdog = conf.watchdog or source --设置gate服务对应的watchdog服务
 end
 
+--接收到数据
 function handler.message(fd, msg, sz)
 	-- recv a package, forward it
 	local c = connection[fd]
@@ -79,9 +80,10 @@ function CMD.forward(source, fd, client, address)
 	gateserver.openclient(fd)
 end
 
+--监听到连接，开启接收数据
 function CMD.accept(source, fd)
 	local c = assert(connection[fd])
-	unforward(c)
+	unforward(c) --不转发到agent
 	gateserver.openclient(fd)
 end
 

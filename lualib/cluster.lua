@@ -3,11 +3,13 @@ local skynet = require "skynet"
 local clusterd
 local cluster = {}
 
+--远程调用，返回响应
 function cluster.call(node, address, ...)
 	-- skynet.pack(...) will free by cluster.core.packrequest
 	return skynet.call(clusterd, "lua", "req", node, address, skynet.pack(...))
 end
 
+--开启该远程端口
 function cluster.open(port)
 	if type(port) == "string" then
 		skynet.call(clusterd, "lua", "listen", port)
@@ -16,6 +18,7 @@ function cluster.open(port)
 	end
 end
 
+--重新加载，会重置node_address表
 function cluster.reload()
 	skynet.call(clusterd, "lua", "reload")
 end

@@ -723,6 +723,7 @@ uint32_to_uint64(int negative, uint8_t *buffer) {
 	}
 }
 
+/* 编码整型数组 */
 static uint8_t *
 encode_integer_array(sproto_callback cb, struct sproto_arg *args, uint8_t *buffer, int size, int *noarray) {
 	uint8_t * header = buffer;
@@ -744,7 +745,7 @@ encode_integer_array(sproto_callback cb, struct sproto_arg *args, uint8_t *buffe
 		} u;
 		args->value = &u;
 		args->length = sizeof(u);
-		args->index = index;
+		args->index = index;//数组中的索引
 		sz = cb(args);
 		if (sz <= 0) {
 			if (sz == SPROTO_CB_NIL) // nil object, end of array
@@ -820,7 +821,7 @@ encode_array(sproto_callback cb, struct sproto_arg *args, uint8_t *data, int siz
 	size -= SIZEOF_LENGTH;
 	buffer = data + SIZEOF_LENGTH;
 	switch (args->type) {
-	case SPROTO_TINTEGER: {
+	case SPROTO_TINTEGER: {//整型数组
 		int noarray;
 		buffer = encode_integer_array(cb,args,buffer,size, &noarray);
 		if (buffer == NULL)
@@ -962,7 +963,7 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 			}
 			record = header+SIZEOF_HEADER+SIZEOF_FIELD*index;
 			tag = f->tag - lasttag - 1;
-			if (tag > 0) {
+			if (tag > 0) { //对于允许为空的字段，记录索引值，代表跳过了几个index
 				// skip tag
 				tag = (tag - 1) * 2 + 1;
 				if (tag > 0xffff)
